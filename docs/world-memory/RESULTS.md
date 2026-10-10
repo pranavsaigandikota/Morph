@@ -33,3 +33,20 @@ Outputs: world-memory/obstacle-cpu/{observations.json,relative-depth.png,relativ
 ## Recommendation
 
 GO for Cursor integration of basic checkpoint/estimated-navigation/raw-restore backend in an isolated demo. NO-GO for claiming sustained coherent60s visuals, accurate obstacle geometry, autonomous pathfinding through video, enhancement repair or complete frontend memory integration. Keep6423304 as judging fallback. Use a visually reviewed initial/early checkpoint for explicit restoration; never silently select a degraded latest frame or label an AI-inferred obstacle as a verified physical object.
+
+## World Memory API v1.1 GPU smoke (branch `claude/live-memory-backend`, 2026-10-10)
+
+Real native 1280×720 Waypoint on :8002 (`Start-LiveMemoryBackend.ps1`), human-approved Florida SDXL HIGH
+seed `9bda60c5d71a411680f71969c487684d`, headless Node client `experiments/smoke-live-memory.mjs` acknowledging
+every frame. One world, ~36 s, 205 received frames. **19/19 checks passed**: v1.1 capabilities; 1280×720
+frames; two guided-calibration captures (`capture_reason:'calibration'`, soft labels `forward`/`right`) saved
+unapproved; invalid calibration requests rejected 422; served raw bytes match `image_sha256`; light
+navigation read and incremental read; review with reviewer/reason; unreviewed calibration capture refused
+restore (409); approved restore → epoch 2, `anchor_kind:'checkpoint_restore'`, `restored_from_checkpoint_id`
+set, new segment (recovery 180.4 ms server-side); reset → epoch 3, `anchor_kind:'reset_to_seed'`; 18 memory
+events, zero stale-epoch; zero stream errors. World stopped cleanly; model load count 1; archived :8000 untouched.
+
+Limits: smoke, not a benchmark. The 31.3 received-FPS figure spans restore/reset pauses in a headless
+client and is not comparable to browser canvas FPS. The nominal yaw after the "right" turn (0.272 rad) is
+diagnostic only. A0 established no mouse-to-angle mapping, so it is not an angle. Report:
+`experiments/backend/results/smoke-live-memory-1791666519571.json` (local, gitignored).
