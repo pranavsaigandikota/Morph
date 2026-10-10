@@ -11,9 +11,9 @@ from world_engine import CtrlInput, WorldEngine
 
 from .protocol import BUTTONS
 
-MODEL = os.environ.get('WORLDSHIFT_EXPERIMENT_MODEL', 'Overworld/Waypoint-1.5-1B')
-if MODEL not in ('Overworld/Waypoint-1.5-1B', 'Overworld/Waypoint-1.5-1B-360P'):
-    raise ValueError('Only verified Waypoint profiles supported')
+MODEL = 'Overworld/Waypoint-1.5-1B'
+if os.environ.get('WORLDSHIFT_EXPERIMENT_MODEL', MODEL) != MODEL:
+    raise ValueError('This visual experience supports native 1280x720 Waypoint only')
 
 
 class Backend:

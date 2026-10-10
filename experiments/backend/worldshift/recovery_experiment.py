@@ -29,7 +29,7 @@ class ReferenceMemory(Memory):
 @asynccontextmanager
 async def lifespan(app):
     async with combined_lifespan(app):
-        root=ROOT/'recovery_evaluation';root.mkdir(exist_ok=True)
+        root=ROOT/'native720_recovery';root.mkdir(exist_ok=True)
         app.state.service.visual_memory=ReferenceMemory(app.state.service,root)
         yield
         await app.state.service.visual_memory.finish()

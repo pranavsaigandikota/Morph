@@ -4,7 +4,7 @@ import { defineConfig, loadEnv } from 'vite'
 
 /**
  * Proxies /engine → Codex Waypoint (VITE_WORLD_API_BASE_URL / ENGINE_TARGET).
- * Default http://127.0.0.1:8000. For cloud mock testing set ENGINE_TARGET=http://127.0.0.1:4822.
+ * Default native 720p http://127.0.0.1:8002. Cloud mock testing requires an explicit target.
  */
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
     env.VITE_WORLD_API_BASE_URL ||
     process.env.ENGINE_TARGET ||
     process.env.VITE_WORLD_API_BASE_URL ||
-    'http://127.0.0.1:8000'
+    'http://127.0.0.1:8002'
   const mockTarget = 'http://127.0.0.1:4822'
 
   return {
@@ -39,7 +39,7 @@ export default defineConfig(({ mode }) => {
                   JSON.stringify({
                     error: 'engine_unreachable',
                     target: engineTarget,
-                    hint: 'Start Codex Waypoint on :8000, or ENGINE_TARGET=http://127.0.0.1:4822 for protocol mock',
+                    hint: 'Start native 720p Waypoint on :8002. No lower-resolution fallback is supported.',
                   }),
                 )
               }

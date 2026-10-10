@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict'
+import {takePresentationFrame,PRESENTATION_QUEUE_LIMIT} from '../src/services/presentationQueue'
+const burst=()=>[1,2,3,4].map(id=>({id,receivedAt:100,header:{epoch:2}}))
+const queue=burst()
+const drawn=[110,145,180,215].map(t=>takePresentationFrame(queue,t,2).frame?.id)
+assert.deepEqual(drawn,[1,2,3,4],'all four genuine frames must survive a paced burst')
+assert.equal(PRESENTATION_QUEUE_LIMIT,4)
+const old=burst()
+const stale=takePresentationFrame(old,241,2)
+assert.equal(stale.skipped,4);assert.equal(stale.frame,undefined,'a stalled browser must not replay old frames')
+const epoch=burst();epoch.push({id:5,receivedAt:120,header:{epoch:3}})
+const restored=takePresentationFrame(epoch,130,3)
+assert.equal(restored.skipped,4);assert.equal(restored.frame?.id,5,'old epochs must never display after restoration')
+assert.equal(takePresentationFrame([],130,3).frame,undefined,'empty queues must not manufacture frames')
+console.log('Native720 presentation: burst ordering, age cutoff, epoch invalidation and no invented frames PASS')

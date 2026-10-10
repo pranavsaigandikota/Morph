@@ -4,6 +4,7 @@ backend/results/
 backend/saved_scenes/
 backend/world_memory/
 backend/recovery_evaluation/
+backend/native720_recovery/
 tests/__pycache__/
 __pycache__/
 backend/worldshift/__pycache__/

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { streamUrl } from '../services/engineConfig'
 import { worldApi } from '../services/worldApi'
+import { PRESENTATION_QUEUE_LIMIT, PRESENTATION_FRAME_MS, takePresentationFrame } from '../services/presentationQueue'
 import {
   KEYCAPS,
   MOUSE_BTN,
@@ -36,9 +37,9 @@ interface WorldStreamState {
 }
 
 /** Max JPEG sub-frames waiting to paint. Keep short — favor current over stale. */
-const MAX_PRESENTATION_QUEUE = 3
-/** Target presentation cadence (~20 FPS browser-drawn, matching Codex verification). */
-const PRESENT_FRAME_MS = 1000 / 20
+const MAX_PRESENTATION_QUEUE = PRESENTATION_QUEUE_LIMIT
+/** Present native 720p real frame bursts at up to 30 canvas draws per second. */
+const PRESENT_FRAME_MS = PRESENTATION_FRAME_MS
 const CONTROL_MS = 50
 const METRICS_MS = 500
 
@@ -186,12 +187,10 @@ export function useWorldStream() {
     if (t - lastPresentRef.current < PRESENT_FRAME_MS) return
     lastPresentRef.current = t
 
-    // Prefer newest queued frame; discard stale intermediates for responsiveness.
-    while (queueRef.current.length > 1) {
-      queueRef.current.shift()
-      droppedRef.current += 1
-    }
-    const next = queueRef.current.shift()
+    // Four genuine frames arrive together. Preserve order within the short age budget.
+    const picked = takePresentationFrame(queueRef.current, performance.now(), epochRef.current)
+    droppedRef.current += picked.skipped
+    const next = picked.frame
     if (!next) return
 
     const canvas = canvasElRef.current
@@ -478,7 +477,7 @@ export function useWorldStream() {
           phase: 'error',
           error:
             probe.message ??
-            'Waypoint engine unreachable at configured origin (expected :8000). Is Codex serving? Use npm run dev:mock only if you explicitly want the protocol mock.',
+            'Native 720p Waypoint unavailable at configured origin (default :8002).',
           mock: false,
         }))
         return

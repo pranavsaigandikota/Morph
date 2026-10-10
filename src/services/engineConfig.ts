@@ -1,7 +1,7 @@
 /**
  * Codex Waypoint service endpoints (authoritative implemented protocol).
  *
- * Configure with VITE_WORLD_API_BASE_URL (default http://127.0.0.1:8000).
+ * Configure with VITE_WORLD_API_BASE_URL (native 720p default http://127.0.0.1:8002).
  *
  *   POST /world/start → session_id
  *   WS /world/stream?session_id=<id>
@@ -9,7 +9,7 @@
  *   ← control {type,seq,keys,mouse_dx,mouse_dy,timestamp_ms}; display_ack credit
  */
 
-const DEFAULT_ENGINE = 'http://127.0.0.1:8000'
+const DEFAULT_ENGINE = 'http://127.0.0.1:8002'
 
 /** Absolute backend origin (Codex on the user's PC). */
 export function worldApiBaseUrl(): string {
@@ -27,7 +27,7 @@ export function engineOrigin(): string {
 
 /**
  * Browser HTTP base. In Vite dev we use `/engine` proxy to avoid CORS when talking
- * to localhost:8000 from the Vite origin. Production / direct mode uses the absolute URL.
+ * to the native 720p service from the Vite origin. Direct mode uses the absolute URL.
  */
 export function engineHttpBase(): string {
   if (import.meta.env.VITE_ENGINE_HTTP) return import.meta.env.VITE_ENGINE_HTTP

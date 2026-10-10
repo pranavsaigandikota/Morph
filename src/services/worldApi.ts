@@ -25,8 +25,9 @@ export const worldApi = {
   async probe(): Promise<EngineStatus> {
     try {
       const h = await engineFetch<{status:string;model_loaded:boolean;model:string;error?:string}>('/health')
-      return {ok:h.model_loaded && h.status !== 'error', mock:false, engine:'Waypoint FP8',
-        model:h.model, temporal_compression:4, message:h.error || h.status}
+      const supported=h.model==='Overworld/Waypoint-1.5-1B'
+      return {ok:h.model_loaded && h.status !== 'error' && supported, mock:false, engine:'Waypoint native 720p FP8',
+        model:h.model, temporal_compression:4, message:supported?(h.error || h.status):'Native 1280×720 Waypoint required; unsupported model endpoint rejected.'}
     } catch(err) { return {ok:false,mock:false,message:String(err)} }
   },
   async start(prompt:string, seed?:string|null): Promise<{session_id:string}> {
