@@ -1,0 +1,30 @@
+{
+  "scene_id": "525ada0610df41b4ade7a2a805f0693a",
+  "kind": "generated",
+  "prompt": "An underwater base corridor with glass walls and coral outside",
+  "effective_prompt": "First-person perspective through the explorer's own eyes, eye-level view, immersive realistic game environment, no visible person, An underwater base corridor with glass walls and coral outside, visual style: cinematic",
+  "style": "cinematic",
+  "seed": 104,
+  "perspective": "first_person",
+  "model": "stabilityai/sdxl-turbo",
+  "revision": "71153311d3dbb46851df1931d3ca6e939de83304",
+  "steps": 4,
+  "guidance_scale": 0.0,
+  "model_width": 640,
+  "model_height": 384,
+  "width": 640,
+  "height": 360,
+  "created_at": "2026-10-10T08:41:19.219086+00:00",
+  "image_sha256": "f4675f2e68f4ad2b949cddc8e75c22e6de57927bf4309e7eb2fce86999413d2d",
+  "total_seconds": 3.0319108000003325,
+  "generation_seconds": 2.8832655000005616,
+  "image_process_peak_allocated_mb": 6864.11328125,
+  "image_process_peak_reserved_mb": 7106.0,
+  "image_url": "/scenes/525ada0610df41b4ade7a2a805f0693a/image",
+  "world_start_request": {
+    "scene_id": "525ada0610df41b4ade7a2a805f0693a",
+    "seed_image_path": "C:\\Users\\filma\\Documents\\Morph\\Codex Plus\\saved_scenes\\525ada0610df41b4ade7a2a805f0693a\\seed.png",
+    "prompt": "An underwater base corridor with glass walls and coral outside"
+  },
+  "preset_name": "underwater-base"
+}

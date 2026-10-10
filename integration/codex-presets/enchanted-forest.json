@@ -1,0 +1,30 @@
+{
+  "scene_id": "425643379fe140f19b89edaa956fcb60",
+  "kind": "generated",
+  "prompt": "An enchanted forest path with luminous mushrooms and ancient trees",
+  "effective_prompt": "First-person perspective through the explorer's own eyes, eye-level view, immersive realistic game environment, no visible person, An enchanted forest path with luminous mushrooms and ancient trees, visual style: fantasy",
+  "style": "fantasy",
+  "seed": 102,
+  "perspective": "first_person",
+  "model": "stabilityai/sdxl-turbo",
+  "revision": "71153311d3dbb46851df1931d3ca6e939de83304",
+  "steps": 4,
+  "guidance_scale": 0.0,
+  "model_width": 640,
+  "model_height": 384,
+  "width": 640,
+  "height": 360,
+  "created_at": "2026-10-10T08:41:12.461177+00:00",
+  "image_sha256": "ae0b5ecbce13d95734596db81d82439e01cffd6c51b906d7843a5eacd7a700e0",
+  "total_seconds": 3.1118424000014784,
+  "generation_seconds": 2.949251699999877,
+  "image_process_peak_allocated_mb": 6864.11328125,
+  "image_process_peak_reserved_mb": 7106.0,
+  "image_url": "/scenes/425643379fe140f19b89edaa956fcb60/image",
+  "world_start_request": {
+    "scene_id": "425643379fe140f19b89edaa956fcb60",
+    "seed_image_path": "C:\\Users\\filma\\Documents\\Morph\\Codex Plus\\saved_scenes\\425643379fe140f19b89edaa956fcb60\\seed.png",
+    "prompt": "An enchanted forest path with luminous mushrooms and ancient trees"
+  },
+  "preset_name": "enchanted-forest"
+}

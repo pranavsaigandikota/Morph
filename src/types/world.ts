@@ -21,6 +21,8 @@ export interface WorldFrameMeta {
   mime: string
   mock: boolean
   temporal_compression: number
+  epoch?:number
+  control_seq?:number
   client_ts?: number | null
 }
 

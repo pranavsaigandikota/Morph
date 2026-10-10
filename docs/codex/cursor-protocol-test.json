@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "checks": [
+    "Real model-loaded health schema",
+    "Documented HTTP endpoints present",
+    "Unsupported width/height rejected rather than silently ignored",
+    "Saved metadata, seed paths and genuine image endpoints available",
+    "16 actual frame JSON + separate complete JPEG messages and credit acknowledgments verified"
+  ],
+  "health": {
+    "status": "running",
+    "model_loaded": true,
+    "error": null,
+    "model": "Overworld/Waypoint-1.5-1B-360P",
+    "quant": "fp8w8a8",
+    "model_load_count": 1,
+    "prompt_conditioning": false
+  },
+  "websocket_checked": true
+}

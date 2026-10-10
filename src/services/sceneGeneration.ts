@@ -2,7 +2,7 @@
  * Text → seed-image adapter (Codex SDXL / scene API).
  *
  * Waypoint does NOT process the prompt. SDXL (or mock) produces the seed;
- * Waypoint makes it interactive over /stream?seed=.
+ * Waypoint makes it interactive via the saved image and /world/start.
  *
  * Prefer VITE_SCENE_API_BASE_URL; in Vite dev, default to /engine (proxied :8000).
  * Failed live generation surfaces an error — MOCK only via explicit request.
@@ -18,10 +18,11 @@ export interface GeneratedScene {
   style: WorldStyle
   /** Object URL or data URL of the seed preview */
   imageUrl: string
-  /** Seed token to pass to WS /stream?seed= */
+  /** Saved scene ID resolved before /world/start */
   seed: string | null
   mock: boolean
   createdAt: string
+  generationSeed?: number
   source?: string
 }
 
@@ -189,41 +190,26 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines
 }
 
-interface SceneApiBody {
-  id?: string
-  seed?: string
-  image_url?: string
-  imageUrl?: string
-  data_url?: string
-  mock?: boolean
-  style?: string
-  source?: string
+interface SceneMetadata {
+  scene_id:string;prompt:string;style?:string|null;seed:number;image_url:string;created_at:string
 }
-
-async function postSceneGenerate(
-  base: string,
-  prompt: string,
-  style: WorldStyle,
-): Promise<SceneApiBody> {
-  const paths = ['/scenes/generate', '/sdxl/generate', '/generate']
-  let lastErr: Error | null = null
-  for (const path of paths) {
-    try {
-      const res = await fetch(`${base}${path}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, style, width: 1280, height: 720 }),
-      })
-      if (!res.ok) {
-        lastErr = new Error(`Scene API ${res.status} at ${path}`)
-        continue
-      }
-      return (await res.json()) as SceneApiBody
-    } catch (err) {
-      lastErr = err instanceof Error ? err : new Error(String(err))
-    }
+function fromMetadata(m:SceneMetadata):GeneratedScene {
+  const style=WORLD_STYLES.some(s=>s.id===m.style)?m.style as WorldStyle:'cinematic'
+  return {id:m.scene_id,prompt:m.prompt,style,imageUrl:sceneApiBase()+m.image_url,
+    seed:m.scene_id,mock:false,createdAt:m.created_at,source:'sdxl',generationSeed:m.seed}
+}
+async function sceneRequest(path:string,init?:RequestInit) {
+  const res=await fetch(sceneApiBase()+path,init);const body=await res.json()
+  if(!res.ok) throw new Error(`Scene API ${res.status}: ${JSON.stringify(body.detail??body)}`)
+  return body
+}
+export async function listServerScenes():Promise<GeneratedScene[]> {
+  const result:GeneratedScene[]=[]
+  for(let offset=0;;offset+=100) {
+    const page=await sceneRequest(`/scenes?limit=100&offset=${offset}`)
+    result.push(...page.scenes.filter((m:{kind:string})=>m.kind==='generated').map(fromMetadata))
+    if(offset+100>=page.total) return result
   }
-  throw lastErr ?? new Error('Scene API unreachable')
 }
 
 export type GenerateMode = 'live' | 'mock'
@@ -235,6 +221,7 @@ export async function generateScene(
   prompt: string,
   options: {
     style?: WorldStyle
+    seed?: number | null
     mode?: GenerateMode
     onProgress?: (p: SceneProgress) => void
   } = {},
@@ -261,23 +248,18 @@ export async function generateScene(
     }
   }
 
-  const base = sceneApiBase()
-  onProgress?.({ stage: 'submitting', percent: 12, message: `Contacting SDXL at ${base}…` })
-  onProgress?.({ stage: 'generating', percent: 45, message: `Generating ${style} seed…` })
-
-  const body = await postSceneGenerate(base, trimmed, style)
-  const imageUrl = body.image_url || body.imageUrl || body.data_url || ''
-  if (!imageUrl && !body.seed) throw new Error('Scene API returned neither image nor seed')
-
-  onProgress?.({ stage: 'ready', percent: 100, message: 'Seed ready' })
-  return {
-    id: body.id ?? `scene_${Date.now().toString(36)}`,
-    prompt: trimmed,
-    style,
-    imageUrl,
-    seed: body.seed ?? null,
-    mock: !!body.mock,
-    createdAt: new Date().toISOString(),
-    source: body.source ?? 'sdxl',
+  onProgress?.({stage:'submitting',percent:5,message:'Submitting to local SDXL Turbo…'})
+  const submitted=await sceneRequest('/scenes/generate',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt:trimmed,style,seed:options.seed??null,steps:4,perspective:'first_person'})})
+  for(;;) {
+    const job=await sceneRequest(submitted.poll_url)
+    if(job.status==='error') throw new Error(job.error||'SDXL generation failed')
+    if(job.status==='ready') {
+      onProgress?.({stage:'ready',percent:100,message:'Real SDXL image saved; ready for Waypoint'})
+      return fromMetadata(job.metadata)
+    }
+    onProgress?.({stage:'generating',percent:10+80*job.step/job.total_steps,
+      message:`${job.phase.replaceAll('_',' ')} · ${job.step}/${job.total_steps} denoising steps`})
+    await new Promise(r=>setTimeout(r,500))
   }
 }

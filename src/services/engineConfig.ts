@@ -1,12 +1,12 @@
 /**
- * Codex Waypoint engine endpoints (Phase-2 protocol).
+ * Codex Waypoint service endpoints (authoritative implemented protocol).
  *
  * Configure with VITE_WORLD_API_BASE_URL (default http://127.0.0.1:8000).
  *
- *   WS  /stream?seed=<optional>
- *   → text hello { type, session_id, engine, width, height, temporal_compression, seed, mock? }
- *   → binary JPEG batch envelopes (waypointEnvelope.ts)
- *   ← text { type:"control", buttons, dx, dy, scroll, ts }
+ *   POST /world/start → session_id
+ *   WS /world/stream?session_id=<id>
+ *   → text frame metadata, then one complete binary JPEG per generated frame
+ *   ← control {type,seq,keys,mouse_dx,mouse_dy,timestamp_ms}; display_ack credit
  */
 
 const DEFAULT_ENGINE = 'http://127.0.0.1:8000'
@@ -49,9 +49,8 @@ export function engineWsUrl(pathWithQuery: string): string {
   return `${proto}//${window.location.host}${http.replace(/\/$/, '')}${pathWithQuery}`
 }
 
-export function streamUrl(seed?: string | null): string {
-  const q = seed ? `?seed=${encodeURIComponent(seed)}` : ''
-  return engineWsUrl(`/stream${q}`)
+export function streamUrl(sessionId: string): string {
+  return engineWsUrl(`/world/stream?session_id=${encodeURIComponent(sessionId)}`)
 }
 
 export function isDirectLocalEngine(): boolean {

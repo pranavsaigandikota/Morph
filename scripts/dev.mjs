@@ -22,9 +22,7 @@ const wantMock =
 
 async function probe(url) {
   try {
-    const r = await fetch(`${url}/healthz`, { signal: AbortSignal.timeout(800) }).catch(() =>
-      fetch(`${url}/health`, { signal: AbortSignal.timeout(800) }),
-    )
+    const r = await fetch(`${url}/health`, { signal: AbortSignal.timeout(800) })
     return r.ok
   } catch {
     return false
@@ -78,7 +76,7 @@ console.log(`[dev] ENGINE_TARGET / proxy → ${engineTarget}`)
 console.log(`[dev] VITE_WORLD_API_BASE_URL=${process.env.VITE_WORLD_API_BASE_URL || REAL}`)
 
 const vite = track(
-  spawn('npx', ['vite'], {
+  spawn(process.execPath, ['node_modules/vite/bin/vite.js'], {
     stdio: 'inherit',
     env: {
       ...process.env,
