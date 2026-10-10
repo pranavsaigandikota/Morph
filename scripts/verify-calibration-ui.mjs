@@ -31,6 +31,9 @@ check('user-guided policy forbids automatic fixed-angle', () => {
   assert.equal(s.policy.captureMode, 'user_guided_visual')
   assert.equal(s.seedRestoreRequired, true)
   assert.equal(s.seedRestoreDone, false)
+  assert.equal(s.transport, 'mock')
+  assert.equal(s.source, 'mock')
+  assert.equal(s.engineSessionId, null)
 })
 
 check('suggested labels are optional soft tags', () => {

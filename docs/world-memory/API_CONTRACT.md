@@ -1,17 +1,15 @@
 # World Memory API Contract
 
-**Status:** PENDING — Codex owns this document.
+**Status:** Checkpoint / estimated-navigation / raw-restore contract is published on
+`feature/worldshift-spatial-memory-backend` (`docs/world-memory/API_CONTRACT.md` on that branch).
 
-Until Codex publishes the authoritative schema, the frontend uses:
+Frontend calibration integration reuses those routes without inventing capture endpoints.
+See **`docs/ux/CALIBRATION_LIVE_CONTRACT.md`** for the Capture View → review → `/world/reset` mapping.
 
-- Typed models in `src/types/worldMemory.ts` (provisional)
-- Mock fixtures in `src/services/worldMemory/mockFixtures.ts`
-- `MockWorldMemoryClient` clearly labeled `source: "mock"`
+Until a non-mock GPU backend is attached:
 
-Do **not** treat provisional field names or paths as production contracts.
+- Typed models in `src/types/worldMemory.ts` and `src/types/checkpointApi.ts`
+- Mock fixtures / mock engine routes remain explicitly `mock:true` / `source: mock_ui`
+- Do **not** treat mock-engine checkpoint saves as `live_waypoint`
 
-When Codex lands the real contract here:
-
-1. Frontend adapts `WorldMemoryClient` only
-2. Mock remains available behind an explicit flag
-3. No invented endpoints ship as “live”
+Enhancement endpoints and obstacle schema remain PLANNED / PROPOSED on the backend branch.

@@ -35,6 +35,18 @@ export interface WorldSession {
   displayedHint: number
   lastFrameAt: number
   inferenceMs: number
+  /** Last generated JPEG — discarded on reset (stale frames). */
+  lastJpeg: Buffer | null
+}
+
+/** Snapshot used by MOCK checkpoint save (native 1280×720 JPEG). */
+export interface SessionFrameSnapshot {
+  jpeg: Buffer
+  frameId: number
+  seq: number
+  epoch: number
+  width: number
+  height: number
 }
 
 const sessions = new Map<string, WorldSession>()
@@ -63,6 +75,7 @@ export function createSession(sceneId: WorldSceneId, prompt: string): WorldSessi
     displayedHint: TARGET_FPS,
     lastFrameAt: Date.now(),
     inferenceMs: 40,
+    lastJpeg: null,
   }
   sessions.set(id, session)
   setTimeout(() => {
@@ -96,9 +109,13 @@ export function listSessionMetrics(id: string) {
   }
 }
 
-export function resetSession(id: string): boolean {
+/**
+ * Restore original seed pose. Advances epoch, clears held controls,
+ * discards stale lastJpeg so clients reject old-epoch frames.
+ */
+export function resetSession(id: string): { ok: true; epoch: number } | { ok: false } {
   const s = sessions.get(id)
-  if (!s) return false
+  if (!s) return { ok: false }
   s.view = { yaw: 0, pitch: 0, x: 0, z: 0 }
   s.frameId = 0
   s.sequence = 0
@@ -107,6 +124,9 @@ export function resetSession(id: string): boolean {
   s.keys = []
   s.mouseDx = 0
   s.mouseDy = 0
+  s.lastControl = null
+  s.lastJpeg = null
+  s.lastClientTs = null
   s.status = s.socket ? 'streaming' : 'ready'
   if (s.socket && s.socket.readyState === 1) {
     try {
@@ -116,14 +136,42 @@ export function resetSession(id: string): boolean {
           status: s.status,
           epoch: s.epoch,
           mock: true,
-          message: 'reset — seed restored (MOCK)',
+          message: 'reset — seed restored (MOCK); stale frames discarded',
         }),
       )
     } catch {
       /* */
     }
   }
-  return true
+  return { ok: true, epoch: s.epoch }
+}
+
+/**
+ * Render (or reuse) a genuine mock engine JPEG for checkpoint Capture View.
+ * Does not screenshot a browser canvas.
+ */
+export function renderSessionJpeg(sessionId: string): SessionFrameSnapshot | null {
+  const s = sessions.get(sessionId)
+  if (!s) return null
+  s.view = applyControls(s.view, s.keys, s.mouseDx, s.mouseDy)
+  s.mouseDx = 0
+  s.mouseDy = 0
+  const rgba = generateFacilityRgba(WIDTH, HEIGHT, s.view, s.frameId)
+  const jpeg = Buffer.from(
+    encodeJpeg({ data: rgba, width: WIDTH, height: HEIGHT }, 70).data,
+  )
+  s.frameId += 1
+  s.sequence += 1
+  s.lastFrameAt = Date.now()
+  s.lastJpeg = jpeg
+  return {
+    jpeg,
+    frameId: s.frameId,
+    seq: s.sequence,
+    epoch: s.epoch,
+    width: WIDTH,
+    height: HEIGHT,
+  }
 }
 
 export function stopSession(id: string): boolean {
@@ -262,6 +310,7 @@ function pushFrame(s: WorldSession): void {
   s.sequence += 1
   s.lastFrameAt = Date.now()
   s.generatedFps = TARGET_FPS
+  s.lastJpeg = jpeg
 
   const batchSize = 4
   const batchIndex = (s.frameId - 1) % batchSize

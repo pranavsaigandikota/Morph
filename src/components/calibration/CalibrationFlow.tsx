@@ -8,10 +8,12 @@ import {
   type SuggestedDirectionLabel,
 } from '../../types/calibration'
 import {
-  mockCaptureCurrentView,
-  mockRestoreOriginalSeed,
-  persistCalibrationSession,
-} from '../../services/calibration/mockCalibration'
+  captureView as clientCaptureView,
+  ensureCalibrationEngineSession,
+  persistReview,
+  restoreOriginalSeed,
+} from '../../services/calibration/calibrationClient'
+import { persistCalibrationSession } from '../../services/calibration/mockCalibration'
 
 interface Props {
   session: CalibrationSession
@@ -35,24 +37,46 @@ const STEPS: Array<{ phase: CalibrationPhase; title: string; body: string }> = [
   {
     phase: 'capturing',
     title: 'Capture views',
-    body: 'Capture View saves the current genuine Waypoint frame when a verified backend API exists. Until then, captures are MOCK UI simulations — not browser screenshots of LIVE.',
+    body: 'Capture View calls POST /world/checkpoints/save for the current genuine engine frame when a session exists. Without that API, captures stay MOCK UI simulations — not browser screenshots of LIVE.',
   },
   {
     phase: 'review',
     title: 'Review captures',
-    body: 'Approve, reject, or retake each thumbnail. Suggested directions are optional labels, not measured headings.',
+    body: 'Approve, reject, or retake each thumbnail. Suggested directions are optional labels, not measured headings. Review persists quality flags only — image SHA is unchanged.',
   },
   {
     phase: 'restoring_seed',
     title: 'Restore clean seed',
-    body: 'Before exploration, restore the original clean seed so calibration look-around does not leave a drifted start.',
+    body: 'Before exploration, POST /world/reset restores the original clean seed: advances epoch, clears controls, discards stale frames.',
   },
   {
     phase: 'complete',
     title: 'Calibration complete',
-    body: 'Seed restored (MOCK path). You can start exploring from the clean original image.',
+    body: 'Seed restored. You can start exploring from the clean original image.',
   },
 ]
+
+function transportBadge(session: CalibrationSession): {
+  label: string
+  className: string
+} {
+  if (session.transport === 'checkpoint_api' && session.source === 'live') {
+    return {
+      label: 'LIVE · checkpoint API',
+      className: 'border-ok/40 bg-ok/10 text-ok',
+    }
+  }
+  if (session.transport === 'checkpoint_api') {
+    return {
+      label: 'CHECKPOINT API · mock engine',
+      className: 'border-mock/40 bg-mock/10 text-mock',
+    }
+  }
+  return {
+    label: 'MOCK · UI simulation',
+    className: 'border-mock/40 bg-mock/10 text-mock',
+  }
+}
 
 export function CalibrationFlow({
   session,
@@ -74,6 +98,7 @@ export function CalibrationFlow({
     () => session.captures.filter((c) => c.reviewStatus === 'approved').length,
     [session.captures],
   )
+  const badge = transportBadge(session)
 
   const commit = (next: CalibrationSession) => {
     onSessionChange(next)
@@ -82,17 +107,31 @@ export function CalibrationFlow({
 
   const setPhase = (phase: CalibrationPhase) => commit({ ...session, phase })
 
+  const prepareTransport = async () => {
+    setBusy(true)
+    const next = await ensureCalibrationEngineSession(session)
+    commit({ ...next, phase: next.phase === 'world_created' ? 'scan_prompt' : next.phase })
+    setBusy(false)
+  }
+
   const captureView = async () => {
     setBusy(true)
-    await new Promise((r) => setTimeout(r, 350))
-    let captures = [...session.captures]
+    let working = session
+    if (working.transport !== 'checkpoint_api' || !working.engineSessionId) {
+      working = await ensureCalibrationEngineSession(working)
+    }
+    const { session: after, capture: fresh } = await clientCaptureView(
+      working,
+      suggestedLabel,
+    )
+    let captures = [...after.captures]
     if (retakeId) {
       const idx = captures.findIndex((c) => c.id === retakeId)
-      const fresh = mockCaptureCurrentView(session, suggestedLabel)
       if (idx >= 0) {
+        // Retake: new checkpoint evidence; prior id is replaced in the UI list only.
+        // Old checkpoint remains on the server (immutable evidence).
         captures[idx] = {
           ...fresh,
-          id: retakeId,
           layoutIndex: captures[idx]!.layoutIndex,
         }
       } else {
@@ -100,27 +139,32 @@ export function CalibrationFlow({
       }
       setRetakeId(null)
     } else {
-      captures.push(mockCaptureCurrentView(session, suggestedLabel))
+      captures.push(fresh)
     }
     commit({
-      ...session,
+      ...after,
       captures,
       phase: 'capturing',
     })
     setBusy(false)
   }
 
-  const setReview = (id: string, reviewStatus: CalibrationCapture['reviewStatus']) => {
+  const setReview = async (
+    id: string,
+    reviewStatus: CalibrationCapture['reviewStatus'],
+  ) => {
+    if (reviewStatus === 'pending') return
+    setBusy(true)
+    const next = await persistReview(session, id, reviewStatus === 'approved')
     commit({
-      ...session,
-      captures: session.captures.map((c) =>
-        c.id === id ? { ...c, reviewStatus } : c,
-      ),
+      ...next,
       phase: session.phase === 'capturing' ? 'review' : session.phase,
     })
+    setBusy(false)
   }
 
   const removeCapture = (id: string) => {
+    // Local list only — does not delete server evidence.
     commit({
       ...session,
       captures: session.captures.filter((c) => c.id !== id),
@@ -132,12 +176,11 @@ export function CalibrationFlow({
     setBusy(true)
     const restoring: CalibrationSession = { ...session, phase: 'restoring_seed' }
     commit(restoring)
-    await mockRestoreOriginalSeed()
+    const restored = await restoreOriginalSeed(restoring)
     commit({
-      ...restoring,
-      phase: 'complete',
-      seedRestoreDone: true,
-      completedAtMs: Date.now(),
+      ...restored,
+      phase: restored.seedRestoreDone ? 'complete' : 'review',
+      completedAtMs: restored.seedRestoreDone ? Date.now() : null,
     })
     setBusy(false)
   }
@@ -179,10 +222,11 @@ export function CalibrationFlow({
       </h1>
       <p className="mt-2 max-w-2xl text-sm text-soft">
         Automatic fixed-angle calibration is{' '}
-        <span className="font-semibold text-danger">NO-GO</span>. You aim; Capture View saves the
-        current frame when a verified API exists. Until then every still is{' '}
-        <span className="font-semibold text-mock">MOCK</span> — not a browser screenshot treated as
-        LIVE proof.
+        <span className="font-semibold text-danger">NO-GO</span>. Capture View
+        reuses <code className="text-xs">POST /world/checkpoints/save</code>.{' '}
+        <span className={`rounded border px-1.5 py-0.5 text-[11px] font-semibold ${badge.className}`}>
+          {badge.label}
+        </span>
       </p>
 
       <ol className="mt-6 flex flex-wrap gap-2">
@@ -209,6 +253,12 @@ export function CalibrationFlow({
         })}
       </ol>
 
+      {session.lastError && (
+        <p className="mt-4 rounded-lg border border-hazard/40 bg-hazard/10 px-3 py-2 text-xs text-hazard">
+          {session.lastError} — falling back keeps MOCK labeling; never claims LIVE.
+        </p>
+      )}
+
       <div className="animate-fade-up mt-8 rounded-2xl border border-line bg-panel/90 p-5 sm:p-6">
         <PhaseBody
           session={session}
@@ -218,7 +268,7 @@ export function CalibrationFlow({
           pendingCount={pendingCount}
           approvedCount={approvedCount}
           onSuggestedLabel={setSuggestedLabel}
-          onContinue={() => setPhase('scan_prompt')}
+          onContinue={() => void prepareTransport()}
           onBeginScan={() => setPhase('capturing')}
           onCapture={() => void captureView()}
           onGoReview={() => setPhase('review')}
@@ -243,6 +293,12 @@ export function CalibrationFlow({
           </button>
           <p className="self-center text-[11px] text-muted">
             Policy: user-guided visual · fixed-angle auto = no-go · native 1280×720
+            {session.engineSessionId
+              ? ` · session ${session.engineSessionId.slice(0, 10)}…`
+              : ''}
+            {session.restoredEpoch != null
+              ? ` · restored epoch ${session.restoredEpoch}`
+              : ''}
           </p>
         </div>
       </div>
@@ -251,8 +307,9 @@ export function CalibrationFlow({
         <CaptureGrid
           captures={session.captures}
           retakeId={retakeId}
-          onApprove={(id) => setReview(id, 'approved')}
-          onReject={(id) => setReview(id, 'rejected')}
+          busy={busy}
+          onApprove={(id) => void setReview(id, 'approved')}
+          onReject={(id) => void setReview(id, 'rejected')}
           onRetake={(id) => {
             const c = session.captures.find((x) => x.id === id)
             if (c) setSuggestedLabel(c.suggestedLabel)
@@ -296,6 +353,12 @@ function PhaseBody({
   onExplore: () => void
 }) {
   const step = STEPS.find((s) => s.phase === session.phase) ?? STEPS[0]!
+  const captureLabel =
+    session.transport === 'checkpoint_api'
+      ? session.source === 'live'
+        ? 'Capture View (LIVE)'
+        : 'Capture View (checkpoint · mock engine)'
+      : 'Capture View (MOCK UI)'
 
   return (
     <div>
@@ -306,18 +369,22 @@ function PhaseBody({
       {session.phase === 'world_created' && (
         <button
           type="button"
+          disabled={busy}
           onClick={onContinue}
-          className="mt-5 rounded-xl bg-signal px-5 py-2.5 text-sm font-bold text-void"
+          className="mt-5 rounded-xl bg-signal px-5 py-2.5 text-sm font-bold text-void disabled:opacity-40"
         >
-          Continue
+          {busy ? 'Connecting…' : 'Continue'}
         </button>
       )}
 
       {session.phase === 'scan_prompt' && (
         <div className="mt-5 space-y-3">
           <p className="rounded-lg border border-line bg-ink/60 px-3 py-2 text-xs text-soft">
-            When LIVE: look with mouse / WASD on the stream, then return here to Capture View. This
-            shell does not drive camera angles. MOCK mode simulates Capture View only.
+            Look with mouse / WASD on the stream when available, then Capture View. This shell does
+            not drive camera angles by degrees. Transport:{' '}
+            <span className="font-semibold text-bright">{session.transport}</span>
+            {session.engineIsMock === true ? ' · engine mock:true' : ''}
+            {session.engineIsMock === false ? ' · engine LIVE' : ''}.
           </p>
           <button
             type="button"
@@ -360,8 +427,8 @@ function PhaseBody({
               {busy
                 ? 'Capturing…'
                 : retakeId
-                  ? 'Retake Capture View (MOCK)'
-                  : 'Capture View (MOCK)'}
+                  ? `Retake ${captureLabel}`
+                  : captureLabel}
             </button>
             {session.captures.length > 0 && (
               <button
@@ -374,8 +441,8 @@ function PhaseBody({
             )}
           </div>
           <p className="text-[11px] text-muted">
-            LIVE path (future): Capture View → verified backend raw frame + SHA-256. Never browser
-            screenshot as proof.
+            Provenance path: checkpoints/save → raw image + SHA-256. Never browser screenshot as
+            proof. live_waypoint only when engine mock≠true.
           </p>
         </div>
       )}
@@ -418,8 +485,9 @@ function PhaseBody({
             <div className="h-full w-2/3 animate-pulse rounded-full bg-signal" />
           </div>
           <p className="mt-2 text-xs text-muted">
-            MOCK restore of original seed (LIVE will use verified `/world/reset` or approved
-            restore API — not invented here).
+            {session.transport === 'checkpoint_api'
+              ? 'Calling POST /world/reset — epoch++, controls cleared, stale frames discarded.'
+              : 'MOCK restore of original seed (no engine session).'}
           </p>
         </div>
       )}
@@ -440,6 +508,7 @@ function PhaseBody({
 function CaptureGrid({
   captures,
   retakeId,
+  busy,
   onApprove,
   onReject,
   onRetake,
@@ -447,6 +516,7 @@ function CaptureGrid({
 }: {
   captures: CalibrationCapture[]
   retakeId: string | null
+  busy: boolean
   onApprove: (id: string) => void
   onReject: (id: string) => void
   onRetake: (id: string) => void
@@ -456,7 +526,8 @@ function CaptureGrid({
     <section className="mt-8">
       <h3 className="font-display text-lg font-bold text-bright">Captured views</h3>
       <p className="mt-1 text-xs text-muted">
-        Approve / reject / retake · optional labels · MOCK until verified capture API
+        Approve / reject / retake · optional labels · live_waypoint only with verified non-mock
+        engine
       </p>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {captures.map((c) => (
@@ -478,27 +549,37 @@ function CaptureGrid({
                 {DIRECTION_LABEL[c.suggestedLabel]}
                 <span className="ml-1 font-normal text-muted">(optional label)</span>
               </p>
-              <p className="text-mock">
+              <p className={c.source === 'live_waypoint' ? 'text-ok' : 'text-mock'}>
                 {c.source === 'live_waypoint' ? 'LIVE Waypoint' : 'MOCK · not live Waypoint'}
               </p>
               <p className="font-mono text-muted">
                 SHA:{' '}
                 {c.imageSha256
                   ? `${c.imageSha256.slice(0, 12)}…`
-                  : 'n/a (MOCK)'}{' '}
+                  : 'n/a (MOCK UI)'}{' '}
                 · {c.reviewStatus}
               </p>
+              {(c.frameId != null || c.worldId || c.navigationSegmentId) && (
+                <p className="font-mono text-[10px] text-muted">
+                  frame {c.frameId ?? '—'} · epoch {c.epoch ?? '—'} · seg{' '}
+                  {c.navigationSegmentId
+                    ? `${c.navigationSegmentId.slice(0, 8)}…`
+                    : '—'}
+                </p>
+              )}
               <div className="flex flex-wrap gap-1.5 pt-1">
                 <button
                   type="button"
-                  className="rounded border border-ok/40 bg-ok/10 px-2 py-1 font-semibold text-ok"
+                  disabled={busy}
+                  className="rounded border border-ok/40 bg-ok/10 px-2 py-1 font-semibold text-ok disabled:opacity-40"
                   onClick={() => onApprove(c.id)}
                 >
                   Approve
                 </button>
                 <button
                   type="button"
-                  className="rounded border border-danger/40 bg-danger/10 px-2 py-1 font-semibold text-danger"
+                  disabled={busy}
+                  className="rounded border border-danger/40 bg-danger/10 px-2 py-1 font-semibold text-danger disabled:opacity-40"
                   onClick={() => onReject(c.id)}
                 >
                   Reject

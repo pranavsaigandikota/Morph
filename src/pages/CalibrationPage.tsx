@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { CalibrationFlow } from '../components/calibration/CalibrationFlow'
 import { HuggingFaceAttribution } from '../components/brand/HuggingFaceAttribution'
+import { createCalibrationSession } from '../services/calibration/calibrationClient'
 import {
   clearCalibrationSession,
-  createMockCalibrationSession,
   loadCalibrationSession,
   persistCalibrationSession,
 } from '../services/calibration/mockCalibration'
@@ -18,6 +18,7 @@ export function CalibrationPage() {
   const seed = params.get('seed')
   const genSeedRaw = params.get('gen_seed')
   const generationSeed = genSeedRaw != null ? Number(genSeedRaw) : null
+  const engineSessionId = params.get('session_id')
 
   const initial = useMemo(() => {
     const existing = loadCalibrationSession()
@@ -25,19 +26,21 @@ export function CalibrationPage() {
       existing &&
       existing.worldPrompt === prompt &&
       (existing.sceneSeed ?? null) === (seed ?? null) &&
-      existing.policy?.captureMode === 'user_guided_visual'
+      existing.policy?.captureMode === 'user_guided_visual' &&
+      (engineSessionId == null || existing.engineSessionId === engineSessionId)
     ) {
       return existing
     }
-    const created = createMockCalibrationSession({
+    const created = createCalibrationSession({
       worldPrompt: prompt,
       style,
       sceneSeed: seed,
       generationSeed: Number.isFinite(generationSeed) ? generationSeed : null,
+      engineSessionId,
     })
     persistCalibrationSession(created)
     return created
-  }, [prompt, style, seed, generationSeed])
+  }, [prompt, style, seed, generationSeed, engineSessionId])
 
   const [session, setSession] = useState<CalibrationSession>(initial)
 
@@ -55,6 +58,12 @@ export function CalibrationPage() {
       s.phase === 'skipped' ? 'skipped' : s.phase === 'cancelled' ? 'cancelled' : '1',
     )
     if (s.seedRestoreDone) q.set('seed_restored', '1')
+    if (s.transport === 'checkpoint_api') q.set('cal_transport', 'checkpoint_api')
+    if (s.source === 'live') q.set('cal_source', 'live')
+    else q.set('cal_source', 'mock')
+    if (s.restoredEpoch != null) q.set('restored_epoch', String(s.restoredEpoch))
+    // Explorer starts its own stream; pass session only as provenance hint.
+    if (s.engineSessionId) q.set('cal_session_id', s.engineSessionId)
     if (params.get('mock_seed') === '1') q.set('mock_seed', '1')
     return q
   }

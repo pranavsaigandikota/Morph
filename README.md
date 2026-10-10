@@ -9,7 +9,7 @@ First-person **Waypoint** worlds (Codex GPU) + interactive **Rescue Missions** +
 | Route | Purpose |
 |-------|---------|
 | `/create` | Create Anything — HQ SDXL contact sheet (approve before Waypoint) + Turbo secondary |
-| `/calibrate` | Optional MOCK **user-guided** calibration (Capture View; no auto fixed-angle) |
+| `/calibrate` | Optional **user-guided** calibration (Capture View via checkpoints; no auto fixed-angle) |
 | `/world` | World Explorer — product native **1280×720** Waypoint |
 | `/mission` | Playable rescue on verified facility map |
 | `/simulation` | Recorded Random / PPO / A* replays |
@@ -43,6 +43,8 @@ UI: **http://127.0.0.1:4821**
 | `npm run test:stream60` | 60s harness |
 | `npm run test:hq-starters` | HQ approval / recovery policy checks |
 | `npm run test:world-memory` | World memory MOCK + unsuitable anchors |
+| `npm run test:calibration-ui` | User-guided calibration UI policy checks |
+| `npm run test:calibration-live` | Capture→Review→Reset against mock checkpoint routes |
 
 HQ contact sheet (Windows GPU, experimental HIGH API): `.\scripts\Generate-HqStarterContactSheet.ps1` — see [docs/world-memory/HQ_STARTER_APPROVAL.md](docs/world-memory/HQ_STARTER_APPROVAL.md). Early Waypoint frames are **not** recovery anchors.
 
