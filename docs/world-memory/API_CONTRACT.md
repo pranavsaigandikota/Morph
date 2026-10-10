@@ -14,7 +14,7 @@ Memory events are JSON-only and NEVER consume frame credits or predict that the 
 
 ## Scene generation
 
-`POST /scenes/generate {prompt,seed?,style?,perspective:"first_person",quality:"high"|"fast",steps?}` returns202 `{job_id,status:"queued",poll_url}`. Poll `/scenes/jobs/{job_id}` untilready/error; ready metadata contains `world_start_request` and `image_url`. Defaultqualityhigh uses pinned SDXLBase,30steps,CFG5,Euler,1280×720. Fast uses preservedTurbo behavior,4steps,CFG0,640×384→640×360; Waypoint still generatesnative720 when initialized from that smaller image. Highsteps1–50; faststeps1–4. Unsupported fields422. Stop the world before generating a new scene; pausedworlds409. No silentmockfallback.
+`POST /scenes/generate {prompt,seed?,style?,perspective:"first_person",quality:"high",steps?}` returns202 `{job_id,status:"queued",poll_url}`. Poll `/scenes/jobs/{job_id}` untilready/error; ready metadata contains `world_start_request` and `image_url`. Defaultqualityhigh uses pinned SDXLBase,30steps,CFG5,Euler,1280×720. FAST selection in this service is planned; existingTurbo fallback on8000 uses4steps,CFG0,640×384→640×360. Highsteps1–50. Unsupported fields422. Stop the world before generating a new scene; pausedworlds409. No silentmockfallback.
 
 ## REST memory capabilities
 
@@ -30,8 +30,8 @@ All memory requests require the CURRENT `session_id`; stale/unknown sessions404.
 | POST `/world/checkpoints/C/review` | `{session_id,approved:boolean}` | Updatedcheckpoint; approval represents client/userreview |
 | POST `/world/checkpoints/restore` | `{session_id,checkpoint_id,variant:"raw"|"enhanced",accept_unreviewed?:false}` | `{session_id,world_id,status,epoch,checkpoint_id,recovery_ms}` |
 | GET `/world/recovery?session_id=S` | — | Recovery state |
-| POST `/world/checkpoints/enhance` | `{session_id,checkpoint_id,strength?:0.2,seed?:int,steps?:30}` |202 `{job_id,status,poll_url}`; explicitpausewhileGPUworkruns |
-| GET `/world/enhancement/jobs/J?session_id=S` | — | `{job_id,status,checkpoint_id,error?,latency_ms?,candidate?}` |
+| PLANNED POST `/world/checkpoints/enhance` | `{session_id,checkpoint_id,strength?:0.2,seed?:int,steps?:30}` |202 `{job_id,status,poll_url}`; explicitpausewhileGPUworkruns |
+| PLANNED GET `/world/enhancement/jobs/J?session_id=S` | — | `{job_id,status,checkpoint_id,error?,latency_ms?,candidate?}` |
 
 Manual saves use the last genuinely generated received-by-service JPEG, not a screenshot synthesized by the frontend. Initial seed is checkpointzero. Checkpoint maximum32/world; trajectory2048points; retainedworldfolders8 with boundedstorage. Periodic capture configurable via `WORLDSHIFT_CHECKPOINT_SECONDS` (default10,min5,max120). Periodic saves select candidates, not certifiedcleanviews. Failed invalid-frame checks are observable and never guarantee a hallucination detector.
 
