@@ -153,24 +153,28 @@ export function WorldViewer({
         fullscreen
           ? 'h-screen'
           : embedded
-            ? 'min-h-[min(78vh,820px)]'
+            ? '' // shrink-wrap: the box is the 1280x720 video, not a large panel
             : 'h-[calc(100vh-3.5rem)]',
       )}
     >
       <div
         ref={stageRef}
-        className="relative flex min-h-0 flex-1 cursor-crosshair items-center justify-center overflow-hidden bg-[radial-gradient(ellipse_at_center,#0d1520_0%,#05070a_70%)]"
+        className={clsx(
+          'relative flex cursor-crosshair items-center justify-center overflow-hidden',
+          embedded ? 'py-2' : 'min-h-0 flex-1 bg-[radial-gradient(ellipse_at_center,#0d1520_0%,#05070a_70%)]',
+        )}
         onClick={() => {
           if (live && !pointerLocked) onRequestLock()
         }}
       >
         {/* Prominent native 16:9 canvas — no stretch beyond aspect-ratio box. */}
         <div
-          className="relative mx-auto w-full px-2 sm:px-4"
+          className="relative mx-auto"
           style={{
             aspectRatio: '16 / 9',
             // Sharp 1:1: never draw the 1280x720 frame larger than 1280x720 DEVICE pixels. On 125-150%
             // Windows scaling a 1280 CSS px canvas is stretched and looks blurry.
+            width: `min(100%, ${Math.round(1280 / (window.devicePixelRatio || 1))}px)`,
             maxWidth: `min(100%, ${Math.round(1280 / (window.devicePixelRatio || 1))}px)`,
             maxHeight: embedded ? `min(70vh, ${Math.round(720 / (window.devicePixelRatio || 1))}px)` : '100%',
           }}

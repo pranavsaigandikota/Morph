@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { StarterContactSheet } from '../components/create/StarterContactSheet'
+import { createHqWorld } from '../services/quickWorld'
 import { CODEX_PRESETS, type CodexPreset } from '../data/codexPresets'
 import {
   candidateToGeneratedScene,
@@ -23,9 +24,6 @@ import {
   type WorldStyle,
 } from '../services/sceneGeneration'
 
-function asWorldStyle(style: string): WorldStyle {
-  return WORLD_STYLES.some((s) => s.id === style) ? (style as WorldStyle) : 'cinematic'
-}
 
 export function CreateWorldPage() {
   const navigate = useNavigate()
@@ -48,6 +46,31 @@ export function CreateWorldPage() {
   )
 
   const busy = progress.stage === 'submitting' || progress.stage === 'generating'
+  const [showAdvanced, setShowAdvanced] = useState(false)
+
+  const goWalk = (sceneId: string, worldPrompt: string, worldStyle: string) => {
+    const q = new URLSearchParams({ seed: sceneId, prompt: worldPrompt, style: worldStyle, source: 'hq' })
+    navigate(`/world?${q.toString()}`)
+  }
+
+  /** One step: prompt → one HQ 1280x720 image → walk. No approval or calibration screens. */
+  const onCreateAndWalk = async () => {
+    if (!prompt.trim() || busy) return
+    setError(null)
+    const seed = parsedSeed()
+    try {
+      const w = await createHqWorld(prompt, {
+        style,
+        seed,
+        onProgress: (percent, message) => setProgress({ stage: 'generating', percent, message }),
+      })
+      setProgress({ stage: 'ready', percent: 100, message: 'World ready' })
+      goWalk(w.sceneId, w.prompt, style)
+    } catch (err) {
+      setProgress({ stage: 'error', percent: 0, message: '' })
+      setError(err instanceof Error ? err.message : 'Could not create the world')
+    }
+  }
 
   const commitScene = (scene: GeneratedScene) => {
     setCurrent(scene)
@@ -90,23 +113,9 @@ export function CreateWorldPage() {
   }
 
   const applyPreset = (p: CodexPreset) => {
-    setPrompt(p.prompt)
-    setStyle(asWorldStyle(p.style))
-    setGenerationSeed(String(p.generationSeed))
-    setError(null)
-    setProgress({ stage: 'ready', percent: 100, message: 'Preset preview (local PNG)' })
-    commitScene({
-      id: p.sceneId,
-      prompt: p.prompt,
-      style: asWorldStyle(p.style),
-      imageUrl: p.localImageUrl,
-      seed: p.sceneId,
-      mock: false,
-      createdAt: new Date().toISOString(),
-      source: 'codex-preset',
-      generationSeed: p.generationSeed,
-    })
+    goWalk(p.sceneId, p.prompt, String(p.style))
   }
+
 
   const onGenerateHqSheet = async () => {
     setError(null)
@@ -230,6 +239,12 @@ export function CreateWorldPage() {
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    void onCreateAndWalk()
+                  }
+                }}
                 rows={4}
                 className="w-full resize-y rounded-xl border border-line bg-ink/80 px-4 py-3 text-base outline-none transition focus:border-signal"
                 placeholder="A floating lantern festival above a misty mountain lake…"
@@ -283,18 +298,37 @@ export function CreateWorldPage() {
               <button
                 type="button"
                 disabled={busy || !prompt.trim()}
-                onClick={() => void onGenerateHqSheet()}
-                className="animate-breathe rounded-xl bg-signal px-5 py-2.5 text-sm font-bold text-void transition hover:bg-signal/90 disabled:opacity-40"
+                onClick={() => void onCreateAndWalk()}
+                className="animate-breathe rounded-xl bg-signal px-6 py-2.5 text-sm font-bold text-void transition hover:bg-signal/90 disabled:opacity-40"
               >
-                {busy ? 'Generating HQ…' : 'Generate HQ candidates'}
+                {busy ? `${progress.message || 'Creating…'} ${progress.percent ? Math.round(progress.percent) + '%' : ''}` : 'Create & walk'}
               </button>
+              {showAdvanced && (
+                <>
+                  <button
+                    type="button"
+                    disabled={busy || !prompt.trim()}
+                    onClick={() => void onGenerateHqSheet()}
+                    className="rounded-xl border border-line bg-elevated px-4 py-2.5 text-sm font-semibold hover:border-signal/40 disabled:opacity-40"
+                  >
+                    Compare 6 starting images
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy || !prompt.trim()}
+                    onClick={() => void onGenerate('live')}
+                    className="rounded-xl border border-line bg-elevated px-4 py-2.5 text-sm font-semibold hover:border-signal/40 disabled:opacity-40"
+                  >
+                    Turbo generate (fast, lower quality)
+                  </button>
+                </>
+              )}
               <button
                 type="button"
-                disabled={busy || !prompt.trim()}
-                onClick={() => void onGenerate('live')}
-                className="rounded-xl border border-line bg-elevated px-4 py-2.5 text-sm font-semibold hover:border-signal/40 disabled:opacity-40"
+                onClick={() => setShowAdvanced((v) => !v)}
+                className="rounded-xl px-3 py-2.5 text-xs font-semibold text-muted hover:text-bright"
               >
-                Turbo generate (verified ≤4 steps)
+                {showAdvanced ? 'Hide advanced' : 'Advanced'}
               </button>
               <button
                 type="button"
@@ -406,13 +440,13 @@ export function CreateWorldPage() {
           </div>
         </div>
 
-        <StarterContactSheet
+        {showAdvanced && <StarterContactSheet
           candidates={hqCandidates}
           errors={hqErrors}
           statusMessage={hqStatus}
           onApproval={onHqApproval}
           onExploreApproved={onExploreApproved}
-        />
+        />}
 
         {current && (
           <div className="animate-fade-up mt-8 overflow-hidden rounded-2xl border border-line bg-panel/90">

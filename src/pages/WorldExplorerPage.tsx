@@ -6,6 +6,7 @@ import {
 } from '../components/world/EngineConnectionBanner'
 import { WorldExplorerShell } from '../components/worldMemory/WorldExplorerShell'
 import { WORLD_SCENES } from '../data/scenes'
+import { engineHttpBase } from '../services/engineConfig'
 import { useWorldStream } from '../hooks/useWorldStream'
 import { worldApiBaseUrl } from '../services/engineConfig'
 import { loadSavedScenes } from '../services/sceneGeneration'
@@ -68,7 +69,16 @@ export function WorldExplorerPage() {
   }, [savedWorlds, seedFromCreate, promptFromCreate, params])
 
   useEffect(() => {
-    setSavedWorlds(loadSavedScenes())
+    // Hide saved worlds this backend cannot start (e.g. scenes from the retired 360p service).
+    const saved = loadSavedScenes()
+    setSavedWorlds(saved)
+    void Promise.all(
+      saved.map((s) =>
+        s.seed && !s.mock
+          ? fetch(`${engineHttpBase()}/scenes/${encodeURIComponent(s.seed)}`).then((r) => (r.ok ? s : null)).catch(() => s)
+          : Promise.resolve(s),
+      ),
+    ).then((ok) => setSavedWorlds(ok.filter((s): s is (typeof saved)[number] => s !== null)))
   }, [])
 
   const active =
