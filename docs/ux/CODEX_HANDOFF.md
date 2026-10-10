@@ -1,15 +1,26 @@
 # Codex handoff — Frontend UX branch
 
 **Branch:** `cursor/worldshift-ux-polish-cd95`  
+**Frozen tip:** `535f02e` (UI freeze; docs-only updates allowed)  
 **Repo:** https://github.com/pranavsaigandikota/Morph  
+
+## Freeze notice
+
+Frontend UX is **frozen** pending:
+
+1. Claude’s **reviewed** calibration + visual-memory API contract  
+2. Codex **native-720p GPU playback** + **Phase A0 camera-turn** results  
+
+Do not expect LIVE calibration adapters from this branch until `docs/ux/INTEGRATION_CHECKLIST.md` is signed off.
 
 ## Ask from Frontend
 
 1. Keep production Waypoint on **`:8000`** (verified release). Do not require frontend to merge experimental spatial-memory backend yet.
-2. When validating **native 1280×720**, publish the final integration contract (hello/frame dims, FPS baselines). Frontend already targets 720p presentation and flags sub-720p streams.
-3. HQ SDXL contact sheet still needs experimental HIGH (`1280×720`, ~30 steps) on Windows — see `docs/world-memory/HQ_STARTER_APPROVAL.md`.
-4. Do **not** change RescueGame / Showdown evaluation data from this UX branch.
-5. Calibration captures are **frontend MOCK** until Claude + Codex agree on APIs — do not treat `/calibrate` stills as GPU evidence.
+2. Complete Phase A0 camera-turn testing; publish notes. Frontend will **not** hardcode turn angles or invent turn APIs beforehand.
+3. When validating **native 1280×720**, publish the final integration contract (hello/frame dims, FPS baselines). Frontend already targets 720p presentation and flags sub-720p streams.
+4. HQ SDXL contact sheet still needs experimental HIGH (`1280×720`, ~30 steps) on Windows — see `docs/world-memory/HQ_STARTER_APPROVAL.md`.
+5. Do **not** change RescueGame / Showdown evaluation data from this UX branch.
+6. Calibration captures are **frontend MOCK** until Claude + Codex agree on APIs — do not treat `/calibrate` stills as GPU evidence.
 
 ## Safe to smoke on Windows
 

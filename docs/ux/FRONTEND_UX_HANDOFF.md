@@ -1,11 +1,23 @@
 # Frontend UX handoff — World Explorer polish & calibration shell
 
 **Branch:** `cursor/worldshift-ux-polish-cd95`  
+**Frozen tip:** `535f02e` (+ docs freeze commit)  
 **Base:** `feature/worldshift-visual-memory-ui` @ `0bf4f9b`  
 **Owner:** Lead Frontend UX (Cursor)  
 **Architecture:** Claude · **GPU / backends:** Codex  
 
-Do **not** merge to `main` from this handoff. Product visual target remains **native 1280×720 only**.
+## FREEZE
+
+**Temporarily frozen** while Claude reconciles the live calibration / visual-memory contract and Codex finishes native-720p GPU playback + Phase A0 camera-turn testing.
+
+- No new UI features on this branch during the freeze.  
+- No speculative backend calls or hardcoded camera angles.  
+- No LIVE calibration wiring until the gate in `INTEGRATION_CHECKLIST.md` clears.  
+- Keep the branch **isolated** — do not merge to `main`.  
+
+Integration worklist: **[INTEGRATION_CHECKLIST.md](./INTEGRATION_CHECKLIST.md)**.
+
+Product visual target remains **native 1280×720 only**.
 
 ## What shipped (UI)
 
