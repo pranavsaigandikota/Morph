@@ -140,6 +140,7 @@ export function WorldExplorerPage() {
         onReset={() => void stream.reset()}
         onDisconnect={() => void stream.disconnect()}
         onReconnect={() => stream.reconnect()}
+        idleHolding={stream.idleHolding}
         worlds={switchableWorlds}
         activeSeed={stream.activeSeed}
         onSwitchWorld={(seed) => void stream.switchWorld(seed)}

@@ -1,5 +1,6 @@
 import clsx from 'clsx'
 import { useCallback, useEffect, useState, type RefObject } from 'react'
+import { DISPLAY_MAX_SCALE } from '../../hooks/useWorldStream'
 import type { WorldFrameMeta, WorldMetrics } from '../../types/world'
 import { PerformanceOverlay } from './PerformanceOverlay'
 
@@ -26,6 +27,8 @@ interface Props {
   onReset: () => void
   onDisconnect: () => void
   onReconnect: () => void
+  /** Auto-paused because input went idle (generation held). */
+  idleHolding?: boolean
   /** Saved / preset worlds — switch without remounting React */
   worlds?: SwitchableWorld[]
   activeSeed?: string | null
@@ -48,6 +51,7 @@ export function WorldViewer({
   onReset,
   onDisconnect,
   onReconnect,
+  idleHolding = false,
   worlds,
   activeSeed,
   onSwitchWorld,
@@ -112,8 +116,16 @@ export function WorldViewer({
       >
         <canvas
           ref={canvasElRef}
-          className="h-full w-full object-contain"
-          style={{ imageRendering: 'auto' }}
+          className="mx-auto object-contain"
+          style={{
+            imageRendering: 'auto',
+            // Cap enlargement of native 640×360 — sharper CSS scale ≠ recovered geometry.
+            maxWidth: `min(100%, calc(640px * ${DISPLAY_MAX_SCALE}))`,
+            maxHeight: `min(100%, calc(360px * ${DISPLAY_MAX_SCALE}))`,
+            width: '100%',
+            height: '100%',
+            filter: 'contrast(1.04)',
+          }}
         />
 
         {!hasFrame && (
@@ -162,7 +174,14 @@ export function WorldViewer({
           </div>
         )}
 
-        {phase === 'paused' && (
+        {phase === 'paused' && idleHolding && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-28 z-10 flex justify-center">
+            <p className="rounded-md border border-line bg-ink/85 px-3 py-1.5 text-sm text-soft backdrop-blur">
+              Idle hold — generation paused · move to resume
+            </p>
+          </div>
+        )}
+        {phase === 'paused' && !idleHolding && (
           <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-void/40">
             <p className="font-display text-3xl font-bold tracking-wide text-bright">Paused</p>
           </div>
@@ -200,6 +219,12 @@ export function WorldViewer({
               <p className="mt-3 text-xs text-muted">
                 Only controls verified with the Waypoint backend are listed. First-person stream —
                 use Rescue Mission for grid navigation.
+              </p>
+              <p className="mt-2 text-xs text-muted">
+                Long walks accumulate visual drift away from the seed. Idle holds generation when
+                you stop moving; <kbd className="text-bright">Reset</kbd> restores the original
+                seed image and clears history. Higher resolution does not guarantee persistent
+                geometry.
               </p>
             </div>
           </div>
@@ -262,11 +287,15 @@ export function WorldViewer({
           >
             {fullscreen ? 'Exit full' : 'Fullscreen'}
           </ControlButton>
-          <ControlButton onClick={onPause} disabled={!live} active={phase === 'paused'}>
+          <ControlButton
+            onClick={onPause}
+            disabled={!live}
+            active={phase === 'paused' && !idleHolding}
+          >
             {phase === 'paused' ? 'Resume' : 'Pause'}
           </ControlButton>
           <ControlButton onClick={onReset} disabled={!live && phase !== 'error'}>
-            Reset
+            Reset seed
           </ControlButton>
           <ControlButton onClick={onReconnect} disabled={phase === 'idle'}>
             Reconnect

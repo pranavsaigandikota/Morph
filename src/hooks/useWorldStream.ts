@@ -33,6 +33,11 @@ interface WorldStreamState {
   height: number
   gpuMemoryMb: number | null
   gpuMemoryAvailable: boolean
+  /**
+   * True when generation was auto-paused because WASD/mouse went idle.
+   * Distinct from a manual Pause — input resumes automatically.
+   */
+  idleHolding: boolean
 }
 
 /** Max JPEG sub-frames waiting to paint. Keep short — favor current over stale. */
@@ -41,6 +46,10 @@ const MAX_PRESENTATION_QUEUE = 3
 const PRESENT_FRAME_MS = 1000 / 20
 const CONTROL_MS = 50
 const METRICS_MS = 500
+/** Pause Waypoint generation after this much idle input (reduces standing-still drift). */
+const IDLE_HOLD_MS = 700
+/** Cap CSS enlargement of native 640×360 frames (does not invent detail). */
+export const DISPLAY_MAX_SCALE = 2
 
 interface QueuedJpeg {
   bytes: Uint8Array
@@ -59,10 +68,11 @@ export function useWorldStream() {
     mock: false,
     pointerLocked: false,
     engineName: null,
-    width: 1280,
-    height: 720,
+    width: 640,
+    height: 360,
     gpuMemoryMb: null,
     gpuMemoryAvailable: false,
+    idleHolding: false,
   })
 
   const wsRef = useRef<WebSocket | null>(null)
@@ -78,7 +88,7 @@ export function useWorldStream() {
   const reconnectAttemptRef = useRef(0)
   const mockRef = useRef(false)
   const engineNameRef = useRef<string | null>(null)
-  const dimsRef = useRef({ w: 1280, h: 720, tc: 4 })
+  const dimsRef = useRef({ w: 640, h: 360, tc: 4 })
   const drawingRef = useRef(false)
   const seqRef = useRef(0)
   const requestGenerationRef = useRef(0)
@@ -93,6 +103,12 @@ export function useWorldStream() {
   const keyHeldRef = useRef<Map<string, number>>(new Map())
   const mouseRef = useRef({ dx: 0, dy: 0, scroll: 0 })
   const mouseSensRef = useRef(1.0)
+  const lastInputAtRef = useRef(performance.now())
+  const idleHoldingRef = useRef(false)
+  /** True only for user-toggled Pause — idle-hold must not auto-resume over this. */
+  const userPausedRef = useRef(false)
+  const idleTimerRef = useRef<number | null>(null)
+  const idleActionInFlightRef = useRef(false)
 
   const queueRef = useRef<QueuedJpeg[]>([])
   const lastPresentRef = useRef(0)
@@ -127,7 +143,65 @@ export function useWorldStream() {
       window.clearInterval(metricsTimerRef.current)
       metricsTimerRef.current = null
     }
+    if (idleTimerRef.current) {
+      window.clearInterval(idleTimerRef.current)
+      idleTimerRef.current = null
+    }
   }, [])
+
+  const setIdleHolding = useCallback((v: boolean) => {
+    idleHoldingRef.current = v
+    setState((s) => (s.idleHolding === v ? s : { ...s, idleHolding: v }))
+  }, [])
+
+  const noteUserInput = useCallback(() => {
+    lastInputAtRef.current = performance.now()
+  }, [])
+
+  /** Resume generation after idle-hold when the player moves again. */
+  const resumeFromIdleHold = useCallback(async () => {
+    if (!idleHoldingRef.current || userPausedRef.current) return
+    if (!sessionIdRef.current || idleActionInFlightRef.current) return
+    if (phaseRef.current !== 'paused') {
+      setIdleHolding(false)
+      return
+    }
+    idleActionInFlightRef.current = true
+    try {
+      await worldApi.action(sessionIdRef.current, 'resume')
+      setPhase('streaming')
+      setIdleHolding(false)
+    } catch (err) {
+      setState((s) => ({ ...s, error: String(err) }))
+    } finally {
+      idleActionInFlightRef.current = false
+    }
+  }, [setIdleHolding, setPhase])
+
+  /** Auto-pause generation when WASD/mouse stop — keeps last frame, slows visual drift. */
+  const maybeIdleHold = useCallback(async () => {
+    if (userPausedRef.current || idleHoldingRef.current) return
+    if (phaseRef.current !== 'streaming' || !sessionIdRef.current) return
+    if (idleActionInFlightRef.current) return
+    const hasKeys = [...keysRef.current].some((k) => /^[WASD]$/.test(k))
+    const hasMouse =
+      Math.abs(mouseRef.current.dx) > 0.5 || Math.abs(mouseRef.current.dy) > 0.5
+    if (hasKeys || hasMouse) {
+      lastInputAtRef.current = performance.now()
+      return
+    }
+    if (performance.now() - lastInputAtRef.current < IDLE_HOLD_MS) return
+    idleActionInFlightRef.current = true
+    try {
+      await worldApi.action(sessionIdRef.current, 'pause')
+      setPhase('paused')
+      setIdleHolding(true)
+    } catch (err) {
+      setState((s) => ({ ...s, error: String(err) }))
+    } finally {
+      idleActionInFlightRef.current = false
+    }
+  }, [setIdleHolding, setPhase])
 
   const publishMetrics = useCallback(() => {
     const now = performance.now()
@@ -210,7 +284,12 @@ export function useWorldStream() {
           canvas.width = img.width
           canvas.height = img.height
         }
+        // Mild presentation sharpening only — cannot recover detail lost to model drift.
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+        ctx.filter = 'contrast(1.06) saturate(1.03)'
         ctx.drawImage(img, 0, 0)
+        ctx.filter = 'none'
         dispCountRef.current += 1
         proofRef.current.displayed++
         proofRef.current.draw_at.push(performance.now())
@@ -330,12 +409,18 @@ export function useWorldStream() {
       ws.onopen = () => {
         if(wsRef.current!==ws) {ws.close();return}
         reconnectAttemptRef.current = 0
+        userPausedRef.current = false
+        setIdleHolding(false)
+        noteUserInput()
         clearTimers()
         controlTimerRef.current = window.setInterval(sendControl, CONTROL_MS)
         metricsTimerRef.current = window.setInterval(() => {
           publishMetrics()
           void worldApi.metrics(sessionId).then(m=>{if(m) serverMetricsRef.current=m})
         }, METRICS_MS)
+        idleTimerRef.current = window.setInterval(() => {
+          void maybeIdleHold()
+        }, 200)
       }
 
       ws.onmessage = (ev) => {
@@ -446,7 +531,16 @@ export function useWorldStream() {
         }, delay)
       }
     },
-    [clearTimers, enqueueJpegs, publishMetrics, sendControl, setPhase],
+    [
+      clearTimers,
+      enqueueJpegs,
+      maybeIdleHold,
+      noteUserInput,
+      publishMetrics,
+      sendControl,
+      setIdleHolding,
+      setPhase,
+    ],
   )
 
   const start = useCallback(
@@ -501,11 +595,31 @@ export function useWorldStream() {
   )
 
   const pause = useCallback(async () => {
-    if(!sessionIdRef.current) return
-    const action=phaseRef.current==='paused'?'resume':'pause'
-    try { await worldApi.action(sessionIdRef.current,action);setPhase(action==='pause'?'paused':'streaming') }
-    catch(err) {setState(s=>({...s,error:String(err)}))}
-  }, [setPhase])
+    if (!sessionIdRef.current) return
+    // Manual toggle — clears idle-hold semantics.
+    if (phaseRef.current === 'paused') {
+      userPausedRef.current = false
+      idleHoldingRef.current = false
+      try {
+        await worldApi.action(sessionIdRef.current, 'resume')
+        setPhase('streaming')
+        setIdleHolding(false)
+        noteUserInput()
+      } catch (err) {
+        setState((s) => ({ ...s, error: String(err) }))
+      }
+      return
+    }
+    userPausedRef.current = true
+    idleHoldingRef.current = false
+    try {
+      await worldApi.action(sessionIdRef.current, 'pause')
+      setPhase('paused')
+      setIdleHolding(false)
+    } catch (err) {
+      setState((s) => ({ ...s, error: String(err) }))
+    }
+  }, [noteUserInput, setIdleHolding, setPhase])
 
   const disconnect = useCallback(() => {
     intentionalCloseRef.current = true
@@ -516,6 +630,8 @@ export function useWorldStream() {
     }
     if(sessionIdRef.current) void worldApi.action(sessionIdRef.current,'stop').catch(err=>setState(s=>({...s,error:String(err)})))
     sessionIdRef.current = null
+    userPausedRef.current = false
+    idleHoldingRef.current = false
     document.exitPointerLock()
     keysRef.current.clear()
     keyHeldRef.current.clear()
@@ -529,15 +645,29 @@ export function useWorldStream() {
       meta: null,
       error: null,
       pointerLocked: false,
+      idleHolding: false,
     }))
   }, [clearTimers])
 
   const reset = useCallback(async () => {
-    if(!sessionIdRef.current) return
-    keysRef.current.clear();mouseRef.current={dx:0,dy:0,scroll:0};queueRef.current=[]
-    try {await worldApi.action(sessionIdRef.current,'reset')}
-    catch(err) {setState(s=>({...s,error:String(err)}))}
-  }, [])
+    if (!sessionIdRef.current) return
+    keysRef.current.clear()
+    mouseRef.current = { dx: 0, dy: 0, scroll: 0 }
+    queueRef.current = []
+    userPausedRef.current = false
+    setIdleHolding(false)
+    noteUserInput()
+    try {
+      await worldApi.action(sessionIdRef.current, 'reset')
+      // Reset may leave the world paused; resume so the player can continue from the seed.
+      if (phaseRef.current === 'paused') {
+        await worldApi.action(sessionIdRef.current, 'resume')
+        setPhase('streaming')
+      }
+    } catch (err) {
+      setState((s) => ({ ...s, error: String(err) }))
+    }
+  }, [noteUserInput, setIdleHolding, setPhase])
 
   const reconnect = useCallback(() => {
     if(!sessionIdRef.current) {void start('facility','First-person industrial research facility',seedRef.current);return}
@@ -598,6 +728,8 @@ export function useWorldStream() {
       if (!e.repeat) keyHeldRef.current.set(k, (keyHeldRef.current.get(k) || 0) + 1)
       keysRef.current.add(k)
       proofRef.current.key_events++
+      noteUserInput()
+      void resumeFromIdleHold()
       e.preventDefault()
     }
     const onKeyUp = (e: KeyboardEvent) => {
@@ -610,7 +742,11 @@ export function useWorldStream() {
       } else keyHeldRef.current.set(k, n)
     }
     const onMouseMove = (e: MouseEvent) => {
-      if (phaseRef.current !== 'streaming') return
+      if (
+        phaseRef.current !== 'streaming' &&
+        !(phaseRef.current === 'paused' && idleHoldingRef.current)
+      )
+        return
       if (document.pointerLockElement == null && !e.buttons) {
         // Allow look without lock only when pointer is over stage with movement accumulation
         // during active streaming after click — still require lock for continuous look.
@@ -619,6 +755,8 @@ export function useWorldStream() {
       proofRef.current.mouse_events++
       mouseRef.current.dx += e.movementX
       mouseRef.current.dy += e.movementY
+      noteUserInput()
+      void resumeFromIdleHold()
     }
     const onWheel = (e: WheelEvent) => {
       if (phaseRef.current !== 'streaming') return
@@ -626,10 +764,16 @@ export function useWorldStream() {
       e.preventDefault()
     }
     const onMouseDown = (e: MouseEvent) => {
-      if (phaseRef.current !== 'streaming') return
+      if (
+        phaseRef.current !== 'streaming' &&
+        !(phaseRef.current === 'paused' && idleHoldingRef.current)
+      )
+        return
       const m = MOUSE_BTN[e.button]
       if (m) {
         keysRef.current.add(m)
+        noteUserInput()
+        void resumeFromIdleHold()
         e.preventDefault()
       }
     }
@@ -670,7 +814,7 @@ export function useWorldStream() {
       window.removeEventListener('blur', onBlur)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
-  }, [presentLoop])
+  }, [noteUserInput, presentLoop, resumeFromIdleHold])
 
   useEffect(() => {
     const cleanup = () => {
