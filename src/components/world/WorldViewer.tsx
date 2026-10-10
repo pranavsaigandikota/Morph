@@ -3,6 +3,13 @@ import { useCallback, useEffect, useState, type RefObject } from 'react'
 import type { WorldFrameMeta, WorldMetrics } from '../../types/world'
 import { PerformanceOverlay } from './PerformanceOverlay'
 
+export interface SwitchableWorld {
+  id: string
+  label: string
+  seed: string | null
+  mock?: boolean
+}
+
 interface Props {
   hasFrame: boolean
   meta: WorldFrameMeta | null
@@ -19,6 +26,10 @@ interface Props {
   onReset: () => void
   onDisconnect: () => void
   onReconnect: () => void
+  /** Saved / preset worlds — switch without remounting React */
+  worlds?: SwitchableWorld[]
+  activeSeed?: string | null
+  onSwitchWorld?: (seed: string | null) => void
 }
 
 export function WorldViewer({
@@ -37,6 +48,9 @@ export function WorldViewer({
   onReset,
   onDisconnect,
   onReconnect,
+  worlds,
+  activeSeed,
+  onSwitchWorld,
 }: Props) {
   const [helpOpen, setHelpOpen] = useState(true)
   const [fullscreen, setFullscreen] = useState(false)
@@ -204,11 +218,35 @@ export function WorldViewer({
       </div>
 
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-panel px-4 py-3">
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-xs text-muted">
           <span className="font-mono">
             {meta ? `${meta.width}×${meta.height}` : '—'} · frame {meta?.frame_id ?? '—'} · gen{' '}
             {meta ? `${meta.inference_ms}ms` : '—'} · tc {meta?.temporal_compression ?? '—'}
           </span>
+          {worlds && worlds.length > 0 && onSwitchWorld && (
+            <label className="flex items-center gap-2 text-soft">
+              <span className="whitespace-nowrap text-[10px] uppercase tracking-wider text-muted">
+                World
+              </span>
+              <select
+                className="max-w-[220px] rounded-md border border-line bg-ink px-2 py-1 text-xs text-bright outline-none focus:border-signal"
+                value={activeSeed ?? ''}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => {
+                  e.stopPropagation()
+                  const v = e.target.value
+                  onSwitchWorld(v.length ? v : null)
+                }}
+              >
+                {worlds.map((w) => (
+                  <option key={w.id} value={w.seed ?? ''}>
+                    {w.label}
+                    {w.mock ? ' (MOCK)' : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <ControlButton

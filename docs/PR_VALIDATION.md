@@ -1,48 +1,49 @@
 # PR validation — `cursor/game-experience-cd95` → `main`
 
-**PR:** https://github.com/pranavsaigandikota/Morph/pull/1 (draft — do not merge yet)
+**PR:** https://github.com/pranavsaigandikota/Morph/pull/1 (draft — **do not merge** until gates below pass)
 
-## Cloud / offline results (this agent)
+## Blocker: Codex SCENE_API handoff not in workspace
+
+Copy into `docs/codex/` (see [codex/README.md](./codex/README.md)):
+
+- `SCENE_API.md` ← **required** to wire `/create` to the final SDXL contract (no guessing)
+- `CREATE_ANYTHING_DEMO.md`
+- `CREATE_ANYTHING_RESULTS.md`
+- unzip `WorldShift-Create-Anything-Demo.zip` → `docs/codex/demo/`
+
+## Codex-reported Windows baseline (Create Anything verified)
+
+| Metric | Value |
+|--------|-------|
+| Generated FPS | **70.81** |
+| Canvas / displayed FPS | **17.93** |
+| Duration | 77.5 s |
+| Transport / decode errors | **0** |
+| Presets | 6 (incl. Florida hurricane neighborhood) |
+| Inference backend | Preserved (do not replace) |
+
+Frontend must meet or preserve this bar after `SCENE_API.md` integration; cloud agent cannot re-measure `:8000`.
+
+## Cloud / offline results
 
 | Check | Result |
 |-------|--------|
-| `npm run typecheck` | PASS |
-| `npm run build` | PASS |
-| `npm run test:mock-protocol` | PASS (explicit mock `:4822`) |
-| `npm run test:rescue` | PASS (showdown rates + A* follow) |
-| Routes `/` `/create` `/world` `/mission` `/simulation` `/agents` | HTTP 200 |
-| Vite `/engine` → `:8000` when GPU down | **502** `engine_unreachable` (no silent mock) |
-| Real SDXL / Waypoint on Windows `:8000` | **NOT RUN** — `ECONNREFUSED` from cloud |
-| Grok Bot 1 `RescueEnv` + parity suite | **PENDING** — not in repo; seam at `rescueEnvAdapter.ts` |
-
-## Verified showdown data (frozen package)
-
-| Agent | Rates |
-|-------|-------|
-| Random | 19.5% / 8.0% |
-| PPO + Path Guidance | 99.5% / 99.0% |
-| A* | 100% / 100% |
-
-Labeled `recorded_evaluation`; UI states not live inference; guided PPO note includes shortest-path access.
-
-## Windows GPU checklist (required before merge)
-
-Follow [WINDOWS_VERIFY.md](./WINDOWS_VERIFY.md) + [DEMO_GUIDE.md](./DEMO_GUIDE.md):
-
-1. SDXL: ≥2 distinct Create Anything worlds → Start Exploring
-2. Waypoint: WASD, drag-look, pause, reset, reconnect, world switch
-3. Record Gen FPS / Disp FPS / decode errors / drops vs prior baseline
-4. Mission play + A* compare on facility_a
-5. Drop in Grok `RescueEnv` behind `rescueEnvAdapter` + run their parity tests
-6. Stop GPU: Mission / Showdown / Replays still work; Create/Explorer clear errors
-
-## Outstanding risks
-
-- Real FPS / decode / continuity unknown until Windows run
-- SDXL path negotiation (`/scenes/generate` \| `/sdxl/generate` \| `/generate`) needs Codex confirmation
-- Browser sim is schema-compatible placeholder until RescueEnv lands — do not treat as Grok parity pass
-- Large JS bundle (Three.js) — acceptable for hackathon demo
+| `npm run typecheck` / `build` | PASS |
+| `test:mock-protocol` | PASS |
+| `test:rescue` | PASS (showdown rates + A* follow) |
+| GPU down → `/engine` | 502; Explorer **unavailable** (not MOCK) |
+| World switch without React remount | Implemented (`switchWorld`) — needs Windows confirm on real seeds |
+| Final `SCENE_API.md` client wiring | **PENDING** file copy |
+| Grok `RescueEnv` / RescueGame adapter | **PENDING** handoff |
+| Real SDXL 6 presets + 2 creative worlds | **PENDING** Windows + SCENE_API |
 
 ## Merge gate
 
-**Do not merge** until Windows GPU integration and RescueEnv compatibility are checked off above. Keep `main` at `a0924b6` (or current stable) as fallback.
+Do **not** merge until:
+
+1. `docs/codex/SCENE_API.md` integrated and `/create` uses that contract  
+2. Windows GPU: Create → Explore with measured FPS near Codex baseline, 0 decode errors  
+3. Rescue Mission gameplay + RescueEnv/RescueGame parity when available  
+4. Full Create → Explore → Mission → Showdown journey on one Windows session  
+
+Keep `main` as fallback.

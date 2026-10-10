@@ -1,19 +1,19 @@
 # Validation status
 
-**Branch note:** Game-experience work lives on `cursor/game-experience-cd95` until merged. Keep `main` stable for demos that must not move.
+**Branch:** `cursor/game-experience-cd95` (draft PR #1). Keep `main` stable until merge gates pass.
 
 ## Mock vs real
 
 | Track | Status |
 |-------|--------|
-| Phase-2 mock protocol (`npm run test:mock-protocol`) | PASSED on mock `:4822` |
-| Real Waypoint GPU `:8000` | Pending on Windows PC ([WINDOWS_VERIFY.md](./WINDOWS_VERIFY.md)) |
-| SDXL Create Anything | Wired to Codex scene endpoints; requires `:8000` / `VITE_SCENE_API_BASE_URL` |
-| Rescue Mission (browser sim) | Works offline from `public/data/rescue/` |
-| AI Showdown verified rates | Shipped in `eval_verified_showdown.json` (19.5/8 · 99.5/99 · 100/100) |
+| Phase-2 mock protocol | PASSED (`:4822`) |
+| Codex Create Anything on Windows | Codex reports **70.81 gen / 17.93 canvas FPS**, 0 decode errors — frontend must integrate `SCENE_API.md` ([codex/README.md](./codex/README.md)) |
+| `SCENE_API.md` in this workspace | **MISSING** — copy required |
+| Rescue Mission (browser sim) | Offline PASS; Grok RescueEnv/RescueGame pending |
+| AI Showdown | Verified rates in package (recorded) |
 
-Do **not** claim GPU integration from mock tests. Do **not** claim showdown rates are live inference.
+Do **not** claim frontend↔SDXL contract pass until `SCENE_API.md` is wired. Do not claim GPU pass from mock.
 
 ## Judging
 
-See [DEMO_GUIDE.md](./DEMO_GUIDE.md) for the 3-minute interactive path.
+[DEMO_GUIDE.md](./DEMO_GUIDE.md) · [PR_VALIDATION.md](./PR_VALIDATION.md)

@@ -8,8 +8,10 @@ import { WorldViewer } from '../components/world/WorldViewer'
 import { WORLD_SCENES } from '../data/scenes'
 import { useWorldStream } from '../hooks/useWorldStream'
 import { worldApiBaseUrl } from '../services/engineConfig'
+import { loadSavedScenes } from '../services/sceneGeneration'
 import { worldApi } from '../services/worldApi'
 import type { WorldSceneId } from '../types/world'
+import type { SwitchableWorld } from '../components/world/WorldViewer'
 
 export function WorldExplorerPage() {
   const [params] = useSearchParams()
@@ -21,11 +23,53 @@ export function WorldExplorerPage() {
   const [connDetail, setConnDetail] = useState<string>('')
   const [engineName, setEngineName] = useState<string | null>(null)
   const stream = useWorldStream()
+  const [savedWorlds, setSavedWorlds] = useState(() => loadSavedScenes())
 
   const scene = useMemo(
     () => WORLD_SCENES.find((s) => s.id === selected) ?? WORLD_SCENES[0]!,
     [selected],
   )
+
+  const switchableWorlds = useMemo((): SwitchableWorld[] => {
+    const fromSaved: SwitchableWorld[] = savedWorlds
+      .filter((s) => s.seed)
+      .map((s) => ({
+        id: s.id,
+        label: s.prompt.slice(0, 48) + (s.prompt.length > 48 ? '…' : ''),
+        seed: s.seed,
+        mock: s.mock,
+      }))
+    const builtins: SwitchableWorld[] = WORLD_SCENES.filter((s) => s.available).map((s) => ({
+      id: s.id,
+      label: s.title,
+      seed: s.seed ?? null,
+      mock: false,
+    }))
+    // Prefer current query seed first
+    const current: SwitchableWorld[] = seedFromCreate
+      ? [
+          {
+            id: 'current',
+            label: (promptFromCreate || 'Current world').slice(0, 48),
+            seed: seedFromCreate,
+            mock: params.get('mock_seed') === '1',
+          },
+        ]
+      : []
+    const seen = new Set<string>()
+    const out: SwitchableWorld[] = []
+    for (const w of [...current, ...fromSaved, ...builtins]) {
+      const key = w.seed ?? w.id
+      if (seen.has(key)) continue
+      seen.add(key)
+      out.push(w)
+    }
+    return out
+  }, [savedWorlds, seedFromCreate, promptFromCreate, params])
+
+  useEffect(() => {
+    setSavedWorlds(loadSavedScenes())
+  }, [])
 
   const active =
     stream.phase === 'streaming' ||
@@ -96,6 +140,9 @@ export function WorldExplorerPage() {
         onReset={() => void stream.reset()}
         onDisconnect={() => void stream.disconnect()}
         onReconnect={() => stream.reconnect()}
+        worlds={switchableWorlds}
+        activeSeed={stream.activeSeed}
+        onSwitchWorld={(seed) => void stream.switchWorld(seed)}
       />
     )
   }

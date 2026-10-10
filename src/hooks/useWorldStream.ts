@@ -454,6 +454,7 @@ export function useWorldStream() {
       mockRef.current = probe.mock
       engineNameRef.current = probe.engine ?? null
       seedRef.current = seed ?? null
+      setActiveSeed(seed ?? null)
       openSocket(seedRef.current)
     },
     [openSocket],
@@ -514,6 +515,43 @@ export function useWorldStream() {
       openSocket(seedRef.current)
     }, 100)
   }, [openSocket])
+
+  const [activeSeed, setActiveSeed] = useState<string | null>(null)
+
+  /** Switch seed / world without remounting React — close stream and reopen /stream?seed= */
+  const switchWorld = useCallback(
+    async (seed: string | null) => {
+      seedRef.current = seed
+      setActiveSeed(seed)
+      queueRef.current = []
+      droppedRef.current = 0
+      genCountRef.current = 0
+      dispCountRef.current = 0
+      genWindowStartRef.current = performance.now()
+      dispWindowStartRef.current = performance.now()
+      genMsEwmaRef.current = null
+      latEwmaRef.current = null
+      keysRef.current.clear()
+      keyHeldRef.current.clear()
+      mouseRef.current = { dx: 0, dy: 0, scroll: 0 }
+      intentionalCloseRef.current = true
+      clearTimers()
+      if (wsRef.current && wsRef.current.readyState < 2) wsRef.current.close()
+      wsRef.current = null
+      setState((s) => ({
+        ...s,
+        hasFrame: false,
+        meta: null,
+        error: null,
+        phase: 'connecting',
+      }))
+      await new Promise((r) => setTimeout(r, 150))
+      intentionalCloseRef.current = false
+      reconnectAttemptRef.current = 0
+      openSocket(seedRef.current)
+    },
+    [clearTimers, openSocket],
+  )
 
   const requestPointerLock = useCallback(() => {
     const el = canvasElRef.current ?? stageRef.current
@@ -624,6 +662,8 @@ export function useWorldStream() {
     reset,
     disconnect,
     reconnect,
+    switchWorld,
     requestPointerLock,
+    activeSeed,
   }
 }
