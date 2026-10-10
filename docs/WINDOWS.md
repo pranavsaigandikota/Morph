@@ -35,14 +35,9 @@ VITE_WORLD_API_BASE_URL=http://127.0.0.1:8000
 
 ## Validate World Explorer on your GPU PC
 
-1. Confirm Codex: open `http://127.0.0.1:8000/healthz` (or `/readyz`).  
-2. `npm run dev` (or the `.bat`).  
-3. Open World Explorer → connection banner should say **Waypoint GPU connected** (not MOCK).  
-4. Start session → click canvas for pointer lock → WASD + mouse.  
-5. Telemetry: **Gen FPS** ≈ wire JPEGs (~70+), **Disp FPS** ≈ canvas draws (~20).  
-6. Confirm **MOCK** badge is **absent**.
+Use the step-by-step checklist: **[WINDOWS_GPU_CHECKLIST.md](./WINDOWS_GPU_CHECKLIST.md)**.
 
-Until those steps pass on your PC, World Explorer integration is **not** considered complete.
+Until that checklist passes on your PC, World Explorer integration is **not** considered complete.
 
 ## Mock-only frontend (no GPU)
 

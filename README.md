@@ -19,11 +19,12 @@ npm run dev
 - UI: http://127.0.0.1:4821  
 - Config: copy `.env.example` → `.env` (`VITE_WORLD_API_BASE_URL=http://127.0.0.1:8000`)
 
-If `:8000` is down, `npm run dev` starts a **protocol mock** and shows an explicit **MOCK** badge. Cloud VMs cannot reach your PC’s GPU — validate WASD/mouse on Windows against real Waypoint before calling World Explorer “done”.
+If `:8000` is down, `npm run dev` starts a **protocol mock** and shows an explicit **MOCK** badge. Cloud VMs cannot reach your PC’s GPU — validate WASD/mouse on Windows against real Waypoint before calling World Explorer “done” ([docs/WINDOWS_GPU_CHECKLIST.md](docs/WINDOWS_GPU_CHECKLIST.md)).
 
 ```bash
-npm run dev:mock          # force mock
-npm run test:stream60     # 60s control harness (set ENGINE_URL)
+npm run dev:mock              # force mock
+npm run test:mock-protocol    # automated Phase-2 mock checks
+npm run test:stream60         # 60s control harness (set ENGINE_URL)
 ```
 
 ## Create World
