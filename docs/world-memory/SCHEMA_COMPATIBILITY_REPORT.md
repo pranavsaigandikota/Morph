@@ -2,7 +2,7 @@
 
 **Frontend branch:** `feature/worldshift-visual-memory-ui`  
 **Codex proposal:** `feature/worldshift-spatial-memory-backend` → `docs/world-memory/OBSTACLE_SCHEMA_PROPOSAL.md`  
-**Frontend tip after reconcile:** pending commit on this branch  
+**Frontend tip after reconcile:** `4d5fc39d28044ef5a0c69275261581cca4e3a367`  
 **Live API:** **not activated** — proposal only; MOCK overlay remains opt-in and off by default.
 
 ## Matching fields (aligned in frontend DTOs)
