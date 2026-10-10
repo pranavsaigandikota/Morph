@@ -15,6 +15,14 @@ Companion documents in this folder:
 | [GPU_RESOURCE_PLAN.md](GPU_RESOURCE_PLAN.md) | VRAM/CPU budget, scheduling, isolation from Waypoint |
 | [MVP_IMPLEMENTATION_PLAN.md](MVP_IMPLEMENTATION_PLAN.md) | Phases A–E, reuse map, tests, human review |
 | [LIMITATIONS_AND_RISKS.md](LIMITATIONS_AND_RISKS.md) | Technical limitations and risks |
+| [FRONTEND_COMPATIBILITY_REPORT.md](FRONTEND_COMPATIBILITY_REPORT.md) | Review of Cursor's existing UI against this design (revision 2) |
+| [BACKEND_API_GAP_ANALYSIS.md](BACKEND_API_GAP_ANALYSIS.md) | Implemented API vs frontend DTOs: mismatches and gaps (revision 2) |
+| [CURSOR_IMPLEMENTATION_HANDOFF.md](CURSOR_IMPLEMENTATION_HANDOFF.md) | What Cursor can build now (revision 2) |
+| [CODEX_CALIBRATION_HANDOFF.md](CODEX_CALIBRATION_HANDOFF.md) | A0 protocol and A0-dependent backend work (revision 2) |
+
+Revision 2 (2026-10-10) reviewed `feature/worldshift-visual-memory-ui` @ `0bf4f9b` and corrected
+statements that the branch did not exist. Integration sequencing is in
+[MVP_IMPLEMENTATION_PLAN.md §6](MVP_IMPLEMENTATION_PLAN.md#6-integration-plan-revision-2026-10-10).
 
 ---
 
@@ -70,7 +78,8 @@ on the backend branch:
 | Bounded storage: 8 worlds, 256 MiB, 2048 trajectory points | IMPLEMENTED | `memory.py` |
 | Depth Anything V2 Small + OWL-ViT offline CPU analysis of a checkpoint | EXPERIMENTAL script, not in API | `analyze-checkpoint-cpu.py` |
 | CLIP ViT-B/32 CPU semantic diagnostic | EXPERIMENTAL, **failed** to separate approved vs rejected | `experiment/prompt-grounded-recovery` |
-| Cursor live memory map UI | **NOT FOUND**. The branch `feature/worldshift-visual-memory-ui` is absent locally and in the last-fetched remote refs (fetch failed with an SSL error). The only map component in `src/` is Rescue's `MapLegend.tsx` (grid legend, unrelated) | — |
+| Cursor World Explorer memory UI: estimated pose/compass, exploration map with trail breaks, checkpoint gallery/preview, restore overlay, AI-Inferred Obstacles overlay (off by default) | **EXISTS, MOCK-only.** Every memory datum comes from `MockWorldMemoryClient`; no live client yet. *Correction:* the first revision of this document said the branch was not found. That was caused by a local `git fetch` TLS failure (Norton TLS interception), not by the branch being absent. Reviewed in [FRONTEND_COMPATIBILITY_REPORT.md](FRONTEND_COMPATIBILITY_REPORT.md) | `feature/worldshift-visual-memory-ui` @ `0bf4f9b`, `src/components/worldMemory/*` |
+| Guided calibration UI | ABSENT on the frontend branch | — |
 | Guided calibration | PROPOSED (this design) | — |
 | Observation store (many lightweight frames, separate from 32 checkpoints) | PROPOSED | — |
 | Embeddings, place recognition, sequence matching, hypotheses | PROPOSED | — |
@@ -199,4 +208,4 @@ MVP_IMPLEMENTATION_PLAN.md §Tests T9.
 | Vector search | **numpy brute-force** cosine over ≤1,024 × 384 float16 per world | <1 ms; no dependency | FAISS (unnecessary at this scale; revisit at >50k vectors) |
 | Storage | **SQLite (stdlib, WAL)** per world plus raw JPEG files on disk | Transactions, crash safety on Windows, queryable, zero infra | Postgres/vector DB (unneeded); JSON rewrite per save (current `world.json` pattern does not scale to hundreds of observations) |
 | Backend scheduling | asyncio bounded queue → one `multiprocessing` worker (spawn), `torch.set_num_threads(4)`, `psutil` BELOW_NORMAL priority | Isolates GIL and CPU from the stream loop | Celery/Redis (unnecessary) |
-| Browser visualization | **Canvas 2D or SVG in React** (the existing stack), per-segment coordinate frames, uncertainty ellipses | No new dependency | Three.js/WebGL 3-D map (implies geometry we do not have); Leaflet (geographic connotation) |
+| Browser visualization | **SVG in React**, as already implemented in Cursor's `ExplorationMap.tsx`; shared frame with hard trail breaks per segment; uncertainty halos once sigma fields exist | No new dependency | Three.js/WebGL 3-D map (implies geometry we do not have); Leaflet (geographic connotation) |

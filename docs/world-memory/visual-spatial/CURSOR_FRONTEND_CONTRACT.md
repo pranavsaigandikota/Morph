@@ -4,10 +4,15 @@ Status: **PROPOSED contract v0.1**, additive to [API_CONTRACT.md](../API_CONTRAC
 Cursor owns the UI. Endpoints marked PLANNED do not exist yet. Build against the MOCK fixtures in §7 until
 the backend reports them as implemented in RESULTS.md.
 
-Note on prior work: the requested `feature/worldshift-visual-memory-ui` branch was **not found** in this
-clone or in the last-fetched remote refs. The only map-like component in `src/` is
-`components/simulation/MapLegend.tsx`, which belongs to Rescue Mission's deterministic grid and must not be
-reused for this map (§6). If Cursor has unpublished work, reconcile it against this document.
+**Revision 2 (2026-10-10), prior work.** Cursor's `feature/worldshift-visual-memory-ui` (@ `0bf4f9b`)
+already implements the Explorer, map, gallery, restore overlay and obstacle overlay **in MOCK**, with
+types in `src/types/worldMemory.ts`. (The first revision wrongly said this branch did not exist; that was
+a local fetch TLS failure.) Where this contract differs from those types, the **existing frontend types
+win**. The live adapter converts the backend wire shape into them, as specified in
+[BACKEND_API_GAP_ANALYSIS.md §2](BACKEND_API_GAP_ANALYSIS.md) and
+[CURSOR_IMPLEMENTATION_HANDOFF.md](CURSOR_IMPLEMENTATION_HANDOFF.md). The types in §4 describe the
+**wire** shape of PROPOSED endpoints. They are not a requirement to rewrite the frontend models. Rescue's
+`components/simulation/MapLegend.tsx` must still not be reused (§6).
 
 ## 1. Compatibility rules
 
@@ -31,13 +36,19 @@ Every displayable value carries `evidence: 'measured' | 'estimated' | 'inferred'
 | `mock` | Diagonal "MOCK" watermark on the whole map **and** on each mock thumbnail. Mock data cannot be shown without it |
 
 Forbidden UI copy: "you are here (exact)", metres/feet/km, "GPS", "mapped", "scan", "same location"
-(use "looks similar to an earlier view"), "collision", "walkable", "SLAM".
+(use "looks similar to an earlier view"), "collision", "walkable", "SLAM", and a "%" sign on navigation
+confidence. The existing obstacle legend's "Walkable suggestion" should become "Possible open path
+(unverified)" (FRONTEND_COMPATIBILITY_REPORT §2.7).
+
+Revision 2 note on evidence tags: until observations exist, the existing `source: 'mock' | 'live'` plus
+per-field labels ("Est.", "Raw", "heuristic") satisfy this section. A full per-value `evidence` field is
+required only for the PROPOSED observation, link and localization types.
 
 ## 3. REST (PLANNED unless noted)
 
 | Method / path | Response | Notes |
 |---|---|---|
-| `GET /world/memory?session_id=S` | EXISTING | Checkpoints, navigation, trajectory |
+| `GET /world/memory?session_id=S` | EXISTING | Checkpoints, navigation, trajectory. **Live clients start here** (polling at 1 Hz). The full list of IMPLEMENTED routes is in BACKEND_API_GAP_ANALYSIS §1 |
 | `GET /world/visual-memory?session_id=S&since_event_seq=N` | `VisualMemorySnapshot` | Authoritative map state |
 | `GET /world/observations?session_id=S&segment_id=G&limit=100&before=T` | `{observations: Observation[], next}` | Paged |
 | `GET /world/observations/{id}?session_id=S` | `Observation` | |
@@ -130,9 +141,11 @@ New `MemoryEvent.type` values (payloads in brackets):
 
 ## 5. Rendering rules
 
-1. **Coordinate frames are per segment.** Each segment is drawn as its own "island" in its own colour.
-   Islands are laid out side by side (or the non-current ones are faded). They are never overlaid as if
-   they shared an origin. The current segment is centred on the player marker.
+1. **Coordinate frames are per segment.** MVP (revision 2): Cursor's existing approach is acceptable. It
+   uses a shared SVG frame, a hard path break (`M`) at every segment boundary, a distinct colour per
+   segment, and a "↺ restored from …" marker where a restored segment begins. The backend starts a
+   restored segment at the anchor's copied pose, so the new segment overlaps the old one there, and the
+   marker explains that overlap. Optional later: separate side-by-side islands.
 2. **Player marker**: a dot plus a heading wedge, with an uncertainty halo of radius `sigma_xy` and wedge
    half-width `sigma_yaw_rad`. The halo grows visibly as the player walks.
 3. **Direction of travel**: an arrow from the last ~2 s of trail points. Hide it when `moving` is false.

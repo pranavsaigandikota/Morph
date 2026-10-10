@@ -20,7 +20,7 @@ mouse-to-degree mapping. Frames are never stitched.
 | Fact (verified in `service.py` / `memory.py` / `backend.py`) | Consequence |
 |---|---|
 | Mouse deltas are passed unscaled into `CtrlInput(mouse=(dx,dy))`. Waypoint's expected magnitude is undocumented here | **We do not know how many mouse units make 45°.** |
-| Existing tests send `mouse_dx` ≈ 0.5–1 per 50 ms message (≈1.5–3 units per batch) | Our only empirical operating range is small |
+| Existing backend tests send `mouse_dx` ≈ 0.5–1 per 50 ms message (≈1.5–3 units per batch). The frontend's look control sends up to 28 per tick (≈84 per batch) and Stability Mode resets at 320 cumulative units (revision 2) | The tested backend range and the real player range differ by an order of magnitude |
 | `Navigation` uses `0.002 rad/unit`, an arbitrary constant | Nominal 45° = 392.7 units, far outside the tested range. The nominal yaw and the visual yaw are **unrelated until probed** |
 | Accumulated mouse per batch is clamped to ±1000. Controls are zeroed if no control arrives for 0.5 s | A controller must feed a control every batch |
 | One batch = 4 frames, ~138–145 ms at 720p | A turn of *n* micro-steps takes ≈ *n* × 0.14 s |
@@ -32,8 +32,12 @@ mouse-to-degree mapping. Frames are never stitched.
 Before calibration can aim at "45°", we need an **empirically chosen** mouse amount. Run per model build
 and quantisation setting, on ≥3 distinct scenes:
 
-1. Start from a seed. For each candidate per-batch magnitude `m ∈ {0.5, 1, 2, 4, 8, 16, 32}`:
+1. Start from a seed. For each candidate per-batch magnitude `m ∈ {1, 2, 4, 8, 16, 32, 64, 84}`:
    reset to seed, then apply `mouse_dx = m` for `K = 10` batches, then 4 zero-input batches.
+   *Revision 2:* the range now covers the frontend's real operating range. `lookControl.ts` allows up to
+   28 units per 50 ms tick (≈84 per batch), and Stability Mode resets after 320 cumulative units. The full
+   refined protocol (sweeps S1–S4, output artifact) is in
+   [CODEX_CALIBRATION_HANDOFF.md](CODEX_CALIBRATION_HANDOFF.md).
 2. Per batch, record (MEASURED) the applied mouse and JPEG, and (INFERRED) the horizontal image pan from
    numpy-FFT phase correlation on 160×90 grayscale centre strips of consecutive batch-last frames, plus
    quality indicators.

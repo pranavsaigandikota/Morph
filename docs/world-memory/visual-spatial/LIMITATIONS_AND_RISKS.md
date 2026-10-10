@@ -73,7 +73,12 @@ must handle them.
 | R12 | Confusion with the Rescue grid | Low | Medium | Separate namespaces and titles (contract §6) | Cursor |
 | R13 | DINOv2 weights unavailable offline at demo time | Low | Medium | Pin and pre-cache; fall back to the cached CLIP B/32 with `embedding_model` recorded | Phase C |
 | R14 | Race between calibration and user restore/reset/stop | Medium | Medium | Calibration holds a state flag; lifecycle actions cancel it; the safe exit is idempotent | T2, T10 |
-| R15 | `feature/worldshift-visual-memory-ui` holds unseen Cursor work that conflicts | Unknown | Medium | Branch not found in this clone (fetch failed with SSL). Cursor to reconcile against this contract | Cursor |
+| R15 | ~~Branch `feature/worldshift-visual-memory-ui` unseen~~ **Resolved (rev. 2):** the branch exists (@ `0bf4f9b`). The first revision's "not found" came from a local TLS failure: Norton intercepts HTTPS, and `git -c http.sslBackend=schannel` with verification on resolved it. Reviewed in FRONTEND_COMPATIBILITY_REPORT. Residual risk: the frontend's provisional types differ from the backend wire shape (axes, degrees, confidence polarity) | Resolved → Medium | Medium | A single mapping module with unit tests (Cursor C1) | Cursor |
+| R16 | `docs/world-memory/API_CONTRACT.md` exists on both branches with different content (frontend "PENDING" placeholder vs backend v1 contract) | High at merge | Medium | The backend version wins; Codex K8 | Codex + Cursor |
+| R17 | The frontend stream hook adopts the epoch from **any** JSON message, so a memory event with a mismatched epoch would flush presentation frames | Low today | High | Codex invariant K3 with a test; frontend stream code frozen | Codex |
+| R18 | The frontend defaults to port 8000, which has no memory routes; a live demo silently stays on MOCK or 404s | Medium | Medium | `ENGINE_TARGET=http://127.0.0.1:8002`; live client shows "Memory unavailable" on 404 | Cursor |
+| R19 | Frontend anchor policy (`waypoint_frame` never restorable) vs backend review-gated restore leaves the gallery's restore buttons mostly disabled | High | Low | Product decision, documented. Default `approved && policy` | Product owner |
+| R20 | A0 finds rate-dependent or scene-dependent turn gain, so no single units-per-degree value exists | Medium | Medium | Report `null`, use small-arc or disable calibration; never average across scenes | Codex |
 
 ## 5. Claims we must not make
 

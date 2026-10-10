@@ -54,6 +54,11 @@ Done when T5, T6 (with human labels) and T8 (full) pass. Precision is reported p
 
 ### Phase D: Cursor live map integration (M–L, Cursor)
 
+> **Revision 2026-10-10:** the Explorer, map, gallery, restore overlay and obstacle overlay **already
+> exist in MOCK** on `feature/worldshift-visual-memory-ui` @ `0bf4f9b`. Phase D is now "replace the mock
+> client with a live adapter", not "build the map". See §6 and
+> [CURSOR_IMPLEMENTATION_HANDOFF.md](CURSOR_IMPLEMENTATION_HANDOFF.md).
+
 Build against the MOCK fixtures first, then the live endpoints. The contract is
 [CURSOR_FRONTEND_CONTRACT.md](CURSOR_FRONTEND_CONTRACT.md). Done when the §8 UI acceptance checks pass and
 the T11 visible browser run shows FPS within the T8 gates **with the map open**.
@@ -148,3 +153,25 @@ unmodified. Checked 2026-10-10: `torch`, `transformers`, `numpy`, `PIL` and `psu
 `cv2` is **not**. Phase correlation is therefore ~10 lines of `numpy.fft`, not OpenCV. `sqlite3` is in the
 standard library. The only new artefact is the DINOv2-small weights at a pinned revision, downloaded into
 the existing offline cache. No FAISS, no database server, no queue broker.
+
+## 6. Integration plan (revision 2026-10-10)
+
+This revision follows the frontend review ([FRONTEND_COMPATIBILITY_REPORT.md](FRONTEND_COMPATIBILITY_REPORT.md))
+and the API gap analysis ([BACKEND_API_GAP_ANALYSIS.md](BACKEND_API_GAP_ANALYSIS.md)). Phases use the
+integration lettering requested on 2026-10-10. The mapping to §2 is given for traceability.
+
+| Integration phase | Maps to §2 | Starts before A0? | Priority | Owner |
+|---|---|---|---|---|
+| **C: estimated movement and heading** (live adapter on IMPLEMENTED `navigation`/`trajectory`) | B (uncertainty) + existing nav | **Yes, now.** Headings labelled nominal | **1** | Cursor (adapter); Codex (K2–K7, additive) |
+| **D: visual memory gallery and map** (live checkpoints, review, restore, segment breaks) | D | **Yes, now** | **1** | Cursor |
+| **B: automatic snapshot collection** (observation store, triggers, dedup) | B | **Yes.** Time/translate/settle triggers need no A0. The turn trigger ships with a provisional mouse-unit threshold | **2** | Codex; Cursor UI after endpoints exist |
+| **A: guided calibration and directional screenshots** | A | **Partly.** Seam, controller, safe exit, synthetic tests and UI shell now; **enabling it for players is blocked on A0** | **3** | Codex (A0 owner); Cursor (UI shell on MOCK) |
+| **E: sequence-based possible-place recognition** | C | **Partly.** Worker, embeddings and matcher on the synthetic harness can start after B. Thresholds and the heading-consistency check need A0 plus human labels | **4** | Codex |
+| (F, optional) quality-aware restoration | E | Yes, after D | 5 | Codex + Cursor |
+
+Ordering rationale: C and D give a working live demo using only endpoints that already exist and were
+GPU-tested. B adds evidence volume. A is the only phase whose core parameter (mouse units per intended
+turn) is unknown. E is the riskiest claim and needs the most human labelling, so it comes last.
+
+What specifically waits for A0 is listed in
+[CODEX_CALIBRATION_HANDOFF.md §3](CODEX_CALIBRATION_HANDOFF.md#3-what-depends-on-a0).
