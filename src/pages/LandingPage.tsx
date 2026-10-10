@@ -66,12 +66,12 @@ export function LandingPage() {
             },
             {
               title: 'Rescue Simulation Lab',
-              body: 'Three.js facility map with walls, hazards, exits, and autonomous agent replay.',
+              body: 'Static recorded-evaluation package — maps, trajectories, and charts with no backend.',
               to: '/simulation',
             },
             {
               title: 'Agent Evaluation',
-              body: 'Episode charts, success metrics, and replay controls against mock contracts.',
+              body: 'Offline episode metrics and training history from the rescue data handoff.',
               to: '/agents',
             },
           ].map((card) => (

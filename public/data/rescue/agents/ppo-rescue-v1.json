@@ -1,0 +1,9 @@
+{
+  "id": "ppo-rescue-v1",
+  "name": "PPO Rescue v1",
+  "kind": "ppo",
+  "description": "Recorded PPO policy checkpoint evaluated offline. Replay only — live inference is optional via the live API adapter.",
+  "version": "1.0.0",
+  "checkpoint": "ppo_rescue_v1_final.pt",
+  "created_at": "2026-10-08T22:15:00.000Z"
+}

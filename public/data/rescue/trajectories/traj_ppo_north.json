@@ -1,0 +1,269 @@
+{
+  "id": "traj_ppo_north",
+  "agent_id": "ppo-rescue-v1",
+  "map_id": "facility_a",
+  "label": "PPO v1 · north exit",
+  "recorded_at": "2026-10-09T18:00:00.000Z",
+  "mode": "recorded_evaluation",
+  "frames": [
+    {
+      "step": 0,
+      "time_ms": 0,
+      "agent": {
+        "x": 2,
+        "y": 9,
+        "heading": 0,
+        "status": "navigating"
+      },
+      "victims_remaining": 2,
+      "victims_rescued": 0
+    },
+    {
+      "step": 1,
+      "time_ms": 250,
+      "agent": {
+        "x": 3,
+        "y": 9,
+        "heading": 0,
+        "status": "navigating"
+      },
+      "victims_remaining": 2,
+      "victims_rescued": 0
+    },
+    {
+      "step": 2,
+      "time_ms": 500,
+      "agent": {
+        "x": 4,
+        "y": 9,
+        "heading": 0,
+        "status": "navigating"
+      },
+      "victims_remaining": 2,
+      "victims_rescued": 0
+    },
+    {
+      "step": 3,
+      "time_ms": 750,
+      "agent": {
+        "x": 4,
+        "y": 10,
+        "heading": 1.5707963267948966,
+        "status": "navigating"
+      },
+      "victims_remaining": 2,
+      "victims_rescued": 0
+    },
+    {
+      "step": 4,
+      "time_ms": 1000,
+      "agent": {
+        "x": 4,
+        "y": 12,
+        "heading": 1.5707963267948966,
+        "status": "navigating"
+      },
+      "victims_remaining": 2,
+      "victims_rescued": 0
+    },
+    {
+      "step": 5,
+      "time_ms": 1250,
+      "agent": {
+        "x": 6,
+        "y": 12,
+        "heading": 0,
+        "status": "navigating"
+      },
+      "victims_remaining": 2,
+      "victims_rescued": 0
+    },
+    {
+      "step": 6,
+      "time_ms": 1500,
+      "agent": {
+        "x": 7,
+        "y": 12,
+        "heading": 0,
+        "status": "navigating"
+      },
+      "victims_remaining": 2,
+      "victims_rescued": 0
+    },
+    {
+      "step": 7,
+      "time_ms": 1750,
+      "agent": {
+        "x": 7,
+        "y": 10,
+        "heading": -1.5707963267948966,
+        "status": "navigating"
+      },
+      "victims_remaining": 2,
+      "victims_rescued": 0
+    },
+    {
+      "step": 8,
+      "time_ms": 2000,
+      "agent": {
+        "x": 7,
+        "y": 7,
+        "heading": -1.5707963267948966,
+        "status": "navigating"
+      },
+      "victims_remaining": 2,
+      "victims_rescued": 0
+    },
+    {
+      "step": 9,
+      "time_ms": 2250,
+      "agent": {
+        "x": 9,
+        "y": 7,
+        "heading": 0,
+        "status": "navigating"
+      },
+      "victims_remaining": 2,
+      "victims_rescued": 0
+    },
+    {
+      "step": 10,
+      "time_ms": 2500,
+      "agent": {
+        "x": 10,
+        "y": 7,
+        "heading": 0,
+        "status": "rescuing"
+      },
+      "victims_remaining": 1,
+      "victims_rescued": 1
+    },
+    {
+      "step": 11,
+      "time_ms": 2750,
+      "agent": {
+        "x": 10,
+        "y": 9,
+        "heading": 1.5707963267948966,
+        "status": "rescuing"
+      },
+      "victims_remaining": 1,
+      "victims_rescued": 1
+    },
+    {
+      "step": 12,
+      "time_ms": 3000,
+      "agent": {
+        "x": 12,
+        "y": 9,
+        "heading": 0,
+        "status": "rescuing"
+      },
+      "victims_remaining": 1,
+      "victims_rescued": 1
+    },
+    {
+      "step": 13,
+      "time_ms": 3250,
+      "agent": {
+        "x": 13,
+        "y": 9,
+        "heading": 0,
+        "status": "rescuing"
+      },
+      "victims_remaining": 1,
+      "victims_rescued": 1
+    },
+    {
+      "step": 14,
+      "time_ms": 3500,
+      "agent": {
+        "x": 13,
+        "y": 11,
+        "heading": 1.5707963267948966,
+        "status": "rescuing"
+      },
+      "victims_remaining": 1,
+      "victims_rescued": 1
+    },
+    {
+      "step": 15,
+      "time_ms": 3750,
+      "agent": {
+        "x": 13,
+        "y": 13,
+        "heading": 1.5707963267948966,
+        "status": "rescuing"
+      },
+      "victims_remaining": 1,
+      "victims_rescued": 1
+    },
+    {
+      "step": 16,
+      "time_ms": 4000,
+      "agent": {
+        "x": 16,
+        "y": 13,
+        "heading": 0,
+        "status": "evacuating"
+      },
+      "victims_remaining": 0,
+      "victims_rescued": 2
+    },
+    {
+      "step": 17,
+      "time_ms": 4250,
+      "agent": {
+        "x": 18,
+        "y": 6,
+        "heading": -1.2924966677897853,
+        "status": "evacuating"
+      },
+      "victims_remaining": 0,
+      "victims_rescued": 2
+    },
+    {
+      "step": 18,
+      "time_ms": 4500,
+      "agent": {
+        "x": 20,
+        "y": 4,
+        "heading": -0.7853981633974483,
+        "status": "evacuating"
+      },
+      "victims_remaining": 0,
+      "victims_rescued": 2
+    },
+    {
+      "step": 19,
+      "time_ms": 4750,
+      "agent": {
+        "x": 21,
+        "y": 3,
+        "heading": -0.7853981633974483,
+        "status": "evacuating"
+      },
+      "victims_remaining": 0,
+      "victims_rescued": 2
+    },
+    {
+      "step": 20,
+      "time_ms": 5000,
+      "agent": {
+        "x": 22,
+        "y": 2,
+        "heading": -0.7853981633974483,
+        "status": "success"
+      },
+      "victims_remaining": 0,
+      "victims_rescued": 2
+    }
+  ],
+  "summary": {
+    "success": true,
+    "steps": 20,
+    "victims_rescued": 2,
+    "duration_ms": 5000,
+    "reward": 64.2
+  }
+}

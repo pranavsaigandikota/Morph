@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import {
+  EngineConnectionBanner,
+  type EngineConnectionKind,
+} from '../components/world/EngineConnectionBanner'
 import { WorldViewer } from '../components/world/WorldViewer'
 import { WORLD_SCENES } from '../data/scenes'
 import { useWorldStream } from '../hooks/useWorldStream'
@@ -11,7 +15,9 @@ export function WorldExplorerPage() {
   const [params] = useSearchParams()
   const initial = (params.get('scene') as WorldSceneId) || 'facility'
   const [selected, setSelected] = useState<WorldSceneId>(initial)
-  const [engineHint, setEngineHint] = useState<string>('Probing Waypoint engine…')
+  const [connKind, setConnKind] = useState<EngineConnectionKind>('probing')
+  const [connDetail, setConnDetail] = useState<string>('')
+  const [engineName, setEngineName] = useState<string | null>(null)
   const stream = useWorldStream()
 
   const scene = useMemo(
@@ -26,20 +32,29 @@ export function WorldExplorerPage() {
     stream.phase === 'starting' ||
     stream.phase === 'reconnecting'
 
-  useEffect(() => {
+  const refreshProbe = () => {
+    setConnKind('probing')
+    setConnDetail('')
     void worldApi.probe().then((p) => {
       if (!p.ok) {
-        setEngineHint(
-          `Engine unreachable (${engineOrigin()}). Start Codex Waypoint on :8000, or use the protocol mock.`,
-        )
+        setConnKind('unavailable')
+        setConnDetail(p.message ?? '')
+        setEngineName(null)
         return
       }
-      setEngineHint(
-        p.mock
-          ? `Connected path is MOCK (${p.engine ?? 'mock'}) — real frames require Codex on :8000.`
-          : `Waypoint ready · ${p.engine ?? p.mode ?? 'real'}${p.model ? ` · ${p.model}` : ''}`,
-      )
+      setEngineName(p.engine ?? null)
+      if (p.mock) {
+        setConnKind('mock')
+        setConnDetail(p.engine ? `Engine reports: ${p.engine}` : '')
+      } else {
+        setConnKind('live')
+        setConnDetail(p.model ? `Model ${p.model}` : '')
+      }
     })
+  }
+
+  useEffect(() => {
+    refreshProbe()
   }, [])
 
   useEffect(() => {
@@ -73,6 +88,8 @@ export function WorldExplorerPage() {
     )
   }
 
+  const canStartReal = connKind === 'live' || connKind === 'mock'
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
       <div className="mb-8">
@@ -83,12 +100,29 @@ export function WorldExplorerPage() {
           Waypoint live stream
         </h1>
         <p className="mt-2 max-w-2xl text-soft">
-          Connects to the Codex Waypoint inference backend via{' '}
-          <code className="text-signal">WS /stream</code> (binary JPEG batch envelopes). Controls
-          use the documented keycap protocol — not mock PNG placeholders when the real engine is
-          up.
+          Requires the local Codex Waypoint GPU inference service for genuinely generated
+          interactive video. Unlike Rescue Lab, this page is not powered by static JSON.
         </p>
-        <p className="mt-3 text-sm text-muted">{engineHint}</p>
+      </div>
+
+      <div className="mb-6 space-y-3">
+        <EngineConnectionBanner
+          kind={connKind}
+          detail={connDetail}
+          engineName={engineName}
+        />
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={refreshProbe}
+            className="rounded-md border border-line bg-elevated px-3 py-1.5 text-sm font-semibold text-bright hover:border-signal/40"
+          >
+            Retry connection check
+          </button>
+          <span className="self-center text-xs text-muted">
+            Expected origin: {engineOrigin()}
+          </span>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -119,7 +153,7 @@ export function WorldExplorerPage() {
         <ul className="mt-4 grid gap-2 text-sm text-muted sm:grid-cols-2">
           <li>WASD / arrows — move · Mouse — look (pointer lock)</li>
           <li>Space jump · Shift sprint · wheel scroll</li>
-          <li>Gen FPS vs Disp FPS · latency · dropped presentation frames</li>
+          <li>Gen FPS vs Disp FPS · latency · dropped frames</li>
           <li>Pause / Reset / Reconnect / Disconnect</li>
         </ul>
         {stream.error && (
@@ -127,13 +161,19 @@ export function WorldExplorerPage() {
             {stream.error}
           </p>
         )}
+        {connKind === 'unavailable' && (
+          <p className="mt-4 text-sm text-danger">
+            Start session is disabled until the Waypoint server responds. Rescue Lab and Agent Eval
+            still work offline from <code className="text-signal">public/data/rescue/</code>.
+          </p>
+        )}
         <button
           type="button"
-          disabled={!scene.available}
+          disabled={!scene.available || !canStartReal}
           onClick={() => void stream.start(scene.id, scene.prompt, scene.seed ?? null)}
           className="mt-5 rounded-md bg-signal px-5 py-2.5 text-sm font-bold text-void transition hover:bg-signal/90 disabled:opacity-40"
         >
-          Start Waypoint session
+          {connKind === 'unavailable' ? 'Waiting for Waypoint…' : 'Start Waypoint session'}
         </button>
       </div>
     </div>

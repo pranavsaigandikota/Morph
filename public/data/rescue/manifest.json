@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "title": "Rescue Lab — Static Evaluation Package",
+  "description": "Recorded maps, agent trajectories, evaluation metrics, and training history. No live simulator or PPO service required.",
+  "mode": "recorded_evaluation",
+  "handoff_note": "Copy this directory into public/data/rescue/ after exporting from the training pipeline. The frontend loads everything via fetch(manifest.json).",
+  "default_map_id": "facility_a",
+  "default_agent_id": "ppo-rescue-v1",
+  "default_trajectory_id": "traj_ppo_south",
+  "maps": [
+    {
+      "id": "facility_a",
+      "path": "maps/facility_a.json",
+      "title": "Research Facility A — Sublevel 2"
+    }
+  ],
+  "agents": [
+    {
+      "id": "baseline-heuristic",
+      "path": "agents/baseline-heuristic.json",
+      "name": "Baseline Heuristic"
+    },
+    {
+      "id": "ppo-rescue-v1",
+      "path": "agents/ppo-rescue-v1.json",
+      "name": "PPO Rescue v1"
+    }
+  ],
+  "trajectories": [
+    {
+      "id": "traj_baseline_south",
+      "path": "trajectories/traj_baseline_south.json",
+      "agent_id": "baseline-heuristic",
+      "map_id": "facility_a",
+      "label": "Baseline · south exit"
+    },
+    {
+      "id": "traj_ppo_north",
+      "path": "trajectories/traj_ppo_north.json",
+      "agent_id": "ppo-rescue-v1",
+      "map_id": "facility_a",
+      "label": "PPO v1 · north exit"
+    },
+    {
+      "id": "traj_ppo_south",
+      "path": "trajectories/traj_ppo_south.json",
+      "agent_id": "ppo-rescue-v1",
+      "map_id": "facility_a",
+      "label": "PPO v1 · south exit (best)"
+    }
+  ],
+  "evaluations": [
+    {
+      "id": "eval_facility_night",
+      "path": "evaluations/eval_facility_night.json",
+      "title": "Facility night evaluation"
+    }
+  ],
+  "training_history": [
+    {
+      "id": "train_ppo_v1",
+      "path": "training/train_ppo_v1.json",
+      "agent_id": "ppo-rescue-v1",
+      "title": "PPO v1 training curve"
+    }
+  ]
+}

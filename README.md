@@ -7,15 +7,16 @@ Inspired by Odyssey-style streamed worlds, with a separate deterministic Three.j
 ## Features
 
 - **Landing + scene selection** — Research Facility scene ready; more scenes locked as placeholders
-- **AI World Explorer** — WebSocket frame stream, WASD + pointer-lock look, pause / reset / disconnect
-- **Performance overlay** — generated FPS, displayed FPS, latency, dropped frames, GPU memory, connection status
-- **Rescue Simulation Lab** — React Three Fiber map with walls, hazards, exits, agent motion, replay scrubbing
-- **Agent Evaluation** — mock evaluate API, Recharts training/episode charts, replay summaries
-- **Local mock server** — implements world, simulation, and agent contracts for independent UI work
+- **AI World Explorer** — Codex Waypoint GPU stream (`WS /stream`), WASD + pointer-lock, clear connection status when the model server is down
+- **Rescue Simulation Lab** — **static JSON** under `public/data/rescue/` (manifest-driven). Maps, recorded trajectories, eval charts, training history — no Python/FastAPI/PPO required
+- **Agent Evaluation** — recorded metrics from the same static package; optional live API adapter
+- **Windows launchers** — `start-windows.bat` / `start-windows.ps1` (see `docs/WINDOWS.md`)
 
-Mock streams are procedurally generated PNG frames (not prerecorded video) and always show a **MOCK** indicator.
+World Explorer needs genuine Waypoint generation on `:8000`. Rescue Lab works from the static package alone.
 
 ## Quick start
+
+**Windows:** double-click `start-windows.bat` (or `.\start-windows.ps1`). Details: [docs/WINDOWS.md](docs/WINDOWS.md).
 
 ```bash
 npm install
@@ -23,10 +24,8 @@ npm run dev
 ```
 
 - App: [http://127.0.0.1:4821](http://127.0.0.1:4821)
-- **Waypoint engine (Codex):** `http://127.0.0.1:8000` — preferred for World Explorer
-- Protocol mock (fallback): `http://127.0.0.1:4822` (`WS /stream`, same envelope)
-
-`npm run dev` probes `:8000` first; if Codex isn’t up it falls back to the protocol mock and keeps the **MOCK** badge on. Force the real target with `ENGINE_TARGET=http://127.0.0.1:8000 npm run dev`.
+- **Rescue Lab data:** `public/data/rescue/manifest.json` (copy handoff here)
+- **Waypoint engine (Codex):** `http://127.0.0.1:8000` — required for genuine World Explorer video
 
 ```bash
 ENGINE_URL=http://127.0.0.1:8000 npm run test:stream60

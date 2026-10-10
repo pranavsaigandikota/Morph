@@ -1,0 +1,54 @@
+{
+  "evaluation_id": "eval_facility_night",
+  "title": "Facility A night — recorded evaluation",
+  "mode": "recorded_evaluation",
+  "scenario_id": "facility_a_night",
+  "created_at": "2026-10-09T04:30:00.000Z",
+  "note": "These metrics were produced offline by the training pipeline and shipped in the static package. This is not a live evaluation run.",
+  "agents": [
+    {
+      "agent_id": "baseline-heuristic",
+      "episodes": [
+        { "episode": 1, "reward": 41.2, "steps": 28, "success": true, "latency_ms": 0, "victims_rescued": 2 },
+        { "episode": 2, "reward": 18.5, "steps": 35, "success": false, "latency_ms": 0, "victims_rescued": 1 },
+        { "episode": 3, "reward": 52.0, "steps": 24, "success": true, "latency_ms": 0, "victims_rescued": 2 },
+        { "episode": 4, "reward": 36.4, "steps": 30, "success": true, "latency_ms": 0, "victims_rescued": 2 },
+        { "episode": 5, "reward": 12.1, "steps": 40, "success": false, "latency_ms": 0, "victims_rescued": 0 },
+        { "episode": 6, "reward": 44.8, "steps": 26, "success": true, "latency_ms": 0, "victims_rescued": 2 },
+        { "episode": 7, "reward": 29.3, "steps": 33, "success": true, "latency_ms": 0, "victims_rescued": 1 },
+        { "episode": 8, "reward": 8.0, "steps": 42, "success": false, "latency_ms": 0, "victims_rescued": 1 }
+      ],
+      "metrics": {
+        "success_rate": 0.625,
+        "mean_reward": 30.3,
+        "mean_steps": 32,
+        "mean_latency_ms": 0,
+        "mean_victims_rescued": 1.38
+      }
+    },
+    {
+      "agent_id": "ppo-rescue-v1",
+      "episodes": [
+        { "episode": 1, "reward": 71.5, "steps": 22, "success": true, "latency_ms": 0, "victims_rescued": 2 },
+        { "episode": 2, "reward": 64.2, "steps": 25, "success": true, "latency_ms": 0, "victims_rescued": 2 },
+        { "episode": 3, "reward": 78.4, "steps": 20, "success": true, "latency_ms": 0, "victims_rescued": 2 },
+        { "episode": 4, "reward": 55.1, "steps": 27, "success": true, "latency_ms": 0, "victims_rescued": 2 },
+        { "episode": 5, "reward": 22.0, "steps": 38, "success": false, "latency_ms": 0, "victims_rescued": 1 },
+        { "episode": 6, "reward": 69.8, "steps": 21, "success": true, "latency_ms": 0, "victims_rescued": 2 },
+        { "episode": 7, "reward": 73.0, "steps": 19, "success": true, "latency_ms": 0, "victims_rescued": 2 },
+        { "episode": 8, "reward": 61.4, "steps": 24, "success": true, "latency_ms": 0, "victims_rescued": 2 },
+        { "episode": 9, "reward": 48.6, "steps": 29, "success": true, "latency_ms": 0, "victims_rescued": 1 },
+        { "episode": 10, "reward": 66.9, "steps": 23, "success": true, "latency_ms": 0, "victims_rescued": 2 },
+        { "episode": 11, "reward": 15.5, "steps": 41, "success": false, "latency_ms": 0, "victims_rescued": 0 },
+        { "episode": 12, "reward": 74.2, "steps": 20, "success": true, "latency_ms": 0, "victims_rescued": 2 }
+      ],
+      "metrics": {
+        "success_rate": 0.833,
+        "mean_reward": 58.4,
+        "mean_steps": 26,
+        "mean_latency_ms": 0,
+        "mean_victims_rescued": 1.67
+      }
+    }
+  ]
+}
