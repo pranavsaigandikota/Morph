@@ -37,7 +37,7 @@ export const worldApi = {
       } catch (err) {
         return {
           ok: false,
-          mock: true,
+          mock: false,
           message: err instanceof Error ? err.message : 'engine unreachable',
         }
       }

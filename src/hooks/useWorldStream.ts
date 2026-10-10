@@ -445,11 +445,12 @@ export function useWorldStream() {
           phase: 'error',
           error:
             probe.message ??
-            'Waypoint engine unreachable at configured origin (expected :8000). Is Codex serving?',
-          mock: true,
+            'Waypoint engine unreachable at configured origin (expected :8000). Is Codex serving? Use npm run dev:mock only if you explicitly want the protocol mock.',
+          mock: false,
         }))
         return
       }
+      // LIVE vs MOCK comes only from a successful engine hello / status — never from a failed probe.
       mockRef.current = probe.mock
       engineNameRef.current = probe.engine ?? null
       seedRef.current = seed ?? null

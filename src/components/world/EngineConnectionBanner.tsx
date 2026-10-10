@@ -30,18 +30,18 @@ export function EngineConnectionBanner({ kind, detail, engineName }: Props) {
       <p className="mt-1 text-xs leading-relaxed opacity-90">
         {kind === 'unavailable' && (
           <>
-            World Explorer needs the local Codex Waypoint inference service at{' '}
-            <code className="text-signal">{worldApiBaseUrl()}</code> (
-            <code className="text-signal">VITE_WORLD_API_BASE_URL</code>) for streamed AI frames.
-            Start that GPU server, then Retry. Rescue Lab does not need it — it runs from{' '}
+            Connection failed to{' '}
+            <code className="text-signal">{worldApiBaseUrl()}</code>. This is not MOCK mode —
+            the UI will not pretend frames are live. Start Codex Waypoint on :8000 and Retry, or
+            restart the frontend with <code className="text-signal">npm run dev:mock</code> for an
+            explicit protocol mock. Rescue Lab still works from{' '}
             <code className="text-signal">public/data/rescue/</code>.
           </>
         )}
         {kind === 'mock' && (
           <>
-            Protocol mock frames only — explicit MOCK mode. For genuine generation, run Codex
-            Waypoint on <code className="text-signal">:8000</code> and set{' '}
-            <code className="text-signal">VITE_WORLD_API_BASE_URL=http://127.0.0.1:8000</code>.
+            Explicit MOCK stream (hello.mock / MockWaypointEngine). Not genuine GPU generation.
+            For LIVE: stop mock, start Codex on :8000, run <code className="text-signal">npm run dev</code>.
           </>
         )}
         {kind === 'live' && (

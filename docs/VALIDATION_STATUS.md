@@ -1,48 +1,73 @@
-# World Explorer — mock vs Windows GPU status
+# World Explorer — mock vs real-backend validation
 
-Integration requirements (1–7) are implemented in code. **Completion** still requires your Windows GPU checklist.
+**Do not claim real GPU integration from mock results.**
+
+| Track | Status | Where |
+|-------|--------|--------|
+| Protocol implementation (Phase-2 client) | Code complete | `src/services/waypointEnvelope.ts`, `useWorldStream.ts` |
+| Mock protocol (cloud / CI) | Runnable via `npm run test:mock-protocol` | `:4822` only when explicitly started |
+| Real Codex Waypoint GPU | **Pending on Windows PC** | `:8000` — see [WINDOWS_VERIFY.md](./WINDOWS_VERIFY.md) |
+| Codex `FRONTEND_INTEGRATION.md` reconcile | **Waiting for docs** | Compare to [WAYPOINT_PROTOCOL.md](./WAYPOINT_PROTOCOL.md) |
 
 ## Requirement coverage
 
-| # | Requirement | Code status |
-|---|-------------|-------------|
-| 1 | Phase-2 `/stream` + binary JPEG envelopes + control + frame meta | Done (`waypointEnvelope.ts`, `useWorldStream.ts`) |
-| 2 | Mock vs real separated; explicit MOCK indicator | Done (hello.`mock` / engine name → badge + banner) |
-| 3 | `VITE_WORLD_API_BASE_URL` default `http://127.0.0.1:8000` | Done (`.env.example`, `engineConfig.ts`) |
-| 4 | Cloud can’t reach your GPU; mock tests + Windows instructions | Done (`test:mock-protocol`, `docs/WINDOWS_GPU_CHECKLIST.md`) |
-| 5 | Not complete until Windows WASD/mouse verified | **Held open** — see below |
-| 6 | `npm install` && `npm run dev` independently runnable | Done |
-| 7 | No backend rebuild; Rescue Lab schema frozen (additive only) | Done |
+| # | Requirement | Status |
+|---|-------------|--------|
+| 1 | Phase-2 `/stream` + binary JPEG envelopes + control + frame meta | Done in code |
+| 2 | Strict LIVE vs MOCK labeling | Done — hello.`mock` / engine name; failed probe ≠ MOCK |
+| 3 | `VITE_WORLD_API_BASE_URL` default `http://127.0.0.1:8000` | Done (`.env.example`) |
+| 4 | No silent mock fallback when `:8000` down | Done (`scripts/dev.mjs` + UI error + `npm run dev:mock`) |
+| 5 | Windows WASD / mouse / 60s real test | **Held open** — run [WINDOWS_VERIFY.md](./WINDOWS_VERIFY.md) |
+| 6 | Clonable `npm install` && `npm run dev` | Done |
+| 7 | Rescue Lab static package independent of Waypoint | Done (`public/data/rescue/`) |
 
-## Mock mode — PASSED (this environment)
+## A. Mock mode results (this cloud environment)
 
-Run: `npm run mock` then `ENGINE_URL=http://127.0.0.1:4822 npm run test:mock-protocol`
+Run only with an **explicit** mock:
 
-| Test | Result |
-|------|--------|
-| `GET /healthz` (or readyz) | Pass |
-| `WS /stream` hello (`session_id`, `width`, `height`, `temporal_compression`) | Pass |
-| Binary LE JPEG batch envelopes | Pass |
-| Control JSON `{type,buttons,dx,dy,scroll,ts}` accepted | Pass |
-| Valid JPEG SOI on all sub-frames | Pass |
-| `frame_id` non-decreasing | Pass |
-| Generated FPS from wire JPEGs (~70 on mock) | Pass |
-| Explicit `mock: true` / MOCK UI path | Pass |
-| Bounded presentation queue (stale drop) | Pass (client) |
-| Rescue Lab `public/data/rescue/manifest.json` via fetch | Pass |
-| `npm run build` / `tsc` | Pass |
+```bash
+npm run mock
+# other terminal:
+ENGINE_URL=http://127.0.0.1:4822 npm run test:mock-protocol
+DURATION_MS=15000 ENGINE_URL=http://127.0.0.1:4822 npm run test:stream60
+```
 
-## Real Codex Waypoint on your Windows PC — STILL REQUIRED
+| Check | Result |
+|-------|--------|
+| Envelope LE JPEG batch parse | Implemented + mock-tested previously |
+| Control `{type,buttons,dx,dy,scroll,ts}` | Implemented |
+| `hello.mock === true` / MOCK UI | Implemented |
+| Auto-start mock when `:8000` down | **Removed** (by design) |
 
-| Test | Status |
-|------|--------|
-| Connect with `VITE_WORLD_API_BASE_URL=http://127.0.0.1:8000` | Pending on your PC |
-| No MOCK badge | Pending |
-| WASD changes generated pixels | Pending |
-| Pointer-lock mouse changes pixels | Pending |
-| Gen FPS ~71.7 / Disp FPS ~20 | Pending |
-| Pause / reset / reconnect on real stream | Pending |
+Mock FPS numbers are **not** GPU acceptance metrics.
 
-Follow **[WINDOWS_GPU_CHECKLIST.md](./WINDOWS_GPU_CHECKLIST.md)** exactly.
+## B. Real Codex Waypoint (`127.0.0.1:8000`) — NOT PASSED HERE
 
-Until that checklist passes, **do not treat World Explorer as integration-complete**.
+| Check | Status in cloud VM | Status on your Windows PC |
+|-------|--------------------|---------------------------|
+| Connect `VITE_WORLD_API_BASE_URL=http://127.0.0.1:8000` | Unreachable (connection refused) | Pending |
+| LIVE banner / no MOCK badge | N/A | Pending |
+| Real JPEG frames on canvas | N/A | Pending |
+| WASD changes pixels | N/A | Pending |
+| Pointer-lock mouse changes pixels | N/A | Pending |
+| 60s continuous interaction metrics | N/A | Pending (`npm run test:stream60`) |
+| Gen FPS / Disp FPS / latency / gaps / decode errors | N/A | Pending — record from UI + harness |
+| Pause / reset / reconnect | N/A | Pending |
+| Rescue Lab with Waypoint stopped | Static `manifest.json` 200 verified in cloud | Pending re-check on PC |
+
+## C. Protocol doc reconcile
+
+Compared client + `docs/WAYPOINT_PROTOCOL.md` against public Phase-2 reference (`Gxmestk/overworld-waypoint-1.5` envelope + `WS /stream` + control). Wire format matches.
+
+**Still waiting** for Codex’s authoritative `FRONTEND_INTEGRATION.md` / verification ZIP from `Codex Plus`. On receipt: diff against `WAYPOINT_PROTOCOL.md` and patch only real incompatibilities.
+
+## Repo contents checklist
+
+| Item | Present |
+|------|---------|
+| `.env.example` (`VITE_WORLD_API_BASE_URL=http://127.0.0.1:8000`) | Yes |
+| `package.json` scripts (`dev`, `dev:mock`, `test:mock-protocol`, `test:stream60`) | Yes |
+| Protocol mock under `server/` | Yes |
+| `public/data/rescue/` static package | Yes |
+| `start-windows.bat` / `start-windows.ps1` | Yes |
+| `docs/WAYPOINT_PROTOCOL.md`, `INTEGRATION.md`, `WINDOWS_VERIFY.md`, `WINDOWS_GPU_CHECKLIST.md` | Yes |

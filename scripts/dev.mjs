@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 /**
- * Default `npm run dev`: Vite only, pointing at Codex Waypoint (:8000).
- * Optionally starts the protocol mock when USE_MOCK_ENGINE=1 or --mock.
+ * Default `npm run dev`: Vite only, targeting Codex Waypoint (:8000).
  *
- * Cloud / offline: USE_MOCK_ENGINE=1 npm run dev
- * Windows + Codex:  npm run dev   (Waypoint already on :8000)
+ * Does NOT silently fall back to the protocol mock when :8000 is down.
+ * Explicit mock only via:
+ *   USE_MOCK_ENGINE=1 npm run dev
+ *   npm run dev -- --mock
+ *   npm run dev:mock
+ *
+ * Windows + Codex: start Waypoint on :8000, then `npm run dev`.
  */
 import { spawn } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
@@ -51,12 +55,8 @@ process.on('SIGTERM', () => shutdown(0))
 let engineTarget = REAL
 const realUp = await probe(REAL)
 
-if (wantMock || !realUp) {
-  console.warn(
-    realUp
-      ? `[dev] USE_MOCK_ENGINE=1 — starting protocol mock on ${MOCK}`
-      : `[dev] ${REAL} not reachable — starting protocol mock on ${MOCK}`,
-  )
+if (wantMock) {
+  console.warn(`[dev] Explicit mock requested — starting protocol mock on ${MOCK}`)
   track(
     spawn('npx', ['tsx', 'server/index.ts'], {
       stdio: 'inherit',
@@ -65,19 +65,24 @@ if (wantMock || !realUp) {
   )
   await sleep(700)
   engineTarget = MOCK
+} else if (!realUp) {
+  console.error(`[dev] WARNING: Codex Waypoint not reachable at ${REAL}`)
+  console.error('[dev] World Explorer will show a connection error (no silent mock fallback).')
+  console.error('[dev] Start Codex on :8000, or run explicitly: npm run dev:mock')
+  engineTarget = REAL
 } else {
   console.log(`[dev] Codex Waypoint reachable at ${REAL}`)
 }
 
 console.log(`[dev] ENGINE_TARGET / proxy → ${engineTarget}`)
-console.log(`[dev] VITE_WORLD_API_BASE_URL default ${REAL}`)
+console.log(`[dev] VITE_WORLD_API_BASE_URL=${process.env.VITE_WORLD_API_BASE_URL || REAL}`)
 
 const vite = track(
   spawn('npx', ['vite'], {
     stdio: 'inherit',
     env: {
       ...process.env,
-      ENGINE_TARGET: engineTarget,
+      ENGINE_TARGET: process.env.ENGINE_TARGET || engineTarget,
       VITE_WORLD_API_BASE_URL: process.env.VITE_WORLD_API_BASE_URL || REAL,
     },
   }),

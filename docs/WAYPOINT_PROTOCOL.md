@@ -80,16 +80,27 @@ One WebSocket **binary** message per `gen_frame` batch:
 | **Dropped** | Stale presentation-queue discards + invalid JPEG |
 | **Latency** | EWMA of `now - client_ts` when echoed |
 
-Presentation queue is capped (`MAX_PRESENTATION_QUEUE = 8`); dropping never reduces reported generated FPS.
+Presentation queue is capped (`MAX_PRESENTATION_QUEUE = 3`); dropping never reduces reported generated FPS.
+
+## Pause / reset (frontend)
+
+Real Phase-2 servers accept **only** `type:"control"` text messages (other types ignored).
+
+| UI action | Behavior |
+|-----------|----------|
+| Pause | Client-side: stop presenting; send idle `control` (empty buttons, dx/dy/scroll 0) |
+| Reset | Close WS + reconnect to `/stream` (new session) |
+| Disconnect | Close WS intentionally (no auto-reconnect) |
+| Reconnect | Open `/stream` again |
 
 ## Dev wiring
 
 ```bash
-# Prefer real Codex engine on :8000; fall back to protocol mock on :4822
+# Real Codex only (no silent mock if :8000 is down)
 npm run dev
 
-# Force real target
-ENGINE_TARGET=http://127.0.0.1:8000 npm run dev
+# Explicit protocol mock
+npm run dev:mock
 
 # 60s navigation harness
 ENGINE_URL=http://127.0.0.1:8000 npm run test:stream60
@@ -97,3 +108,7 @@ ENGINE_URL=http://127.0.0.1:4822 npm run test:stream60
 ```
 
 Vite proxies browser `/engine/*` → `ENGINE_TARGET` (HTTP + WS).
+
+## Doc reconcile
+
+When Codex provides `FRONTEND_INTEGRATION.md` / verification ZIP, compare here and correct **only** real wire incompatibilities. Current client matches the public Phase-2 envelope + control contract (`Gxmestk/overworld-waypoint-1.5` reference).

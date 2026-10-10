@@ -1,58 +1,37 @@
-# Windows startup — WorldShift AI + Codex Waypoint
+# Running WorldShift on Windows
 
-## What needs what
-
-| Mode | Needs |
-|------|--------|
-| **Rescue Lab / Agent Eval** | Node.js only + `public\data\rescue\` |
+| Piece | Requirement |
+|-------|-------------|
 | **World Explorer (genuine video)** | Codex Waypoint GPU server on `http://127.0.0.1:8000` |
+| **Rescue Lab** | Static files in `public/data/rescue/` only |
+| **Frontend** | Node.js LTS; Vite on port **4821** |
 
-This cloud VM **cannot** reach your local `:8000`. Mock protocol tests run in CI/cloud; **WASD/mouse on real frames must be validated on your Windows PC**.
-
-## One-time setup
-
-1. Install **Node.js LTS** — https://nodejs.org  
-2. Clone/open this project folder.  
-3. Ensure Codex Waypoint is running (verified ~71.7 gen FPS).  
-4. Optional: copy a Rescue Lab handoff ZIP into `public\data\rescue\` (keep `manifest.json`).
-
-## Launch (minimal)
-
-**Double-click** `start-windows.bat`  
-or PowerShell:
+## Quick start
 
 ```powershell
-.\start-windows.ps1
+Copy-Item .env.example .env -Force
+npm install
+npm run dev
 ```
 
-Opens **http://127.0.0.1:4821**
+Or: `.\start-windows.ps1` / `start-windows.bat`
 
-Config (optional `.env`):
+Opens **http://127.0.0.1:4821**
 
 ```
 VITE_WORLD_API_BASE_URL=http://127.0.0.1:8000
 ```
 
-## Validate World Explorer on your GPU PC
-
-Use the step-by-step checklist: **[WINDOWS_GPU_CHECKLIST.md](./WINDOWS_GPU_CHECKLIST.md)**.
-
-Until that checklist passes on your PC, World Explorer integration is **not** considered complete.
-
-## Mock-only frontend (no GPU)
+If `:8000` is down, World Explorer shows a **connection error** — it does **not** silently switch to mock. For protocol-only testing:
 
 ```powershell
-$env:USE_MOCK_ENGINE="1"
-npm run dev
+npm run dev:mock
 ```
 
-Shows an explicit **MOCK** badge — never treat as genuine Waypoint.
+## Full GPU verification
+
+Follow **[WINDOWS_VERIFY.md](./WINDOWS_VERIFY.md)** (WASD, mouse, 60s harness, LIVE badge, Rescue offline).
 
 ## Create World
 
-`/create` uses a typed scene adapter. Without `VITE_SCENE_API_BASE_URL` it builds a **MOCK seed** (labeled). Waypoint does **not** process the text prompt; text→image does.
-
-## Docs
-
-- Protocol: `docs/WAYPOINT_PROTOCOL.md`  
-- If you receive `FRONTEND_INTEGRATION.md` from Codex, place it in `docs/` — if it disagrees with Phase-2 `/stream`, flag the discrepancy before changing the client.
+`/create` builds a seed image. Without `VITE_SCENE_API_BASE_URL`, seeds are labeled **MOCK**. Waypoint does not consume the text prompt.

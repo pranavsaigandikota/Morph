@@ -9,37 +9,39 @@ First-person **Waypoint** interactive worlds (Codex GPU) + offline **Rescue Lab*
 
 ## Quick start
 
-**Windows:** double-click `start-windows.bat` — see [docs/WINDOWS.md](docs/WINDOWS.md).
+**Windows:** see [docs/WINDOWS_VERIFY.md](docs/WINDOWS_VERIFY.md) for clone + GPU acceptance tests.
 
 ```bash
 npm install
+cp .env.example .env   # VITE_WORLD_API_BASE_URL=http://127.0.0.1:8000
 npm run dev
 ```
 
 - UI: http://127.0.0.1:4821  
-- Config: copy `.env.example` → `.env` (`VITE_WORLD_API_BASE_URL=http://127.0.0.1:8000`)
+- World: http://127.0.0.1:4821/world  
+- Rescue: http://127.0.0.1:4821/simulation  
 
-If `:8000` is down, `npm run dev` starts a **protocol mock** and shows an explicit **MOCK** badge. Cloud VMs cannot reach your PC’s GPU — validate WASD/mouse on Windows against real Waypoint before calling World Explorer “done” ([docs/WINDOWS_GPU_CHECKLIST.md](docs/WINDOWS_GPU_CHECKLIST.md)).
+If `:8000` is down, the UI shows a **connection error**. It does **not** silently start mock. Explicit mock:
 
 ```bash
-npm run dev:mock              # force mock
-npm run test:mock-protocol    # automated Phase-2 mock checks
-npm run test:stream60         # 60s control harness (set ENGINE_URL)
+npm run dev:mock
+npm run test:mock-protocol
 ```
-
-## Create World
-
-`/create` — describe a world → seed preview → Start Exploring.  
-Text→image produces the seed; **Waypoint does not process the prompt**. Without `VITE_SCENE_API_BASE_URL`, seeds are clearly labeled **MOCK**.
-
-## Protocol
-
-See [docs/WAYPOINT_PROTOCOL.md](docs/WAYPOINT_PROTOCOL.md). If Codex provides `FRONTEND_INTEGRATION.md`, place it under `docs/` and reconcile any disagreements before changing the client.
 
 ## Scripts
 
 | Command | Purpose |
 |---------|---------|
-| `npm run dev` | Vite (+ mock if :8000 down) |
+| `npm run dev` | Vite → real `:8000` (no auto-mock) |
+| `npm run dev:mock` | Explicit protocol mock on `:4822` |
 | `npm run build` | Production build |
-| `npm run test:stream60` | Navigation session metrics |
+| `npm run test:mock-protocol` | Automated Phase-2 mock checks |
+| `npm run test:stream60` | 60s control harness (`ENGINE_URL`) |
+
+## Protocol
+
+[docs/WAYPOINT_PROTOCOL.md](docs/WAYPOINT_PROTOCOL.md). Place Codex’s `FRONTEND_INTEGRATION.md` under `docs/` when available and reconcile before claiming GPU pass.
+
+## Status
+
+[docs/VALIDATION_STATUS.md](docs/VALIDATION_STATUS.md) — mock vs real tracks kept separate.

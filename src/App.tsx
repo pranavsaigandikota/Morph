@@ -15,6 +15,7 @@ export default function App() {
           <Route path="create" element={<CreateWorldPage />} />
           <Route path="world" element={<WorldExplorerPage />} />
           <Route path="simulation" element={<SimulationLabPage />} />
+          <Route path="rescue" element={<Navigate to="/simulation" replace />} />
           <Route path="agents" element={<AgentDashboardPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

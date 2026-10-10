@@ -1,4 +1,4 @@
-# WorldShift AI — Windows PowerShell launcher
+# WorldShift AI — Windows PowerShell launcher (prefers real Codex on :8000)
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 Set-Location -Path $PSScriptRoot
@@ -22,17 +22,29 @@ if (-not (Test-Path 'node_modules')) {
   npm install
 }
 
+if (-not (Test-Path '.env') -and (Test-Path '.env.example')) {
+  Copy-Item '.env.example' '.env'
+  Write-Host 'Created .env from .env.example'
+}
+
 if (-not (Test-Path 'public\data\rescue\manifest.json')) {
   Write-Warning 'public\data\rescue\manifest.json missing. Copy the rescue handoff into public\data\rescue\'
 }
 
 Write-Host ''
 Write-Host 'UI:             http://127.0.0.1:4821'
-Write-Host 'Rescue Lab:     static JSON (no GPU / Python needed)'
-Write-Host 'World Explorer: Codex Waypoint at http://127.0.0.1:8000 for real frames'
+Write-Host 'World Explorer: http://127.0.0.1:4821/world'
+Write-Host 'Rescue Lab:     http://127.0.0.1:4821/simulation (static JSON)'
+Write-Host 'Codex target:   http://127.0.0.1:8000'
 Write-Host ''
-Write-Host 'Optional: set ENGINE_TARGET=http://127.0.0.1:8000 before starting for forced real engine.'
+Write-Host 'Default npm run dev does NOT auto-start mock if :8000 is down.'
+Write-Host 'Explicit mock:  npm run dev:mock'
+Write-Host 'GPU checklist:  docs\WINDOWS_VERIFY.md'
 Write-Host 'Press Ctrl+C to stop.'
 Write-Host ''
 
-npm run dev
+if ($env:USE_MOCK_ENGINE -eq '1') {
+  npm run dev:mock
+} else {
+  npm run dev
+}

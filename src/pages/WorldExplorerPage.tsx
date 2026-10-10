@@ -138,7 +138,27 @@ export function WorldExplorerPage() {
           >
             Retry connection check
           </button>
+          {connKind === 'unavailable' && (
+            <Link
+              to="/simulation"
+              className="rounded-md border border-line bg-elevated px-3 py-1.5 text-sm font-semibold text-bright hover:border-signal/40"
+            >
+              Open Rescue Lab (offline)
+            </Link>
+          )}
         </div>
+        {connKind === 'unavailable' && (
+          <div className="rounded-md border border-line bg-panel px-3 py-3 text-xs text-soft">
+            <p className="font-semibold text-bright">Explicit mock (optional)</p>
+            <p className="mt-1">
+              Mock is never started automatically. To test the Phase-2 wire format without GPU,
+              stop this process and run:
+            </p>
+            <pre className="mt-2 overflow-x-auto rounded bg-void/60 px-2 py-2 font-mono text-[11px] text-signal">
+              npm run dev:mock
+            </pre>
+          </div>
+        )}
       </div>
 
       {promptFromCreate && (
@@ -182,8 +202,8 @@ export function WorldExplorerPage() {
         )}
         {connKind === 'unavailable' && (
           <p className="mt-4 text-sm text-danger">
-            Start is disabled until Waypoint responds. On your Windows PC, run Codex on :8000, then
-            Retry. Rescue Lab still works offline.
+            Start is disabled — Waypoint at {worldApiBaseUrl()} did not respond. This is a
+            connection error, not LIVE and not MOCK. Start Codex on :8000, then Retry.
           </p>
         )}
         <button
@@ -194,7 +214,11 @@ export function WorldExplorerPage() {
           }
           className="mt-5 rounded-md bg-signal px-5 py-2.5 text-sm font-bold text-void transition hover:bg-signal/90 disabled:opacity-40"
         >
-          {connKind === 'unavailable' ? 'Waiting for Waypoint…' : 'Start Exploring'}
+          {connKind === 'unavailable'
+            ? 'Waiting for Waypoint…'
+            : connKind === 'mock'
+              ? 'Start Exploring (MOCK)'
+              : 'Start Exploring'}
         </button>
       </div>
     </div>

@@ -35,16 +35,18 @@ if not exist "public\data\rescue\manifest.json" (
 )
 
 echo UI:              http://127.0.0.1:4821
-echo World Explorer:  needs Codex Waypoint at http://127.0.0.1:8000
-echo Rescue Lab:      static JSON ^(no Python^)
+echo World Explorer:  http://127.0.0.1:4821/world
+echo Rescue Lab:      http://127.0.0.1:4821/simulation
+echo Codex Waypoint:  http://127.0.0.1:8000
 echo.
-echo If Waypoint is not running, the UI will show connection unavailable / MOCK.
+echo Default: connects to real :8000 only. No silent mock fallback.
+echo Explicit mock: set USE_MOCK_ENGINE=1 or run npm run dev:mock
+echo See docs\WINDOWS_VERIFY.md for GPU acceptance tests.
 echo Press Ctrl+C to stop.
 echo.
 
-REM Prefer real Codex; set USE_MOCK_ENGINE=1 to force protocol mock
 if "%USE_MOCK_ENGINE%"=="1" (
-  call npm run dev -- --mock
+  call npm run dev:mock
 ) else (
   call npm run dev
 )
