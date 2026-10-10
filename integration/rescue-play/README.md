@@ -1,21 +1,20 @@
-# RescueGame handoff drop zone
+# Rescue Play v1 (frozen handoff)
 
-Place the validated Grok package here:
+**Source branch:** `integration/rescue-play-v1` @ `6a01103`  
+**ZIP:** `rescue_play.zip`  
+**SHA-256:** `51c463fe68cd6bd34216400223d4d04d65d2a6e5c0cba5d9392e43a97ad8c644`
 
-```
-integration/rescue-play/rescue_play.zip
-```
+Vendored into the app as:
 
-After extract, Cloud expects (names may match the zip’s `INTEGRATION.md`):
+- `src/lib/rescue-play/` ← package `dist/` (includes `createStepController`)
+- `public/data/rescue-play/` ← missions + manifest
 
-- `INTEGRATION.md` — authoritative wiring instructions
-- TypeScript RescueGame engine (exact rules, scoring, collisions, A*)
-- Five playable missions + restart / win / loss / score / stars fixtures
+Authoritative docs (from the ZIP / PR #2 handoff):
 
-**Do not** replace this with a rewritten browser simulator. The frontend will:
+- `CURSOR_HANDOFF.md`
+- `INTEGRATION.md`
+- `CONTROL_CONTRACT.md` (t17u)
+- `BROWSER_VALIDATION.md`
+- `FREEZE.md`
 
-1. Unzip / vend the engine under `src/rescue-game/` (or the path `INTEGRATION.md` specifies)
-2. Swap `src/services/rescueEnvAdapter.ts` to `source: 'grok-rescue-env'`
-3. Keep `public/data/rescue/` showdown metrics and replays untouched
-
-Until the zip lands, `/mission` continues to use the interim `browserRescueSim` behind the same adapter seam.
+Do **not** reimplement step/collision/scoring rules. Route all `/mission` input through `createStepController`.

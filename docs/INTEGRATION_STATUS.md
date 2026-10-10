@@ -1,28 +1,28 @@
 # Frontend integration status
 
 **Branch:** `cursor/game-experience-cd95` → PR https://github.com/pranavsaigandikota/Morph/pull/1  
-**Handoff base:** `integration/codex-grok-handoff` @ `7e6bcd1`  
-**Do not merge** until Windows release check on the combined branch.
+**Do not merge** without approval + Windows release check.
 
-## Merged / wired
+## Sources integrated
 
-| Asset | Status |
-|------|--------|
-| Codex stream/scene/health adapters | Merged from handoff (preserve — do not rewrite) |
-| `docs/codex/SCENE_API.md` + FRONTEND_INTEGRATION + 218s report | In branch |
-| `integration/codex-presets/` (6 SDXL PNG + metadata) | In branch; Create page shows local previews |
-| RescueGame `src/lib/rescue-play` + `public/data/rescue-play` | Wired to `/mission` |
-| Explorer help (WASD + drag-look only) | Kept |
-| Telemetry Pres. Skips / Decode Err / Srv Drops | Kept |
-| AI Showdown verified rates | Untouched |
+| Source | Commit / artifact | Status |
+|--------|-------------------|--------|
+| Codex adapters | `integration/codex-grok-handoff` @ `7e6bcd1` | Merged; do not rewrite |
+| Rescue Play v1 | `integration/rescue-play-v1` @ `6a01103` | ZIP SHA `51c463fe…` vendored |
+| Controller | `createStepController` (t17u) | Wired on `/mission` |
+| Showdown / PPO package | `public/data/rescue/` | Untouched |
 
-## RescueGame controller note
+## Cloud verification
 
-`rescue_play.zip` ships RescueGame + INTEGRATION.md one-step `keydown` demo (parity fixtures; game/parity vitest files).  
-It does **not** include a separate **189-test hold-to-move controller** package.  
-`/mission` therefore uses documented **one step per keypress** (+ D-pad, Restart, Undo) — not invented hold-to-move. If Grok publishes the newer controller ZIP, swap it in without changing RescueEnv step rules.
+- Production `build` / `typecheck`
+- Frontend `test:rescue` (controller contract + 5 missions + showdown rates)
+- Package vitest: **208 passed** (from unzipped rescue_play)
+- `test:mock-protocol` (offline mock — not GPU)
+- Browser Playwright controls vs live `/mission`
+- Routes `/create` `/world` `/mission` `/agents` `/simulation` → 200
 
-## Cloud vs GPU
+## Outstanding
 
-Cloud: build, mock protocol, RescueGame offline (5 missions), Showdown static, routes.  
-**Not claimed from Cloud:** real `:8000` Gen/Disp FPS. Codex 218.49 s evidence covers the adapter patch; combined branch still needs local Windows release testing ([WINDOWS_REAL_GPU.md](./WINDOWS_REAL_GPU.md), [HANDOFF.md](./codex/HANDOFF.md)).
+- **Physical hold-key** still needs a human check on Windows (per BROWSER_VALIDATION.md).
+- Combined-branch **real `:8000` GPU** Create→Explore re-confirm (Codex 218.49s evidence is for the adapter patch).
+- Optional: unguided PPO fourth Showdown column when that separate ZIP is requested.

@@ -95,6 +95,21 @@ Render `state.walls / blocked / doors / hazards / start / goal / agent`; animate
 `from == to` - play a bump toward `action_name`). Show `metrics.native_total_reward` (the
 simulator reward) and `score` (game layer) separately.
 
+## Controls
+
+All input must follow [CONTROL_CONTRACT.md](CONTROL_CONTRACT.md) (t17u, which supersedes the
+one-step-only contract):
+- A tap moves one cell. Holding a key repeats every 200 ms on the controller's own timer; OS
+  key repeat is ignored.
+- Release, blur or visibility-hidden stops at once.
+- Holding into a wall is penalised once, then the hold halts.
+- Success, hazard or timeout stops everything until Restart. The D-pad moves one step per click.
+- Undo works only during an active episode.
+
+Use `createStepController(game, { holdRepeatMs: 200 })` and wire `keydown`, `keyup`, `blur` and
+`visibilitychange`. Do not call `game.step` from a raw `keydown` handler. Draw the collision cue
+while `ctl.collisionFlash` is true. The contract doc has a `useRescueControls` hook example.
+
 ## 4. Three.js mapping
 
 World X = `x + 0.5`, world Z = `y + 0.5`, Y up; the board spans `[0, width] x [0, height]` on

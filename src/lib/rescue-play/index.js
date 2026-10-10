@@ -5,4 +5,5 @@ export { ACTIONS, ACTION_NAMES, NAME_TO_ACTION, ActionError, parseAction, keyToA
 export { astarPath, astarFrom, pathToActions } from "./astar.js";
 export { RescueEnvTS, replayEpisode, resolveRewards, COORDINATE_SYSTEM, DEFAULT_REWARDS, STATE_VERSION, } from "./env.js";
 export { RescueGame, compareWithAStar, computeScore, SCORE_RULES, } from "./game.js";
+export { createStepController, } from "./controls.js";
 export const VERSION = "0.1.0";
