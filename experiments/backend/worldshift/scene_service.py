@@ -51,6 +51,13 @@ class GenerateScene(Strict):
 def write_json(path, obj):
     temporary = path.with_suffix(".tmp")
     temporary.write_text(json.dumps(obj, indent=2), encoding="utf-8")
+    # Windows: replace() fails while a concurrent status poll has the target open. Retry briefly.
+    for attempt in range(20):
+        try:
+            temporary.replace(path)
+            return
+        except PermissionError:
+            time.sleep(0.05)
     temporary.replace(path)
 
 
@@ -130,9 +137,13 @@ class Scenes:
             job.update(status="error", phase="error", error=f"{type(exc).__name__}: {exc}")
             log.exception("Scene generation failed; Waypoint remains separate")
         finally:
-            write_json(folder / "job.json", job)
+            # Always clear the busy flag and the lifecycle lock, even if persisting job.json fails.
             self.busy = None
             s.lifecycle_lock.release()
+            try:
+                write_json(folder / "job.json", job)
+            except OSError:
+                log.exception("Could not persist job %s", job["job_id"])
 
 
 @asynccontextmanager
