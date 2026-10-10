@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { drawClearFrame } from '../lib/framePresent'
 import {
   DEFAULT_LOOK_SENSITIVITY,
   accumulateMouseDelta,
@@ -71,9 +70,11 @@ interface WorldStreamState {
 }
 
 /** Max JPEG sub-frames waiting to paint. Keep short — favor current over stale. */
-const MAX_PRESENTATION_QUEUE = 3
+const MAX_PRESENTATION_QUEUE = 12
 /** Target presentation cadence (~20 FPS browser-drawn, matching Codex verification). */
-const PRESENT_FRAME_MS = 1000 / 20
+const PRESENT_FRAME_MS = 1000 / 28
+/** Frames older than this are skipped so input stays responsive (≈ one 4-frame burst + margin). */
+const MAX_FRAME_AGE_MS = 260
 const CONTROL_MS = 50
 const METRICS_MS = 500
 /** Pause generation when WASD/mouse stop — slows standing-still drift. */
@@ -83,6 +84,12 @@ const KEY_LOOK_YAW_PER_TICK = 20
 const KEY_LOOK_PITCH_PER_TICK = 12
 const MAX_LOOK_PER_TICK = 28
 const LOOK_KEYS: Record<string, 'I' | 'J' | 'K' | 'L'> = { KeyI: 'I', KeyJ: 'J', KeyK: 'K', KeyL: 'L' }
+
+interface ReadyFrame {
+  bitmap: ImageBitmap
+  header: WorldFrameMeta
+  receivedAt: number
+}
 
 interface QueuedJpeg {
   bytes: Uint8Array
@@ -129,7 +136,6 @@ export function useWorldStream() {
   const mockRef = useRef(false)
   const engineNameRef = useRef<string | null>(null)
   const dimsRef = useRef({ w: 1280, h: 720, tc: 4 })
-  const drawingRef = useRef(false)
   const seqRef = useRef(0)
   const requestGenerationRef = useRef(0)
   const wireRef = useRef<Record<string, number> | null>(null)
@@ -172,6 +178,11 @@ export function useWorldStream() {
 
   const queueRef = useRef<QueuedJpeg[]>([])
   const lastPresentRef = useRef(0)
+  const readyRef = useRef<ReadyFrame[]>([])
+  const decodingRef = useRef(false)
+  const arrivalTimesRef = useRef<number[]>([])
+  const lastMetaPublishRef = useRef(0)
+  const hasFrameRef = useRef(false)
   const rafRef = useRef<number | null>(null)
 
   // Generated FPS: count every JPEG received from the wire (never reduced by presentation drops).
@@ -329,64 +340,78 @@ export function useWorldStream() {
     }))
   }, [])
 
+  /**
+   * Smooth presenter. Waypoint delivers 4 genuine frames per batch in a burst (~every 140 ms at 720p).
+   * Old behaviour kept only the newest frame of each burst (~7 fps on screen). Now: decode every frame
+   * off the main thread (createImageBitmap, in order) and draw them evenly paced at the measured arrival
+   * rate, with a latency cap so controls stay responsive. No frames are synthesized or interpolated.
+   */
+  const decodeFrames = useCallback(async () => {
+    if (decodingRef.current) return
+    decodingRef.current = true
+    try {
+      while (queueRef.current.length) {
+        const next = queueRef.current.shift()!
+        if (next.header.epoch !== epochRef.current) continue
+        try {
+          const bitmap = await createImageBitmap(new Blob([next.bytes.slice()], { type: 'image/jpeg' }))
+          readyRef.current.push({ bitmap, header: next.header, receivedAt: next.receivedAt })
+        } catch {
+          proofRef.current.decode_errors++
+        }
+      }
+    } finally {
+      decodingRef.current = false
+    }
+  }, [])
+
   const presentLoop = useCallback((t: number) => {
     rafRef.current = requestAnimationFrame(presentLoop)
-    if (phaseRef.current === 'paused') return
-    if (drawingRef.current) return
-    if (queueRef.current.length === 0) return
-    if (t - lastPresentRef.current < PRESENT_FRAME_MS) return
-    lastPresentRef.current = t
-
-    // Prefer newest queued frame; discard stale intermediates for responsiveness.
-    while (queueRef.current.length > 1) {
-      queueRef.current.shift()
+    if (phaseRef.current === 'paused' && !idleHoldingRef.current) return
+    const ready = readyRef.current
+    // Drop frames from an old epoch (restore/reset) and frames that are too old to feel responsive.
+    while (ready.length && (ready[0]!.header.epoch !== epochRef.current || t - ready[0]!.receivedAt > MAX_FRAME_AGE_MS)) {
+      ready.shift()!.bitmap.close()
       droppedRef.current += 1
     }
-    const next = queueRef.current.shift()
-    if (!next) return
-
+    if (!ready.length) return
+    // Pace at the measured arrival interval (≈ 1000/received fps); catch up faster if a backlog builds.
+    const arrivals = arrivalTimesRef.current
+    const interval =
+      arrivals.length > 4
+        ? Math.min(60, Math.max(22, (arrivals[arrivals.length - 1]! - arrivals[0]!) / (arrivals.length - 1)))
+        : PRESENT_FRAME_MS
+    const due = ready.length > 4 ? interval * 0.6 : interval
+    if (t - lastPresentRef.current < due - 4) return
+    lastPresentRef.current = t
+    const next = ready.shift()!
     const canvas = canvasElRef.current
-    if (!canvas) return
-    drawingRef.current = true
-    const blob = new Blob([next.bytes.slice()], { type: 'image/jpeg' })
-    const url = URL.createObjectURL(blob)
-    const img = new Image()
-    img.onload = () => {
-      if (phaseRef.current !== 'streaming' || next.header.epoch !== epochRef.current) {
-        URL.revokeObjectURL(url)
-        drawingRef.current = false
-        return
+    const ctx = canvas?.getContext('2d')
+    if (canvas && ctx) {
+      if (canvas.width !== next.bitmap.width || canvas.height !== next.bitmap.height) {
+        canvas.width = next.bitmap.width
+        canvas.height = next.bitmap.height
       }
-      const ctx = canvas.getContext('2d')
-      if (ctx) {
-        // Prefer clear native resolution; CSS scales modestly in WorldViewer.
-        drawClearFrame(ctx, img, img.width, img.height)
-        dispCountRef.current += 1
-        proofRef.current.displayed++
-        proofRef.current.draw_at.push(performance.now())
-        if(proofRef.current.draw_at.length > 10000) proofRef.current.draw_at.shift()
-        const seq = next.header.control_seq ?? -1
-        if(seq > proofRef.current.last_applied_seq && next.header.client_ts != null) {
-          proofRef.current.last_applied_seq=seq
-          proofRef.current.applied_to_draw_ms.push(performance.now()-next.header.client_ts)
-        if(proofRef.current.applied_to_draw_ms.length>5000) proofRef.current.applied_to_draw_ms.shift()
-        }
-        setState((s) => ({
-          ...s,
-          hasFrame: true,
-          meta: next.header,
-          phase: phaseRef.current === 'paused' ? 'paused' : 'streaming',
-        }))
+      ctx.drawImage(next.bitmap, 0, 0)
+      dispCountRef.current += 1
+      proofRef.current.displayed++
+      proofRef.current.draw_at.push(performance.now())
+      if (proofRef.current.draw_at.length > 10000) proofRef.current.draw_at.shift()
+      const seq = next.header.control_seq ?? -1
+      if (seq > proofRef.current.last_applied_seq && next.header.client_ts != null) {
+        proofRef.current.last_applied_seq = seq
+        proofRef.current.applied_to_draw_ms.push(performance.now() - next.header.client_ts)
+        if (proofRef.current.applied_to_draw_ms.length > 5000) proofRef.current.applied_to_draw_ms.shift()
       }
-      URL.revokeObjectURL(url)
-      drawingRef.current = false
+      // React state (overlay meta) at most ~5 Hz — not per frame.
+      if (t - lastMetaPublishRef.current > 200 || !hasFrameRef.current) {
+        lastMetaPublishRef.current = t
+        hasFrameRef.current = true
+        const meta = next.header
+        setState((s) => ({ ...s, hasFrame: true, meta, phase: phaseRef.current === 'paused' ? 'paused' : 'streaming' }))
+      }
     }
-    img.onerror = () => {
-      proofRef.current.decode_errors++
-      URL.revokeObjectURL(url)
-      drawingRef.current = false
-    }
-    img.src = url
+    next.bitmap.close()
   }, [])
 
   const enqueueJpegs = useCallback(
@@ -450,6 +475,12 @@ export function useWorldStream() {
         queueRef.current.shift()
         droppedRef.current += 1
       }
+      const now = performance.now()
+      for (let i = 0; i < jpegs.length; i++) arrivalTimesRef.current.push(now)
+      // Arrival-rate window: last ~16 frames, ignoring long idle-hold gaps.
+      const arr = arrivalTimesRef.current
+      while (arr.length > 16 || (arr.length > 1 && now - arr[0]! > 1500)) arr.shift()
+      void decodeFrames()
     },
     [],
   )

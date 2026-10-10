@@ -16,6 +16,7 @@ import { PerformanceOverlay } from './PerformanceOverlay'
 
 /** Product viewport: native 1280×720 @ 1× (responsive shrink for 1366×768 / 1920×1080). */
 const CLEAR_VIEW = preferredDisplaySize(1)
+type ViewSize = 'small' | 'medium' | 'large'
 
 export interface SwitchableWorld {
   id: string
@@ -146,6 +147,27 @@ export function WorldViewer({
               ? { label: 'Error', cls: 'border-danger/40 bg-danger/15 text-danger' }
               : { label: phase, cls: 'border-line bg-elevated text-soft' }
 
+  // Display size: the frame is always native 1280x720; Small/Medium scale it DOWN (stays sharp).
+  // Large = 1:1 device pixels (never upscaled).
+  const [viewSize, setViewSize] = useState<ViewSize>(() => {
+    try {
+      const v = localStorage.getItem('ws_view_size')
+      return v === 'small' || v === 'large' ? v : 'medium'
+    } catch {
+      return 'medium'
+    }
+  })
+  const viewWidth =
+    viewSize === 'small' ? 768 : viewSize === 'medium' ? 960 : Math.round(1280 / (window.devicePixelRatio || 1))
+  const chooseSize = (v: ViewSize) => {
+    setViewSize(v)
+    try {
+      localStorage.setItem('ws_view_size', v)
+    } catch {
+      /* ignore */
+    }
+  }
+
   return (
     <div
       className={clsx(
@@ -167,16 +189,33 @@ export function WorldViewer({
           if (live && !pointerLocked) onRequestLock()
         }}
       >
-        {/* Prominent native 16:9 canvas — no stretch beyond aspect-ratio box. */}
+        {embedded && (
+          <div className="absolute right-3 top-3 z-30 flex gap-1 rounded-md border border-line bg-ink/80 p-0.5 text-[10px] font-semibold">
+            {(['small', 'medium', 'large'] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  chooseSize(v)
+                }}
+                className={clsx('rounded px-2 py-0.5', viewSize === v ? 'bg-signal text-void' : 'text-muted hover:text-bright')}
+              >
+                {v === 'small' ? 'S' : v === 'medium' ? 'M' : 'L'}
+              </button>
+            ))}
+          </div>
+        )}
+        {/* Native 16:9 canvas at the chosen display size. */}
         <div
           className="relative mx-auto"
           style={{
             aspectRatio: '16 / 9',
             // Sharp 1:1: never draw the 1280x720 frame larger than 1280x720 DEVICE pixels. On 125-150%
             // Windows scaling a 1280 CSS px canvas is stretched and looks blurry.
-            width: `min(100%, ${Math.round(1280 / (window.devicePixelRatio || 1))}px)`,
-            maxWidth: `min(100%, ${Math.round(1280 / (window.devicePixelRatio || 1))}px)`,
-            maxHeight: embedded ? `min(70vh, ${Math.round(720 / (window.devicePixelRatio || 1))}px)` : '100%',
+            width: `min(100%, ${viewWidth}px)`,
+            maxWidth: `min(100%, ${viewWidth}px)`,
+            maxHeight: embedded ? `${Math.round((viewWidth * 9) / 16)}px` : '100%',
           }}
         >
           <canvas
@@ -184,9 +223,11 @@ export function WorldViewer({
             className="h-full w-full rounded-sm object-contain shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_20px_60px_rgba(0,0,0,0.45)]"
             style={{
               imageRendering: 'auto',
+              // Light clarity tweak on the GPU compositor (was a per-frame software canvas filter).
+              filter: 'contrast(1.03) saturate(1.02)',
               aspectRatio: '16 / 9',
-              maxWidth: Math.min(CLEAR_VIEW.width, Math.round(1280 / (window.devicePixelRatio || 1))),
-              maxHeight: Math.min(CLEAR_VIEW.height, Math.round(720 / (window.devicePixelRatio || 1))),
+              maxWidth: Math.min(CLEAR_VIEW.width, viewWidth),
+              maxHeight: Math.min(CLEAR_VIEW.height, Math.round((viewWidth * 9) / 16)),
               width: '100%',
               height: '100%',
               objectFit: 'contain',
