@@ -1,4 +1,5 @@
-import { MOCK_BADGE, mockCheckpointImage } from './mockFixtures'
+import { MOCK_BADGE, mockCheckpointImage, mockEnhancedCheckpointImage } from './mockFixtures'
+import { mockObstaclesForCheckpoint } from './mockObstacles'
 import type {
   Checkpoint,
   EstimatedPose,
@@ -43,7 +44,7 @@ export class MockWorldMemoryClient implements WorldMemoryClient {
     checkpoints: [],
     selectedCheckpointId: null,
     restore: null,
-    enhancementSupported: false,
+    enhancementSupported: true,
   }
 
   getSession(): WorldMemorySession {
@@ -102,7 +103,8 @@ export class MockWorldMemoryClient implements WorldMemoryClient {
       checkpoints: [startCp],
       selectedCheckpointId: startCp.id,
       restore: null,
-      enhancementSupported: false,
+      // Mock can demo raw/enhanced preview; live must follow Codex capability flags.
+      enhancementSupported: true,
     }
     this.emit()
   }
@@ -173,18 +175,25 @@ export class MockWorldMemoryClient implements WorldMemoryClient {
 
   private async captureInternal(manual: boolean, name: string): Promise<Checkpoint> {
     const index = this.session.checkpoints.length
-    const cp: Checkpoint = {
+    const withEnhance = index > 0 && index % 2 === 1
+    const draft: Checkpoint = {
       id: `mock-cp-${Date.now()}-${index}`,
       index,
       name,
       capturedAtMs: Date.now(),
       imageUrl: mockCheckpointImage(index + 3, name),
-      enhancedImageUrl: null,
+      enhancedImageUrl: withEnhance
+        ? mockEnhancedCheckpointImage(index + 3, name)
+        : null,
       pose: { ...this.session.pose },
-      status: 'available',
+      status: withEnhance ? 'enhanced' : 'available',
       restorable: true,
       source: 'mock',
       manual,
+    }
+    const cp: Checkpoint = {
+      ...draft,
+      obstacles: mockObstaclesForCheckpoint(draft),
     }
     this.session = {
       ...this.session,

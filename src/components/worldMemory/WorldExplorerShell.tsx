@@ -5,8 +5,10 @@ import { useWorldMemory } from '../../hooks/useWorldMemory'
 import { WorldHeader } from './WorldHeader'
 import { ExplorationMap } from './ExplorationMap'
 import { CheckpointGallery } from './CheckpointGallery'
+import { CheckpointPreview } from './CheckpointPreview'
 import { RestoreOverlay } from './RestoreOverlay'
 import { getMockWorldMemoryClient } from '../../services/worldMemory/mockWorldMemoryClient'
+import type { InferredObstacle } from '../../types/worldMemory'
 
 interface Props {
   worldName: string
@@ -50,6 +52,8 @@ interface Props {
 export function WorldExplorerShell(props: Props) {
   const memory = useWorldMemory()
   const [showTrail, setShowTrail] = useState(true)
+  const [showObstacles, setShowObstacles] = useState(false)
+  const [selectedObstacle, setSelectedObstacle] = useState<InferredObstacle | null>(null)
   const [saving, setSaving] = useState(false)
   const [centerTick, setCenterTick] = useState(false)
 
@@ -212,6 +216,18 @@ export function WorldExplorerShell(props: Props) {
               >
                 {showTrail ? 'Hide trail' : 'Show trail'}
               </button>
+              <label className="flex cursor-pointer items-center gap-1.5 rounded-md border border-line bg-elevated px-2.5 py-1 text-xs font-semibold text-soft hover:text-bright">
+                <input
+                  type="checkbox"
+                  checked={showObstacles}
+                  onChange={(e) => {
+                    setShowObstacles(e.target.checked)
+                    if (!e.target.checked) setSelectedObstacle(null)
+                  }}
+                  className="accent-[var(--color-signal,#5eead4)]"
+                />
+                AI-Inferred Obstacles
+              </label>
               <button
                 type="button"
                 className="rounded-md border border-line bg-elevated px-2.5 py-1 text-xs font-semibold text-soft hover:text-bright"
@@ -225,14 +241,17 @@ export function WorldExplorerShell(props: Props) {
             </div>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-[1fr_200px]">
+          <div className="grid gap-3 lg:grid-cols-[1fr_220px]">
             <div className="h-[260px] sm:h-[300px]">
               <ExplorationMap
                 pose={memory.session.pose}
                 trail={memory.session.trail}
                 checkpoints={memory.session.checkpoints}
                 selectedId={memory.session.selectedCheckpointId}
-                onSelect={(id) => memory.selectCheckpoint(id)}
+                onSelect={(id) => {
+                  setSelectedObstacle(null)
+                  memory.selectCheckpoint(id)
+                }}
                 centerRequest={centerTick || memory.centerPending()}
                 onCenterConsumed={() => {
                   setCenterTick(false)
@@ -240,6 +259,12 @@ export function WorldExplorerShell(props: Props) {
                 }}
                 showTrail={showTrail}
                 mock={memory.source === 'mock'}
+                showObstacles={showObstacles}
+                selectedObstacleId={selectedObstacle?.id ?? null}
+                onSelectObstacle={(obs) => {
+                  setSelectedObstacle(obs)
+                  memory.selectCheckpoint(obs.checkpointId)
+                }}
               />
             </div>
             <aside className="rounded-xl border border-line bg-panel/70 p-3 text-xs text-soft">
@@ -256,18 +281,43 @@ export function WorldExplorerShell(props: Props) {
                 </li>
                 <li>Arrow — estimated heading</li>
                 <li>Trail breaks after restore</li>
+                {showObstacles && (
+                  <>
+                    <li>
+                      <span className="text-danger">◌</span> Blocked (inferred)
+                    </li>
+                    <li>
+                      <span className="text-hazard">◌</span> Hazard (inferred)
+                    </li>
+                    <li>
+                      <span className="text-ok">◌</span> Possibly walkable
+                    </li>
+                    <li className="text-[10px]">Opacity ≈ confidence — not collision mesh</li>
+                  </>
+                )}
               </ul>
               <p className="mt-3 text-[10px] leading-relaxed text-muted">
-                Memory / navigation is MOCK until Codex publishes the world-memory contract. Live
-                video remains the real Waypoint stream when connected.
+                Memory / navigation / obstacles are MOCK until Codex publishes the world-memory
+                contract. Live video remains the real Waypoint stream when connected.
               </p>
             </aside>
           </div>
 
+          <CheckpointPreview
+            checkpoint={selected}
+            linkedObstacle={selectedObstacle}
+            enhancementSupported={memory.session.enhancementSupported}
+            onRestore={(id) => void memory.restoreCheckpoint(id)}
+            restoring={restoring}
+          />
+
           <CheckpointGallery
             checkpoints={memory.session.checkpoints}
             selectedId={memory.session.selectedCheckpointId}
-            onSelect={(id) => memory.selectCheckpoint(id)}
+            onSelect={(id) => {
+              setSelectedObstacle(null)
+              memory.selectCheckpoint(id)
+            }}
             onRestore={(id) => void memory.restoreCheckpoint(id)}
             restoring={restoring}
           />

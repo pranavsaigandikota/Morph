@@ -58,6 +58,33 @@ export interface Checkpoint {
   source: MemorySource
   /** true = user Save View; false = auto mock/backend capture */
   manual: boolean
+  /**
+   * AI-inferred obstacles near this checkpoint (Codex schema when live).
+   * Never treat as verified collision geometry.
+   */
+  obstacles?: InferredObstacle[]
+}
+
+/**
+ * Provisional obstacle observation — replace fields when Codex publishes the
+ * authoritative schema in docs/world-memory/API_CONTRACT.md.
+ */
+export type ObstacleKind = 'blocked' | 'hazard' | 'walkable_hint'
+
+export interface InferredObstacle {
+  id: string
+  checkpointId: string
+  kind: ObstacleKind
+  /** Relative bearing from checkpoint pose, degrees in session frame. */
+  directionDeg: number
+  /** Approximate distance in session units (not meters unless Codex says so). */
+  relativeDistance: number
+  /** 0–1; style opacity/dash from this. */
+  confidence: number
+  /** Optional footprint radius for map glyph. */
+  radius?: number
+  label?: string
+  source: MemorySource
 }
 
 export interface RestoreJob {

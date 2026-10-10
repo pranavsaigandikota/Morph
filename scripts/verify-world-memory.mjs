@@ -49,8 +49,19 @@ check('restore completes and bumps epoch', () => {
   assert.equal(last.continuous, false)
 })
 
-check('enhancement hidden by default', () => {
-  assert.equal(c.getSession().enhancementSupported, false)
+check('mock can expose enhancement candidates', () => {
+  assert.equal(c.getSession().enhancementSupported, true)
+})
+
+await c.saveView()
+await c.saveView()
+check('mock obstacles attach to non-start checkpoints', () => {
+  const withObs = c.getSession().checkpoints.filter((x) => (x.obstacles?.length ?? 0) > 0)
+  assert.ok(withObs.length >= 1)
+  const o = withObs[0].obstacles[0]
+  assert.ok(['blocked', 'hazard', 'walkable_hint'].includes(o.kind))
+  assert.ok(o.confidence > 0 && o.confidence <= 1)
+  assert.equal(o.checkpointId, withObs[0].id)
 })
 
 console.log('\n=== WORLD MEMORY MOCK SUMMARY ===')

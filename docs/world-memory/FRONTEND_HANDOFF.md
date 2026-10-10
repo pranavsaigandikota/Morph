@@ -16,7 +16,8 @@
 | Live Waypoint stream / WASD / drag-look / acks | Unchanged |
 | High Quality create mode | UI stub — disabled until Codex |
 | Live WorldMemoryClient | Not started (await contract) |
-| AI enhancement compare | Hidden (`enhancementSupported: false`) |
+| AI enhancement compare | MOCK candidates on some checkpoints |
+| AI-Inferred Obstacles map overlay | MOCK layer, toggle off by default |
 
 ## Honest labels
 

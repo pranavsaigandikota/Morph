@@ -31,7 +31,12 @@ Explorer needs these capabilities for full (non-mock) integration. Paths/events 
 
 - Enhanced still (queued / ready) with raw vs enhanced URLs  
 - Trail segment markers when continuity is unknown  
-- High Quality world-create mode distinct from Turbo presets
+- High Quality world-create mode distinct from Turbo presets  
+- **Inferred obstacles / depth near checkpoints** (kind, bearing, relative distance, confidence) for optional map overlay — never as verified collision geometry
+
+## Obstacle overlay (frontend ready on mock)
+
+Cursor renders an optional “AI-Inferred Obstacles” layer from `Checkpoint.obstacles[]` (provisional DTO). Swap to Codex’s authoritative schema when published; keep the toggle off by default.
 
 ## Non-negotiables for Cursor
 

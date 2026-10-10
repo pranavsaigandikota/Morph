@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Checkpoint, EstimatedPose, TrailPoint } from '../../types/worldMemory'
+import type {
+  Checkpoint,
+  EstimatedPose,
+  InferredObstacle,
+  TrailPoint,
+} from '../../types/worldMemory'
+import { ObstacleOverlay } from './ObstacleOverlay'
 
 interface Props {
   pose: EstimatedPose
@@ -11,6 +17,9 @@ interface Props {
   onCenterConsumed: () => void
   showTrail: boolean
   mock: boolean
+  showObstacles: boolean
+  selectedObstacleId: string | null
+  onSelectObstacle: (obs: InferredObstacle) => void
 }
 
 export function ExplorationMap({
@@ -23,6 +32,9 @@ export function ExplorationMap({
   onCenterConsumed,
   showTrail,
   mock,
+  showObstacles,
+  selectedObstacleId,
+  onSelectObstacle,
 }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null)
   const [view, setView] = useState({ x: -180, y: -120, w: 360, h: 240 })
@@ -93,6 +105,14 @@ export function ExplorationMap({
           <path d={pathD} fill="none" stroke="#2ee6d6" strokeOpacity="0.55" strokeWidth="2.2" />
         )}
 
+        {showObstacles && (
+          <ObstacleOverlay
+            checkpoints={checkpoints}
+            selectedObstacleId={selectedObstacleId}
+            onSelectObstacle={onSelectObstacle}
+          />
+        )}
+
         {checkpoints.map((cp) => {
           const px = cp.pose?.x ?? 0
           const py = cp.pose?.y ?? 0
@@ -136,6 +156,7 @@ export function ExplorationMap({
 
       <div className="pointer-events-none absolute left-3 top-3 rounded-md border border-line bg-ink/85 px-2 py-1 text-[10px] uppercase tracking-wider text-muted backdrop-blur">
         Approximate trail{mock ? ' · MOCK' : ''}
+        {showObstacles ? ' · AI obstacles (inferred)' : ''}
       </div>
       <div className="pointer-events-none absolute bottom-3 left-3 font-mono text-[10px] text-muted">
         ({pose.x.toFixed(0)}, {pose.y.toFixed(0)}) · unc {((pose.uncertainty ?? 0) * 100).toFixed(0)}%
