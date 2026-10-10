@@ -310,7 +310,7 @@ export function WorldExplorerShell(props: Props) {
                     <span className="text-danger">●</span> Unsuitable recovery anchor
                   </li>
                   <li>
-                    <span className="text-aurora">╱</span> Calibration ray (est.)
+                    <span className="text-aurora">●</span> Cal view (optional label · not measured)
                   </li>
                   <li>
                     <span className="text-hazard">○</span> Trail break after restore

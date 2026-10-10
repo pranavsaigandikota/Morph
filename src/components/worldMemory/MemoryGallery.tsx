@@ -50,11 +50,11 @@ export function MemoryGallery({
     items.push({
       id: c.id,
       kind: 'calibration',
-      title: `Calibration · ${DIRECTION_LABEL[c.direction]}`,
+      title: `Calibration · ${DIRECTION_LABEL[c.suggestedLabel]}`,
       imageUrl: c.imageUrl,
       capturedAtMs: c.capturedAtMs,
-      directionLabel: DIRECTION_LABEL[c.direction],
-      rawVsEnhanced: 'mock_ui',
+      directionLabel: `${DIRECTION_LABEL[c.suggestedLabel]} (optional)`,
+      rawVsEnhanced: c.source === 'live_waypoint' ? 'raw' : 'mock_ui',
       reviewStatus: c.reviewStatus,
       confidence: c.confidence,
     })

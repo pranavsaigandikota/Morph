@@ -1,12 +1,13 @@
 # Integration checklist — LIVE calibration & visual memory
 
-**Frozen UX tip:** `cursor/worldshift-ux-polish-cd95` @ `535f02e`  
-**Status:** **FROZEN** — no new UI; no LIVE calibration wiring until:
+**UX tip (user-guided calibration):** `cursor/calibration-user-guided-cd95`  
+**Prior polish freeze:** `cursor/worldshift-ux-polish-cd95` @ `535f02e`  
 
-1. Claude publishes a **reviewed** calibration + visual-memory API contract  
-2. Codex completes **native-720p GPU playback** and **Phase A0 camera-turn** results  
+**Codex decision:** Automatic fixed-angle calibration is **NO-GO**. UI is user-guided Capture View only.
 
-Do **not** invent endpoints, hardcode camera angles, or call speculative backends from this branch.
+**Status:** No LIVE calibration wiring until Claude’s reviewed contract lands. Presentation queue unchanged pending Codex browser scheduling diagnosis — do not claim four-frame queue improved FPS.
+
+Do **not** invent capture endpoints, hardcode camera angles, or treat browser screenshots as LIVE raw frames.
 
 ---
 
@@ -15,7 +16,7 @@ Do **not** invent endpoints, hardcode camera angles, or call speculative backend
 | Surface | Keep |
 |---|---|
 | Explorer | Large 16:9 canvas, collapsible diagnostics, phase chips |
-| Calibration | Optional MOCK `/calibrate` + Skip (quad UI; 8 dirs reserved in types only) |
+| Calibration | Optional MOCK `/calibrate` — **user-guided** Capture View; approve/reject/retake; Skip/Cancel; restore clean seed before explore |
 | Memory | Estimated map + gallery (calibration / checkpoints / approved / rejected) |
 | Labels | LIVE / MOCK / EXPERIMENTAL separation |
 | Brand | Hugging Face attribution + model cards |
@@ -29,11 +30,12 @@ Product visual target remains **native 1280×720 only** (`docs/PRODUCT_NATIVE_72
 
 | # | Check | Owner | Done when |
 |---|---|---|---|
-| 1.1 | Contract defines session lifecycle: create → plan directions → capture* → complete \| skip | Claude | Reviewed DTO + state machine |
-| 1.2 | Frontend maps UI phases (`world_created`…`complete`/`skipped`) 1:1 to backend events — no invented transitions | Frontend | Adapter table in PR |
-| 1.3 | Skip emits an explicit backend-acknowledged skip (or documented no-op) | Claude + Frontend | Contract + UI hook |
-| 1.4 | No client-side camera yaw commands until Phase A0 + contract allow them | Codex + Frontend | Explicitly forbidden until then |
-| 1.5 | Direction set is contract-driven (4 now / up to 8 later) — UI must not hardcode backend angle lists | Claude | Enum / list in contract |
+| 1.1 | Contract defines **user-guided** lifecycle: create → scan → capture* → review → **restore seed** → complete \| skip \| cancel | Claude | Reviewed DTO + state machine |
+| 1.2 | Frontend maps UI phases 1:1 — no invented transitions; **no automatic fixed-angle turns** | Frontend | Adapter table in PR |
+| 1.3 | Skip / Cancel emit explicit backend-acknowledged outcomes (or documented no-op) | Claude + Frontend | Contract + UI hook |
+| 1.4 | Capture View requests current genuine Waypoint frame via verified API — never browser screenshot as proof | Codex + Frontend | Contract + acceptance |
+| 1.5 | Suggested direction labels optional — not measured headings / not turn targets | Claude | Soft label enum |
+| 1.6 | After calibration, restore original clean seed before explore (`/world/reset` or approved equivalent) | Codex + Frontend | Wired only after contract |
 
 **UI today (MOCK only):** `src/types/calibration.ts`, `CalibrationFlow.tsx`, `mockCalibration.ts`.
 

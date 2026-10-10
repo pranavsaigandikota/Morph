@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { CalibrationFlow } from '../components/calibration/CalibrationFlow'
 import { HuggingFaceAttribution } from '../components/brand/HuggingFaceAttribution'
 import {
+  clearCalibrationSession,
   createMockCalibrationSession,
   loadCalibrationSession,
   persistCalibrationSession,
@@ -23,7 +24,8 @@ export function CalibrationPage() {
     if (
       existing &&
       existing.worldPrompt === prompt &&
-      (existing.sceneSeed ?? null) === (seed ?? null)
+      (existing.sceneSeed ?? null) === (seed ?? null) &&
+      existing.policy?.captureMode === 'user_guided_visual'
     ) {
       return existing
     }
@@ -39,7 +41,7 @@ export function CalibrationPage() {
 
   const [session, setSession] = useState<CalibrationSession>(initial)
 
-  const exploreQuery = () => {
+  const exploreQuery = (s: CalibrationSession) => {
     const q = new URLSearchParams()
     if (seed) q.set('seed', seed)
     else q.set('scene', 'facility')
@@ -48,7 +50,11 @@ export function CalibrationPage() {
     if (generationSeed != null && Number.isFinite(generationSeed)) {
       q.set('gen_seed', String(generationSeed))
     }
-    q.set('calibrated', session.phase === 'skipped' ? 'skipped' : '1')
+    q.set(
+      'calibrated',
+      s.phase === 'skipped' ? 'skipped' : s.phase === 'cancelled' ? 'cancelled' : '1',
+    )
+    if (s.seedRestoreDone) q.set('seed_restored', '1')
     if (params.get('mock_seed') === '1') q.set('mock_seed', '1')
     return q
   }
@@ -59,8 +65,12 @@ export function CalibrationPage() {
       <CalibrationFlow
         session={session}
         onSessionChange={setSession}
-        onStartExploring={() => navigate(`/world?${exploreQuery().toString()}`)}
-        onSkip={() => navigate(`/world?${exploreQuery().toString()}`)}
+        onStartExploring={(s) => navigate(`/world?${exploreQuery(s).toString()}`)}
+        onSkip={(s) => navigate(`/world?${exploreQuery(s).toString()}`)}
+        onCancel={() => {
+          clearCalibrationSession()
+          navigate('/create')
+        }}
       />
       <div className="mx-auto max-w-4xl px-4 pb-12 sm:px-6">
         <HuggingFaceAttribution compact />

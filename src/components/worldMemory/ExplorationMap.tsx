@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CalibrationCapture } from '../../types/calibration'
 import { DIRECTION_LABEL } from '../../types/calibration'
+// Calibration markers use layoutIndex for sketch placement only — not measured headings.
 import type {
   Checkpoint,
   EstimatedPose,
@@ -127,30 +128,24 @@ export function ExplorationMap({
               />
             ))}
 
-        {/* Initial calibration observations (estimated rays from start) */}
-        {calibrationCaptures.map((c) => {
-          const rad = ((c.yawDeg - 90) * Math.PI) / 180
-          const len = 28
-          const x2 = Math.cos(rad) * len
-          const y2 = Math.sin(rad) * len
-          return (
-            <g key={c.id} opacity="0.75">
-              <line
-                x1={0}
-                y1={0}
-                x2={x2}
-                y2={y2}
-                stroke="#7c6cff"
-                strokeWidth="1.5"
-                strokeDasharray="3 2"
-              />
-              <circle cx={x2} cy={y2} r="3" fill="#7c6cff" />
-              <text x={x2 + 4} y={y2 - 3} fill="#9aabbe" fontSize="7">
-                {DIRECTION_LABEL[c.direction].slice(0, 1)}
-              </text>
-            </g>
-          )
-        })}
+        {/* Calibration observations — layout sketch only; labels are optional, not measured headings */}
+        {calibrationCaptures
+          .filter((c) => c.reviewStatus === 'approved')
+          .map((c, i) => {
+            const rad = ((i * 40 - 60) * Math.PI) / 180
+            const len = 22 + (c.layoutIndex % 3) * 4
+            const x2 = Math.cos(rad) * len
+            const y2 = Math.sin(rad) * len
+            const tag = DIRECTION_LABEL[c.suggestedLabel]
+            return (
+              <g key={c.id} opacity="0.7">
+                <circle cx={x2} cy={y2} r="3.5" fill="#7c6cff" />
+                <text x={x2 + 5} y={y2 - 2} fill="#9aabbe" fontSize="6.5">
+                  {tag === 'No label' ? '·' : tag.slice(0, 1)}
+                </text>
+              </g>
+            )
+          })}
 
         {showObstacles && (
           <ObstacleOverlay
@@ -234,7 +229,7 @@ export function ExplorationMap({
 
       <div className="pointer-events-none absolute left-3 top-3 rounded-md border border-line bg-ink/85 px-2 py-1 text-[10px] uppercase tracking-wider text-muted backdrop-blur">
         Estimated map · not physical{mock ? ' · MOCK' : ''}
-        {calibrationCaptures.length ? ' · cal rays' : ''}
+        {calibrationCaptures.length ? ' · cal labels (optional)' : ''}
         {showObstacles ? ' · AI obstacles' : ''}
       </div>
       <div className="pointer-events-none absolute bottom-3 left-3 font-mono text-[10px] text-muted">

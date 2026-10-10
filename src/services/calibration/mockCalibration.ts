@@ -1,36 +1,39 @@
 /**
- * MOCK calibration captures for UI development.
- * Labeled clearly — not live Waypoint screenshots.
+ * MOCK user-guided calibration captures.
+ * Does NOT auto-rotate by fixed degrees (Codex: automatic fixed-angle = NO-GO).
+ * Does NOT use browser screenshots as proof of backend-generated frames.
  */
 
 import {
-  CALIBRATION_QUAD,
   DIRECTION_LABEL,
-  DIRECTION_YAW_DEG,
   type CalibrationCapture,
-  type CalibrationDirection,
   type CalibrationSession,
+  type SuggestedDirectionLabel,
 } from '../../types/calibration'
 
-function mockCaptureSvg(direction: CalibrationDirection, index: number): string {
-  const label = DIRECTION_LABEL[direction]
-  const hue = (index * 67 + 160) % 360
+function mockGuidedCaptureSvg(
+  label: SuggestedDirectionLabel,
+  layoutIndex: number,
+): string {
+  const title = DIRECTION_LABEL[label]
+  const hue = (layoutIndex * 53 + 170) % 360
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="hsl(${hue},28%,14%)"/>
-      <stop offset="100%" stop-color="hsl(${(hue + 40) % 360},22%,8%)"/>
+      <stop offset="0%" stop-color="hsl(${hue},26%,12%)"/>
+      <stop offset="100%" stop-color="hsl(${(hue + 35) % 360},20%,7%)"/>
     </linearGradient>
   </defs>
-  <rect width="640" height="360" fill="url(#g)"/>
-  <polygon points="220,220 320,120 420,220" fill="hsl(${hue},35%,22%)" opacity="0.9"/>
-  <rect x="280" y="200" width="80" height="90" fill="hsl(${(hue + 20) % 360},30%,18%)"/>
-  <path d="M0 260 Q160 240 320 255 T640 250 L640 360 L0 360 Z" fill="hsl(${hue},18%,12%)"/>
-  <text x="24" y="40" fill="#2ee6d6" font-family="DM Sans,sans-serif" font-size="18" font-weight="700">MOCK · UI SIMULATION</text>
-  <text x="24" y="72" fill="#eef3f8" font-family="Syne,sans-serif" font-size="28" font-weight="800">${label}</text>
-  <text x="24" y="100" fill="#6b7c90" font-family="DM Sans,sans-serif" font-size="13">Not a live Waypoint capture · awaiting calibration API</text>
-  <text x="24" y="340" fill="#9aabbe" font-family="ui-monospace,monospace" font-size="12">yaw≈${DIRECTION_YAW_DEG[direction]}° · estimated only</text>
+  <rect width="1280" height="720" fill="url(#g)"/>
+  <polygon points="480,480 640,260 800,480" fill="hsl(${hue},32%,20%)" opacity="0.9"/>
+  <rect x="560" y="420" width="160" height="180" fill="hsl(${(hue + 18) % 360},28%,16%)"/>
+  <path d="M0 520 Q320 480 640 510 T1280 500 L1280 720 L0 720 Z" fill="hsl(${hue},16%,10%)"/>
+  <text x="40" y="56" fill="#f97316" font-family="DM Sans,sans-serif" font-size="28" font-weight="700">MOCK · UI SIMULATION</text>
+  <text x="40" y="110" fill="#eef3f8" font-family="Syne,sans-serif" font-size="44" font-weight="800">Capture View</text>
+  <text x="40" y="160" fill="#9aabbe" font-family="DM Sans,sans-serif" font-size="20">Not a live Waypoint frame · not a browser screenshot of LIVE</text>
+  <text x="40" y="200" fill="#6b7c90" font-family="DM Sans,sans-serif" font-size="18">Optional label: ${title} · not a measured heading</text>
+  <text x="40" y="680" fill="#6b7c90" font-family="ui-monospace,monospace" font-size="16">1280×720 product target · awaiting verified capture API</text>
 </svg>`
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
 }
@@ -40,9 +43,7 @@ export function createMockCalibrationSession(opts: {
   style: string
   sceneSeed: string | null
   generationSeed: number | null
-  directions?: CalibrationDirection[]
 }): CalibrationSession {
-  const planned = opts.directions ?? [...CALIBRATION_QUAD]
   return {
     id: `cal_mock_${Date.now().toString(36)}`,
     worldPrompt: opts.worldPrompt,
@@ -50,33 +51,42 @@ export function createMockCalibrationSession(opts: {
     sceneSeed: opts.sceneSeed,
     generationSeed: opts.generationSeed,
     phase: 'world_created',
-    plannedDirections: planned,
     captures: [],
     source: 'mock',
+    seedRestoreRequired: true,
+    seedRestoreDone: false,
     createdAtMs: Date.now(),
     completedAtMs: null,
+    policy: {
+      automaticFixedAngleCalibration: 'no-go',
+      captureMode: 'user_guided_visual',
+    },
   }
 }
 
-/** Simulate capturing one direction — UI-only MOCK still. */
-export function mockCaptureDirection(
+/**
+ * Simulate "Capture View" for the current look direction.
+ * MOCK only — does not read canvas / invent LIVE provenance.
+ */
+export function mockCaptureCurrentView(
   session: CalibrationSession,
-  direction: CalibrationDirection,
+  suggestedLabel: SuggestedDirectionLabel = 'unlabeled',
 ): CalibrationCapture {
-  const index = session.plannedDirections.indexOf(direction)
+  const layoutIndex = session.captures.length
   return {
-    id: `cap_${direction}_${Date.now().toString(36)}`,
-    direction,
-    imageUrl: mockCaptureSvg(direction, index < 0 ? session.captures.length : index),
+    id: `cap_${Date.now().toString(36)}_${layoutIndex}`,
+    suggestedLabel,
+    imageUrl: mockGuidedCaptureSvg(suggestedLabel, layoutIndex),
     capturedAtMs: Date.now(),
     source: 'mock_ui',
-    confidence: 0.55 + (index % 3) * 0.1,
-    reviewStatus: 'accepted',
-    yawDeg: DIRECTION_YAW_DEG[direction],
+    imageSha256: null,
+    reviewStatus: 'pending',
+    confidence: null,
+    layoutIndex,
   }
 }
 
-const STORAGE_KEY = 'ws_calibration_session_v1'
+const STORAGE_KEY = 'ws_calibration_session_v2'
 
 export function persistCalibrationSession(session: CalibrationSession): void {
   try {
@@ -90,7 +100,12 @@ export function loadCalibrationSession(): CalibrationSession | null {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY)
     if (!raw) return null
-    return JSON.parse(raw) as CalibrationSession
+    const parsed = JSON.parse(raw) as CalibrationSession
+    // Reject legacy v1 auto-angle sessions (missing policy / seedRestore fields).
+    if (!parsed.policy || parsed.policy.automaticFixedAngleCalibration !== 'no-go') {
+      return null
+    }
+    return parsed
   } catch {
     return null
   }
@@ -99,7 +114,13 @@ export function loadCalibrationSession(): CalibrationSession | null {
 export function clearCalibrationSession(): void {
   try {
     sessionStorage.removeItem(STORAGE_KEY)
+    sessionStorage.removeItem('ws_calibration_session_v1')
   } catch {
     /* ignore */
   }
+}
+
+/** MOCK stand-in for restoring the original clean seed before explore. */
+export async function mockRestoreOriginalSeed(): Promise<void> {
+  await new Promise((r) => setTimeout(r, 600))
 }
