@@ -9,6 +9,7 @@ First-person **Waypoint** worlds (Codex GPU) + interactive **Rescue Missions** +
 | Route | Purpose |
 |-------|---------|
 | `/create` | Create Anything — HQ SDXL contact sheet (approve before Waypoint) + Turbo secondary |
+| `/calibrate` | Optional MOCK guided calibration (skippable) before Explore |
 | `/world` | World Explorer — product native **1280×720** Waypoint |
 | `/mission` | Playable rescue on verified facility map |
 | `/simulation` | Recorded Random / PPO / A* replays |
