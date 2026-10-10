@@ -24,12 +24,44 @@
 
 Waypoint cannot keep a freely explored first-person video coherent forever. **Stability Mode** is the practical way to keep the picture clean while walking:
 
-- Slower look (tighter per-tick clamp) and half-rate WASD into the model  
-- Idle hold when you stop moving  
-- **Informed auto-restore** of the SDXL seed after ~22 s of walking or a large look budget, with an on-screen “Scene kept clean” notice (never a silent reset)  
+- Slower look (`maxPerTick` 20) and half-rate WASD into the model (`every 2nd` 20 Hz tick)  
+- Idle hold (~550 ms after input stops) — **only while Stability is on**  
+- **Informed auto-restore** via existing `POST /world/reset` on the **same** `session_id` (never `/world/start`)  
 - Small clear 640×360 @ ≤1.5× presentation  
 
-Toggle **Stability** in the Explorer footer. Turning it off returns to manual Restore-only behavior (image can melt again).
+### Precise auto-restore triggers (`src/lib/stabilityMode.ts`)
+
+| Trigger | Constant | Exact rule |
+|---|---|---|
+| **Look budget** | `STABILITY_LOOK_YAW_RESTORE = 320` | Cumulative Σ\|`mouse_dx`\| sent on the wire since last restore (after clamp/smooth). Resets to 0 on every restore. |
+| **Walk budget (default)** | `STABILITY_LOCOMOTION_MS_RESTORE = 22_000` | Wall-clock ms with any WASD held, advanced by `+50` per control tick (`CONTROL_MS`). Idle does **not** advance it. |
+| **Walk budget presets** | `0` / `22000` / `45000` | Footer **Walk auto**: `Off (manual)` disables walk auto-restore; look budget still applies while Stability is on. |
+
+Restore notification: bottom-right, `pointer-events: none`, ~5.5 s — does not block WASD/look.
+
+### Reset / epoch / ack contract
+
+1. `restoreScene` → `POST /world/{reset}` with `{session_id}` only (same session).  
+2. If phase was paused (idle hold), follows with `POST /world/resume`.  
+3. Client clears presentation queue; adopts new `epoch` from the next `type:"frame"` JSON (and other status messages).  
+4. `display_ack` continues per consumed JPEG with that frame’s `frame_id` + `epoch` — credit window unchanged.  
+5. Held WASD is re-hydrated from `keyHeldRef` so restore cannot stick empty controls.
+
+### Stability OFF vs verified `6423304`
+
+| Behavior | Stability ON | Stability OFF (this branch) | Exact `6423304` |
+|---|---|---|---|
+| Auto-restore | yes | no | no |
+| Idle hold | yes | no | no |
+| Half-rate WASD | yes | no | no |
+| Mouse dump-on-buffer-skip fix | yes | yes | **bug present** |
+| Default look sens | 0.22 | 0.22 | 1.0 |
+| Soft per-tick clamp | ≤20 (mode) / ≤28 | ≤28 | ±1000 |
+| Small clear viewport | yes | yes | fullscreen stretch |
+
+So: Stability OFF removes auto-restore/idle/half-rate walk, but this branch is **not** bit-identical to `6423304` (look defaults + dump fix + presentation remain). Use commit `6423304` / `cursor/game-experience-cd95` @ that SHA for the verified baseline.
+
+**Judging recommendation:** Prefer **Stability ON + Walk auto = Off (manual)** plus the always-visible **Restore Scene** button — judges control when the seed jumps; look budget still prevents full-circle melt. Use **22s** only if you want hands-free cleanliness during a timed demo.
 
 ## Outcome A — safest release-ready improvement (this branch)
 

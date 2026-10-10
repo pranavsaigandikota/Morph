@@ -8,11 +8,13 @@ import {
   prepareLookDelta,
 } from '../lib/lookControl'
 import {
+  STABILITY_LOCOMOTION_MS_RESTORE,
   filterStabilityMoveKeys,
   shouldRestoreForLook,
   shouldRestoreForWalk,
   stabilityRestoreMessage,
   type StabilityRestoreReason,
+  type WalkBudgetMs,
 } from '../lib/stabilityMode'
 import { streamUrl } from '../services/engineConfig'
 import { worldApi } from '../services/worldApi'
@@ -62,6 +64,8 @@ interface WorldStreamState {
   stabilityMode: boolean
   /** Non-null after an informed restore; cleared after a few seconds. */
   stabilityNotice: string | null
+  /** Walk auto-restore budget in ms; 0 = look-only auto-restore. */
+  walkBudgetMs: WalkBudgetMs
 }
 
 /** Max JPEG sub-frames waiting to paint. Keep short — favor current over stale. */
@@ -100,6 +104,7 @@ export function useWorldStream() {
     idleHolding: false,
     stabilityMode: true,
     stabilityNotice: null,
+    walkBudgetMs: STABILITY_LOCOMOTION_MS_RESTORE,
   })
 
   const wsRef = useRef<WebSocket | null>(null)
@@ -139,6 +144,7 @@ export function useWorldStream() {
   const idleTimerRef = useRef<number | null>(null)
   const idleActionInFlightRef = useRef(false)
   const stabilityModeRef = useRef(true)
+  const walkBudgetMsRef = useRef<WalkBudgetMs>(STABILITY_LOCOMOTION_MS_RESTORE)
   const controlTickRef = useRef(0)
   const locomotionMsRef = useRef(0)
   const restoreInFlightRef = useRef(false)
@@ -216,6 +222,8 @@ export function useWorldStream() {
   }, [setIdleHolding, setPhase])
 
   const maybeIdleHold = useCallback(async () => {
+    // Idle hold is part of Stability Mode only — off ≈ closer to baseline Waypoint.
+    if (!stabilityModeRef.current) return
     if (userPausedRef.current || idleHoldingRef.current) return
     if (phaseRef.current !== 'streaming' || !sessionIdRef.current) return
     if (idleActionInFlightRef.current) return
@@ -437,7 +445,7 @@ export function useWorldStream() {
     async (reason: StabilityRestoreReason = 'manual') => {
       if (!sessionIdRef.current || restoreInFlightRef.current) return
       restoreInFlightRef.current = true
-      keysRef.current.clear()
+      // Same session_id — never call /world/start again.
       mouseRef.current = { dx: 0, dy: 0, scroll: 0 }
       queueRef.current = []
       smoothLookRef.current = { dx: 0, dy: 0 }
@@ -447,6 +455,13 @@ export function useWorldStream() {
       userPausedRef.current = false
       setIdleHolding(false)
       noteUserInput()
+      // Re-hydrate WASD from keys still physically held so restore cannot stick
+      // the player with empty controls until a keyup/keydown cycle.
+      keysRef.current = new Set(
+        [...keyHeldRef.current.entries()]
+          .filter(([k, n]) => n > 0 && /^[WASD]$/.test(k))
+          .map(([k]) => k),
+      )
       setState((s) => ({
         ...s,
         lookRisk: 'ok',
@@ -454,6 +469,7 @@ export function useWorldStream() {
       }))
       try {
         await worldApi.action(sessionIdRef.current, 'reset')
+        // Backend retains paused state across reset; resume so gameplay continues.
         if (phaseRef.current === 'paused') {
           await worldApi.action(sessionIdRef.current, 'resume')
           setPhase('streaming')
@@ -507,7 +523,7 @@ export function useWorldStream() {
       if (shouldRestoreForLook(cumulativeAbsYawRef.current)) {
         void restoreScene('look_budget')
         keys = []
-      } else if (shouldRestoreForWalk(locomotionMsRef.current)) {
+      } else if (shouldRestoreForWalk(locomotionMsRef.current, walkBudgetMsRef.current)) {
         void restoreScene('walk_budget')
         keys = []
       }
@@ -577,7 +593,18 @@ export function useWorldStream() {
         if (typeof ev.data === 'string') {
           try {
             const msg = JSON.parse(ev.data) as {type?:string;msg?:string;message?:string;epoch?:number;timestamp_ms?:number} & Partial<Omit<WaypointHello,'type'>>
-            if(msg.type==='frame') { wireRef.current=JSON.parse(ev.data); return }
+            if (msg.type === 'frame') {
+              wireRef.current = JSON.parse(ev.data)
+              // Reset advances epoch on subsequent frames; adopt it here (frame
+              // path returns early and must not skip epoch handling).
+              if (msg.epoch != null && msg.epoch !== epochRef.current) {
+                epochRef.current = msg.epoch
+                queueRef.current = []
+                proofRef.current.last_frame_id = 0
+                proofRef.current.epoch = msg.epoch
+              }
+              return
+            }
             if(msg.type==='control_ack' && msg.timestamp_ms != null) {
               const rtt=performance.now()-msg.timestamp_ms
               proofRef.current.ack_ms.push(rtt)
@@ -810,8 +837,19 @@ export function useWorldStream() {
       showStabilityNotice(
         'Stability Mode on — slow look/walk; seed auto-restores with a notice before melt.',
       )
+    } else {
+      setIdleHolding(false)
+      showStabilityNotice(
+        'Stability Mode off — no auto-restore or idle hold. Use Restore Scene manually.',
+      )
     }
-  }, [showStabilityNotice])
+  }, [setIdleHolding, showStabilityNotice])
+
+  const setWalkBudgetMs = useCallback((ms: WalkBudgetMs) => {
+    walkBudgetMsRef.current = ms
+    locomotionMsRef.current = 0
+    setState((s) => ({ ...s, walkBudgetMs: ms }))
+  }, [])
 
   const reconnect = useCallback(() => {
     if(!sessionIdRef.current) {void start('facility','First-person industrial research facility',seedRef.current);return}
@@ -992,5 +1030,6 @@ export function useWorldStream() {
     switchWorld,
     activeSeed,
     setStabilityMode,
+    setWalkBudgetMs,
   }
 }

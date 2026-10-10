@@ -29,6 +29,10 @@ check('walk budget ~22s of locomotion', () => {
   assert.equal(shouldRestoreForWalk(STABILITY_LOCOMOTION_MS_RESTORE), true)
 })
 
+check('walk budget 0 disables walk auto-restore', () => {
+  assert.equal(shouldRestoreForWalk(999_999, 0), false)
+})
+
 check('move keys gated every other tick', () => {
   const keys = ['w', 'a']
   assert.deepEqual(filterStabilityMoveKeys(keys, 2), ['w', 'a'])

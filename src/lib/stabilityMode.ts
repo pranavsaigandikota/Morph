@@ -8,8 +8,24 @@
  * Does not change the backend protocol or invent persistent geometry.
  */
 
+/**
+ * Cumulative |mouse_dx| sent on the wire since last restore (post clamp/smooth).
+ * At Stability maxPerTick≈20 and 20 Hz, a sustained turn hits this in ~1–2 s of
+ * continuous look — well before a full-circle melt is typical.
+ */
 export const STABILITY_LOOK_YAW_RESTORE = 320
+
+/**
+ * Milliseconds of wall-clock time with any WASD key held (counted at 50 ms
+ * control ticks) since last restore. Default 22_000 ≈ 22 s of held locomotion
+ * (not total session time; idle does not advance this counter).
+ */
 export const STABILITY_LOCOMOTION_MS_RESTORE = 22_000
+
+/** Presets for the walk auto-restore budget (0 = look-budget only; manual walk). */
+export const WALK_BUDGET_PRESETS_MS = [0, 22_000, 45_000] as const
+export type WalkBudgetMs = (typeof WALK_BUDGET_PRESETS_MS)[number]
+
 /** Send movement keys only on every Nth control tick (20 Hz → ~10 Hz walk). */
 export const STABILITY_MOVE_EVERY_N_TICKS = 2
 
@@ -22,8 +38,12 @@ export function shouldRestoreForLook(cumulativeAbsYaw: number): boolean {
   return cumulativeAbsYaw >= STABILITY_LOOK_YAW_RESTORE
 }
 
-export function shouldRestoreForWalk(locomotionMs: number): boolean {
-  return locomotionMs >= STABILITY_LOCOMOTION_MS_RESTORE
+export function shouldRestoreForWalk(
+  locomotionMs: number,
+  budgetMs: number = STABILITY_LOCOMOTION_MS_RESTORE,
+): boolean {
+  if (budgetMs <= 0) return false
+  return locomotionMs >= budgetMs
 }
 
 /** Gate WASD so continuous hold advances the model more slowly. */

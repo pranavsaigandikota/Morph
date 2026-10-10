@@ -6,6 +6,11 @@ import {
   LOOK_SENS_MAX,
   LOOK_SENS_MIN,
 } from '../../lib/lookControl'
+import {
+  STABILITY_LOOK_YAW_RESTORE,
+  WALK_BUDGET_PRESETS_MS,
+  type WalkBudgetMs,
+} from '../../lib/stabilityMode'
 import type { WorldFrameMeta, WorldMetrics } from '../../types/world'
 import { PerformanceOverlay } from './PerformanceOverlay'
 
@@ -42,6 +47,8 @@ interface Props {
   stabilityMode?: boolean
   onStabilityMode?: (on: boolean) => void
   stabilityNotice?: string | null
+  walkBudgetMs?: WalkBudgetMs
+  onWalkBudgetMs?: (ms: WalkBudgetMs) => void
   /** Saved / preset worlds — switch without remounting React */
   worlds?: SwitchableWorld[]
   activeSeed?: string | null
@@ -72,6 +79,8 @@ export function WorldViewer({
   stabilityMode = true,
   onStabilityMode,
   stabilityNotice = null,
+  walkBudgetMs = 22_000,
+  onWalkBudgetMs,
   worlds,
   activeSeed,
   onSwitchWorld,
@@ -195,10 +204,10 @@ export function WorldViewer({
         )}
 
         {stabilityNotice && (
-          <div className="absolute inset-x-0 top-14 z-40 mx-auto flex max-w-lg justify-center px-4">
-            <div className="rounded-lg border border-ok/40 bg-ok/15 px-4 py-3 text-sm text-bright shadow-xl backdrop-blur">
-              <p className="font-semibold">Scene kept clean</p>
-              <p className="mt-1 text-xs text-soft">{stabilityNotice}</p>
+          <div className="pointer-events-none absolute bottom-20 right-3 z-40 max-w-xs">
+            <div className="rounded-md border border-ok/40 bg-ink/90 px-3 py-2 text-xs text-bright shadow-lg backdrop-blur">
+              <p className="font-semibold text-ok">Scene kept clean</p>
+              <p className="mt-0.5 text-[11px] leading-snug text-soft">{stabilityNotice}</p>
             </div>
           </div>
         )}
@@ -343,6 +352,28 @@ export function WorldViewer({
               <span className="whitespace-nowrap text-[10px] uppercase tracking-wider text-muted">
                 Stability
               </span>
+            </label>
+          )}
+          {stabilityMode && onWalkBudgetMs && (
+            <label
+              className="flex items-center gap-1.5 text-soft"
+              onClick={(e) => e.stopPropagation()}
+              title={`Look auto-restore at Σ|dx|≥${STABILITY_LOOK_YAW_RESTORE}`}
+            >
+              <span className="whitespace-nowrap text-[10px] uppercase tracking-wider text-muted">
+                Walk auto
+              </span>
+              <select
+                className="rounded border border-line bg-ink px-1.5 py-0.5 text-[11px] text-bright"
+                value={walkBudgetMs}
+                onChange={(e) => onWalkBudgetMs(Number(e.target.value) as WalkBudgetMs)}
+              >
+                {WALK_BUDGET_PRESETS_MS.map((ms) => (
+                  <option key={ms} value={ms}>
+                    {ms === 0 ? 'Off (manual)' : `${ms / 1000}s`}
+                  </option>
+                ))}
+              </select>
             </label>
           )}
           {worlds && worlds.length > 0 && onSwitchWorld && (

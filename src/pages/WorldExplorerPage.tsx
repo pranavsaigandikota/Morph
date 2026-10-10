@@ -148,6 +148,8 @@ export function WorldExplorerPage() {
         stabilityMode={stream.stabilityMode}
         onStabilityMode={stream.setStabilityMode}
         stabilityNotice={stream.stabilityNotice}
+        walkBudgetMs={stream.walkBudgetMs}
+        onWalkBudgetMs={stream.setWalkBudgetMs}
         worlds={switchableWorlds}
         activeSeed={stream.activeSeed}
         onSwitchWorld={(seed) => void stream.switchWorld(seed)}
