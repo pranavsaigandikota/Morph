@@ -1,8 +1,9 @@
 """Isolated memory composition. Production port8000 is never imported or edited."""
 from contextlib import asynccontextmanager
 from typing import Literal
+from fastapi import Query
 from fastapi.responses import FileResponse
-from pydantic import Field
+from pydantic import Field, model_validator
 from .scene_service import app, combined_lifespan
 from .service import ROOT
 from .protocol import Strict
@@ -17,12 +18,27 @@ async def lifespan(app):
 
 app.router.lifespan_context = lifespan
 
+SoftLabel = Literal['forward','forward_right','right','behind_right','behind','behind_left','left','forward_left','unlabeled']
+class Calibration(Strict):
+    """Guided manual calibration tag. soft_label is a player tag, never a commanded or measured angle."""
+    calibration_id: str = Field(pattern=r'^[a-z0-9]{6,32}$')
+    kind: Literal['capture','return_check'] = 'capture'
+    soft_label: SoftLabel = 'unlabeled'
 class Save(Strict):
     session_id: str
     label: str = Field(default='Manual checkpoint', max_length=100)
+    capture_reason: Literal['manual','calibration'] = 'manual'
+    calibration: Calibration | None = None
+    @model_validator(mode='after')
+    def calibration_matches_reason(self):
+        if (self.capture_reason=='calibration')!=(self.calibration is not None):
+            raise ValueError("calibration is required exactly when capture_reason is 'calibration'")
+        return self
 class Review(Strict):
     session_id: str
     approved: bool
+    reviewer: str | None = Field(default=None, max_length=64)
+    reason: str | None = Field(default=None, max_length=200)
 class Restore(Strict):
     session_id: str
     checkpoint_id: str
@@ -45,7 +61,12 @@ async def checkpoints(session_id: str):
 
 @app.post('/world/checkpoints/save')
 async def save(req: Save):
-    return await memory(req.session_id).save(req.label)
+    cal=req.calibration.model_dump() if req.calibration else None
+    return await memory(req.session_id).save(req.label,capture_reason=req.capture_reason,calibration=cal)
+
+@app.get('/world/navigation')
+async def navigation(session_id: str, trajectory_since: int = Query(default=0, ge=0)):
+    return memory(session_id).navigation_since(trajectory_since)
 
 @app.post('/world/checkpoints/restore')
 async def restore(req: Restore):
@@ -68,4 +89,4 @@ async def image(checkpoint_id: str, session_id: str, variant: Literal['raw','enh
 
 @app.post('/world/checkpoints/{checkpoint_id}/review')
 async def review(checkpoint_id: str, req: Review):
-    return await memory(req.session_id).review(checkpoint_id,req.approved)
+    return await memory(req.session_id).review(checkpoint_id,req.approved,req.reviewer,req.reason)

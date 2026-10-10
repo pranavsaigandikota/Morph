@@ -66,3 +66,27 @@ Restorevalidates ownership/image/quality BEFORE changing state, then uses lifecy
 Oneenhancementjob atatime. It pausesstreaming explicitly, acquires sharedGPU/lifecyclelocks, runslocalSDXLimg2img, retains raw evidence and saves a SEPARATE candidate. It does not autoapprove or restore. Stop/reset/restore conflicts return409 while busy. Clients poll jobs; closing browser does not cancel a runningGPUoperation. NoGPUjobkill endpoint is provided. Enhancedcandidate can alterstructure and requires review. Unsupported/missingvariants404; unreviewed restoration409 unless explicitlyaccepted. NoGemini integration or credentials.
 
 Mock-safe sequence: hello →frameJSON/JPEG pairs→navigation_update→checkpoint_saved→recovery_started→status(newEpoch)→recovery_completed→newEpochframepairs. Mockevents/images must remain visiblyMOCK. Do not advertise semanticrepair, SLAM, collisiongeometry, physicallyconnectedlocations or A*navigation ofvideo.
+
+## v1.1 additions (branch `claude/live-memory-backend`, 2026-10-10)
+
+File renamed from `API_CONTRACT.md` to resolve the duplicate path with the frontend placeholder. All
+additions are **additive and optional**; v1 clients keep working. Status: **IMPLEMENTED** in code with
+CPU unit tests (`experiments/tests/test_live_memory.py`). GPU smoke status is recorded in RESULTS.md.
+Canonical client contract: `docs/visual-spatial-memory:docs/world-memory/visual-spatial/LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md`.
+
+| Addition | Shape |
+|---|---|
+| `GET /health` → `capabilities`, `contract` | `{memory_api, checkpoint_restore, calibration_capture, light_navigation, calibration_backend:false, observations:false, obstacles:false, enhancement:false}`, `contract:"world-memory-v1.1"` (null when the memory app is not loaded) |
+| `POST /world/checkpoints/save` | optional `capture_reason: 'manual'|'calibration'` (default `manual`); `calibration: {calibration_id: /^[a-z0-9]{6,32}$/, kind: 'capture'|'return_check', soft_label: forward|forward_right|right|behind_right|behind|behind_left|left|forward_left|unlabeled}` required exactly when `capture_reason:'calibration'` (422 otherwise). Soft labels are player tags, **never** commanded or measured angles |
+| Checkpoint object | `capture_reason: 'initial_seed'|'manual'|'periodic'|'calibration'`, `calibration: {...}|null`, `review: {reviewed_at, reviewer, reason}` |
+| `POST /world/checkpoints/{id}/review` | optional `reviewer` (≤64), `reason` (≤200). Recovery-anchor approval only; calibration acceptance is client-side and never calls this |
+| Navigation object | `anchor_kind: 'world_start'|'reset_to_seed'|'checkpoint_restore'`, `restored_from_checkpoint_id: string|null` (persist for the whole segment) |
+| `GET /world/memory` | `trajectory_offset`, `trajectory_total` (absolute indices), `nav_model {version, yaw_rad_per_unit:0.002, units_per_second:1, nominal_fps:60, source:'nominal_constant', turn_gain:'not_established', a0_report}`, `limits.nav_event_hz` |
+| `GET /world/navigation?session_id=S&trajectory_since=N` | Light read: `{world_id, session_id, epoch, navigation, trajectory_offset, trajectory_total, trajectory[≥N], recovery_status, nav_model}` |
+| `navigation_update` rate | `WORLDSHIFT_NAV_EVENT_HZ` 1–5 (default 1; launcher uses 2). Trajectory sampling stays 1 Hz |
+| Invariant (K3) | Every memory event carries the live service epoch at emit time; after restore the `status` message precedes `recovery_completed` (unit-tested) |
+
+Unchanged: stream protocol, credit window, restore review gate (409), quotas (32 checkpoints/world,
+256 MiB, 8 world folders). Calibration captures count toward the 32-checkpoint quota. Phase A0 found no
+reliable mouse-to-angle mapping (`experiment/native720-turn-gain-a0@d7c7435`), so automated or
+fixed-angle calibration is not offered.

@@ -31,19 +31,27 @@ def write_json(path,value):
     temp.write_text(json.dumps(value,indent=2),encoding='utf-8')
     temp.replace(path)
 
+# Arbitrary dead-reckoning constants. Phase A0 (experiment/native720-turn-gain-a0@d7c7435) found NO
+# reliable mouse-to-angle mapping, so yaw is nominal and must never be presented as a measured angle.
+YAW_RAD_PER_UNIT=.002
+UNITS_PER_SECOND=1.
+NOMINAL_FPS=60
+NAV_MODEL={'version':1,'yaw_rad_per_unit':YAW_RAD_PER_UNIT,'units_per_second':UNITS_PER_SECOND,'nominal_fps':NOMINAL_FPS,'source':'nominal_constant','turn_gain':'not_established','a0_report':'experiment/native720-turn-gain-a0@d7c7435:experiments/a0/PHASE_A0_TURN_GAIN_REPORT.md'}
+CAPTURE_REASONS=('initial_seed','manual','periodic','calibration')
+
 class Navigation:
     def __init__(self,epoch):
-        self.state={'x':0.,'z':0.,'yaw':0.,'pitch':0.,'units':'estimated_units','confidence':1.,'cumulative_movement':0.,'segment_id':uuid.uuid4().hex,'relationship':'new_unknown','control_seq':-1,'epoch':epoch,'server_elapsed_ms':0.}
+        self.state={'x':0.,'z':0.,'yaw':0.,'pitch':0.,'units':'estimated_units','confidence':1.,'cumulative_movement':0.,'segment_id':uuid.uuid4().hex,'relationship':'new_unknown','control_seq':-1,'epoch':epoch,'server_elapsed_ms':0.,'anchor_kind':'world_start','restored_from_checkpoint_id':None}
     def apply(self,keys,mouse,seq,epoch,at,frames=4):
         s=self.state
         dx,dy=mouse
-        s['yaw']=(s['yaw']+dx*.002+math.pi)%(2*math.pi)-math.pi
-        s['pitch']=max(-math.pi/2,min(math.pi/2,s['pitch']+dy*.002))
+        s['yaw']=(s['yaw']+dx*YAW_RAD_PER_UNIT+math.pi)%(2*math.pi)-math.pi
+        s['pitch']=max(-math.pi/2,min(math.pi/2,s['pitch']+dy*YAW_RAD_PER_UNIT))
         forward=int('w' in keys)-int('s' in keys)
         strafe=int('d' in keys)-int('a' in keys)
         norm=math.hypot(forward,strafe)
         if norm:
-            dt=frames/60
+            dt=frames/NOMINAL_FPS*UNITS_PER_SECOND
             s['x']+=(forward*math.sin(s['yaw'])+strafe*math.cos(s['yaw']))/norm*dt
             s['z']+=(forward*math.cos(s['yaw'])-strafe*math.sin(s['yaw']))/norm*dt
             s['cumulative_movement']+=dt
@@ -56,6 +64,9 @@ class Memory:
         self.s=service;self.root=root/'world_memory';self.root.mkdir(exist_ok=True)
         self.world=None;self.latest=None;self.nav=None;self.trajectory=deque(maxlen=2048)
         self.interval=max(5,min(120,float(os.getenv('WORLDSHIFT_CHECKPOINT_SECONDS','10'))))
+        # navigation_update event rate only; trajectory sampling stays at 1 Hz so 2048 points still span ~34 min.
+        self.event_period=1/max(1.,min(5.,float(os.getenv('WORLDSHIFT_NAV_EVENT_HZ','1'))))
+        self.trajectory_total=0;self.last_traj=0.
         self.last_save=0.;self.last_event=0.;self.last_turn=0.;self.event_seq=0
         self.lock=asyncio.Lock();self.capture_task=None;self.jobs={};self.enhance_task=None
         self.recovery={'status':'idle','error':None}
@@ -87,18 +98,22 @@ class Memory:
             self.world['scene_context']={k:metadata.get(k) for k in ('scene_id','prompt','style','seed','effective_prompt','model','revision','image_sha256')}
         else:
             self.world['scene_context']={'prompt':request.prompt,'style':None,'seed':None}
-        self.nav=Navigation(self.s.epoch);self.latest=None;self.trajectory.clear();self.event_seq=0
-        self.last_save=time.perf_counter();self.last_event=0.;self.last_turn=0.;self.recovery={'status':'idle','error':None}
+        self.nav=Navigation(self.s.epoch);self.latest=None;self.trajectory.clear();self.trajectory_total=0;self.event_seq=0
+        self.last_save=time.perf_counter();self.last_event=0.;self.last_traj=0.;self.last_turn=0.;self.recovery={'status':'idle','error':None}
         folder=self.root/wid;folder.mkdir()
         raw=await asyncio.to_thread(seed.read_bytes)
-        await self.save('Initial seed',raw,{'frame_id':None,'seq':-1,'epoch':self.s.epoch},dict(self.nav.state),'initial_seed')
+        await self.save('Initial seed',raw,{'frame_id':None,'seq':-1,'epoch':self.s.epoch},dict(self.nav.state),'initial_seed',capture_reason='initial_seed')
+    def append_trajectory(self,pose):
+        self.trajectory.append(pose);self.trajectory_total+=1
     def batch(self,jpeg,meta,keys,mouse,frames):
         if not self.world:return
         pose=self.nav.apply(keys,mouse,meta['seq'],meta['epoch'],meta['generated_at_ms'],frames)
         self.latest=(jpeg,dict(meta),pose)
         tick=time.perf_counter()
-        if tick-self.last_event>=1:
-            self.last_event=tick;self.trajectory.append(pose)
+        if tick-self.last_traj>=1:
+            self.last_traj=tick;self.append_trajectory(pose)
+        if tick-self.last_event>=self.event_period:
+            self.last_event=tick
             self.emit('navigation_update',{'navigation':pose})
         turn=abs((pose['yaw']-self.last_turn+math.pi)%(2*math.pi)-math.pi)
         if (tick-self.last_save>=self.interval or (turn>.7 and tick-self.last_save>=5)) and not (self.capture_task and not self.capture_task.done()):
@@ -107,10 +122,11 @@ class Memory:
             self.capture_task=asyncio.create_task(self.capture(expected),name='memory-candidate')
     async def capture(self,expected):
         try:
-            if self.world and self.world['world_id']==expected:await self.save('Periodic candidate')
+            if self.world and self.world['world_id']==expected:await self.save('Periodic candidate',capture_reason='periodic')
         except Exception as exc:
             self.emit('checkpoint_updated',{'status':'capture_rejected','error':str(exc)})
-    async def save(self,label,raw=None,meta=None,pose=None,provenance='raw_video_frame'):
+    async def save(self,label,raw=None,meta=None,pose=None,provenance='raw_video_frame',capture_reason='manual',calibration=None):
+        if capture_reason not in CAPTURE_REASONS:raise ValueError(capture_reason)
         async with self.lock:
             if raw is None:
                 if not self.latest:raise HTTPException(409,'No generated frame available')
@@ -129,6 +145,10 @@ class Memory:
             world['checkpoints'].append(cp)
             cp['image_sha256']=hashlib.sha256(raw).hexdigest()
             cp['actions_history_reference']={'session_id':world['session_id'],'control_seq':meta['seq'],'epoch':meta['epoch'],'frame_id':meta['frame_id']}
+            # Calibration soft labels are player tags, never commanded or measured angles. Calibration
+            # acceptance is client-side; it does not touch quality.approved (recovery-anchor approval).
+            cp['capture_reason']=capture_reason;cp['calibration']=dict(calibration) if calibration else None
+            cp['review']={'reviewed_at':None,'reviewer':None,'reason':None}
             await asyncio.to_thread(write_json,folder/'world.json',world)
             self.emit('checkpoint_saved',{'checkpoint':cp})
             return cp
@@ -142,16 +162,24 @@ class Memory:
         if not file.is_file():raise HTTPException(404,'Image variant unavailable')
         return file
     def snapshot(self):
-        return {**self.world,'epoch':self.s.epoch,'navigation':dict(self.nav.state),'trajectory':list(self.trajectory),'recovery':self.recovery,'limits':{'checkpoints':32,'trajectory_points':2048,'disk_mb':256,'world_folders':8,'checkpoint_seconds':self.interval}}
-    async def review(self,cid,approved):
+        return {**self.world,'epoch':self.s.epoch,'navigation':dict(self.nav.state),'trajectory':list(self.trajectory),'trajectory_offset':self.trajectory_total-len(self.trajectory),'trajectory_total':self.trajectory_total,'recovery':self.recovery,'nav_model':dict(NAV_MODEL),'limits':{'checkpoints':32,'trajectory_points':2048,'disk_mb':256,'world_folders':8,'checkpoint_seconds':self.interval,'nav_event_hz':round(1/self.event_period,3)}}
+    def navigation_since(self,since):
+        """Light read: current pose plus trajectory points with absolute index >= since."""
+        offset=self.trajectory_total-len(self.trajectory)
+        start=max(0,min(len(self.trajectory),since-offset))
+        return {'world_id':self.world['world_id'],'session_id':self.world['session_id'],'epoch':self.s.epoch,'navigation':dict(self.nav.state),'trajectory_offset':offset+start,'trajectory_total':self.trajectory_total,'trajectory':list(self.trajectory)[start:],'recovery_status':self.recovery['status'],'nav_model':dict(NAV_MODEL)}
+    async def review(self,cid,approved,reviewer=None,reason=None):
         async with self.lock:
             cp=self.checkpoint(cid);cp['quality'].update(reviewed=True,approved=approved)
+            cp['review']={'reviewed_at':now(),'reviewer':reviewer,'reason':reason}
             await asyncio.to_thread(write_json,self.root/self.world['world_id']/'world.json',self.world)
             self.emit('checkpoint_updated',{'checkpoint':cp});return cp
-    def reposition(self,cp):
+    def reposition(self,cp,anchor_kind='checkpoint_restore'):
+        # A restored/reset segment starts at the anchor's copied ESTIMATED pose. It is never geometrically
+        # connected to the previous segment; clients must break the trail on segment_id.
         self.latest=None
-        self.nav.state={**cp['navigation'],'epoch':self.s.epoch,'segment_id':uuid.uuid4().hex,'relationship':'restored_view','control_seq':-1,'server_elapsed_ms':time.perf_counter()*1000}
-        self.trajectory.append(dict(self.nav.state))
+        self.nav.state={**cp['navigation'],'epoch':self.s.epoch,'segment_id':uuid.uuid4().hex,'relationship':'restored_view','control_seq':-1,'server_elapsed_ms':time.perf_counter()*1000,'anchor_kind':anchor_kind,'restored_from_checkpoint_id':cp['checkpoint_id']}
+        self.append_trajectory(dict(self.nav.state))
     async def restore(self,req):
         s=self.s;self.find(req.session_id)
         if self.enhance_task and not self.enhance_task.done():raise HTTPException(409,'Enhancement active')

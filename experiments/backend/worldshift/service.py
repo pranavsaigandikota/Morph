@@ -255,7 +255,7 @@ class Service:
                     self.epoch += 1
                     self.status = "paused" if paused else "running"
                     if self.visual_memory:
-                        self.visual_memory.reposition(self.visual_memory.world['checkpoints'][0])
+                        self.visual_memory.reposition(self.visual_memory.world['checkpoints'][0], 'reset_to_seed')
                 elif action == "stop":
                     self.status = "stopping"
                     self.ended = time.perf_counter()
@@ -316,9 +316,16 @@ app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET", 
 @app.get("/health")
 async def health():
     s = app.state.service
+    memory = s.visual_memory is not None
     return {"status": s.status, "model_loaded": s.backend is not None, "error": s.error,
             "model": MODEL, "quant": "fp8w8a8", "model_load_count": s.load_count,
-            "prompt_conditioning": s.backend.prompt_supported if s.backend else None}
+            "prompt_conditioning": s.backend.prompt_supported if s.backend else None,
+            # Additive (World Memory API v1.1). False means absent; never mock a missing capability.
+            "capabilities": {"memory_api": memory, "checkpoint_restore": memory,
+                             "calibration_capture": memory, "light_navigation": memory,
+                             "calibration_backend": False, "observations": False,
+                             "obstacles": False, "enhancement": False},
+            "contract": "world-memory-v1.1" if memory else None}
 
 
 @app.get("/world/metrics")

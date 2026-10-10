@@ -1,6 +1,6 @@
 # Isolated native720 visual memory prototype
 
-Branch `feature/worldshift-spatial-memory-backend`, based on frozen release6423304. No production8000 edits, no RescueGame/PPO changes, no Cursor UI completion claim. Review API_CONTRACT.md implementation-status paragraph before using planned endpoints. OBSTACLE_SCHEMA_PROPOSAL.md is a coordination draft; offline analysis is not activated in the API.
+Branch `feature/worldshift-spatial-memory-backend`, based on frozen release6423304. No production8000 edits, no RescueGame/PPO changes, no Cursor UI completion claim. Review WORLD_MEMORY_API_V1.md implementation-status paragraph before using planned endpoints. OBSTACLE_SCHEMA_PROPOSAL.md is a coordination draft; offline analysis is not activated in the API.
 
 On this Windows PC, in PowerShell:
 
