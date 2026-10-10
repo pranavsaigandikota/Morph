@@ -529,3 +529,44 @@ live: attached ── poll GET /world/memory (1 Hz) ──► applied (drop if e
   `pose.uncertainty`. Neither should apply in LIVE (CURSOR_IMPLEMENTATION_HANDOFF C5).
 - Calibration rays are drawn from the origin at intended yaw. That is correct as a schematic. Label them
   "intended", and anchor them at the forward capture's estimated pose (the origin at world start).
+
+## 8. Mapping to Cursor's `INTEGRATION_CHECKLIST.md` (UX branch @ `139384c`)
+
+Cursor froze the UX branch at `535f02e` and gated LIVE wiring on this contract plus Codex A0 and 720p
+results. Items owned by Claude, or affected by this contract:
+
+| Checklist | Resolution in this contract |
+|---|---|
+| 1.1 lifecycle | §4.1. Create (CLIENT) → plan (`LIVE_DEFAULT_PLAN`) → capture × n (IMPLEMENTED save) → review (CLIENT) → exit via reset (IMPLEMENTED) → complete \| skipped \| aborted |
+| 1.2 UI phases 1:1 | `world_created` ↔ `checking_capabilities` + `awaiting_first_frame` · `scan_prompt` ↔ `prompting[0]` · `capturing` ↔ `prompting`/`waiting_for_hold`/`capturing`/`captured` · `review` ↔ `review` · `complete` ↔ `exiting` → `complete` · `skipped` ↔ `skipped`. **New UI states needed:** `unsupported`, `aborted`, `error` (no MOCK equivalent today) |
+| 1.3 skip | **Documented no-op before the first capture** (no backend call; the player has not been prompted to turn). After ≥1 capture, skip or cancel performs the exit reset (`POST /world/reset`), so exploration starts from the clean seed. No server calibration object exists, so there is no "acknowledged skip" event (PROPOSED only) |
+| 1.4 no client yaw commands | Satisfied. `guided_manual` sends **no** scripted mouse commands; only the player's own input flows through unchanged `lookControl`. Scripted turning is BLOCKED(A0, K9) |
+| 1.5 contract-driven directions | The direction list is `LIVE_DEFAULT_PLAN` (§2B) and its `intendedYawDeg` table, which this contract owns (same values as Cursor's `DIRECTION_YAW_DEG`, but labelled *intended*). `includeBehind` defaults to false. Eight directions BLOCKED |
+| 2.1 required `source` | `LiveCalibrationCapture.source: 'live_waypoint'` (required). `'mock_ui'` only in MOCK. **`'sdxl'` is not a valid calibration capture source**: the SDXL seed is checkpoint 0 (`provenance:'initial_seed'`), shown as a reference, not as a capture |
+| 2.2 / 2.4 raw SHA, no substitution | §1 Q1/Q4: server SHA-256 of served raw bytes; show the **returned** image, never the canvas |
+| 2.5 enhanced separate | Enhancement PLANNED; `enhanced_image_url: null`; analysis SHA stays on the raw image |
+| 3.1 gallery mapper fields | `id ← checkpoint_id`, image ← `image_url`, time ← `created_at`, direction ← label parse (later `capture_reason`, K5), review ← `quality.reviewed/approved` (anchor) **or** CLIENT `calibrationReview` (calibration), **confidence ← `null`** |
+| 3.2 suitability from backend/human | Server: `quality.approved` (human, IMPLEMENTED). CLIENT: `recoverySuitable = approved && policy(kind)`. A server-side suitability field does not exist; the reject reason is CLIENT text until K12 |
+| 4.1–4.3 pose semantics | §1 Q3 and §2A `WireNavigation`. `uncertainty` has **no LIVE source**: show "n/a" or the qualitative heuristic `confidence` band; never a % |
+| 4.4 calibration rays | Intended-direction schematic from the contract table (labelled *intended*). **Estimated bearing = `null` until A0** |
+| 5.1 epoch + discontinuity | Epoch +1 and new `segment_id` on reset and restore. Trail break keyed on `segment_id` |
+| 5.2 server enforce | Server enforces **review** (409 without approval). The stricter "no Waypoint-frame anchors" policy is CLIENT-only; server enforcement of a kind-policy is not implemented (would need a new PROPOSED flag) |
+| 5.3 Refresh = `/world/reset` | Confirmed (§1 Q7) |
+| 6.1 reconnect same session | Backend reconnect within one session was GPU-tested on 8002 (RESULTS.md: "reconnect and stop/start world isolation passed"). Stop/start always creates a new session and world |
+| 6.4 calibration identity on reconnect | Key `(session_id, world_id)`. **Same session, same epoch:** resume; rebuild captures from `GET /world/memory` checkpoints whose label starts `calibration:<id>:`. **Epoch changed:** `aborted_world_changed`. **New session or world:** discard CLIENT state (server checkpoints of the old world stay archived). Never create a new calibration implicitly |
+| 7.1 frame ≥1280×720 | Only **8002** satisfies this (§1 Q8) |
+
+### ⚠ Conflict: §8 Windows acceptance targets `:8000`
+
+Checklist §8 says to run acceptance "with Codex Waypoint on **`:8000`**" and requires **native 1280×720**
+(8.1) and LIVE calibration/restore (8.5, 8.6). Production 8000 serves `Waypoint-1.5-1B-360P` (640×360) and
+has **no** memory, checkpoint or restore routes. As written, 8.1, 8.5 and 8.6 **cannot pass on 8000**.
+Recommended amendment: run §8 against the isolated **8002** service
+(`ENGINE_TARGET=http://127.0.0.1:8002`), and keep 8000 for the Rescue/Showdown regression (8.8) and the
+360p fallback archive. This needs agreement from the user and Codex. It is recorded here, not decided.
+
+### Gate status (this contract's part)
+
+`[x] Claude reviewed contract`: this document on `docs/visual-spatial-memory`. It is **not** in the
+frontend branch's `docs/world-memory/API_CONTRACT.md` placeholder, which collides with the backend's v1
+file (K8). Cursor should reference this file by commit until K8 resolves the path.
