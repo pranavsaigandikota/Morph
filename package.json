@@ -17,7 +17,8 @@
     "test:mock-protocol": "node scripts/verify-mock-protocol.mjs",
     "test:rescue": "tsx scripts/verify-rescue-mission.mjs",
     "test:rescue-keys": "node scripts/verify-rescue-discrete-keys.mjs",
-    "test:look": "tsx scripts/verify-look-control.mjs"
+    "test:look": "tsx scripts/verify-look-control.mjs",
+    "test:stability": "tsx scripts/verify-stability-mode.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

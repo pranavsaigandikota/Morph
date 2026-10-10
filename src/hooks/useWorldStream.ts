@@ -7,6 +7,13 @@ import {
   lookDriftRisk,
   prepareLookDelta,
 } from '../lib/lookControl'
+import {
+  filterStabilityMoveKeys,
+  shouldRestoreForLook,
+  shouldRestoreForWalk,
+  stabilityRestoreMessage,
+  type StabilityRestoreReason,
+} from '../lib/stabilityMode'
 import { streamUrl } from '../services/engineConfig'
 import { worldApi } from '../services/worldApi'
 import {
@@ -48,6 +55,13 @@ interface WorldStreamState {
   lookSensitivity: number
   /** Generation paused because input went idle (not a manual Pause). */
   idleHolding: boolean
+  /**
+   * When on (default), slows walk/look and auto-restores the seed with a visible
+   * notice before typical melt — the only way to keep video “clean” on Waypoint.
+   */
+  stabilityMode: boolean
+  /** Non-null after an informed restore; cleared after a few seconds. */
+  stabilityNotice: string | null
 }
 
 /** Max JPEG sub-frames waiting to paint. Keep short — favor current over stale. */
@@ -84,6 +98,8 @@ export function useWorldStream() {
     lastSentMouse: { dx: 0, dy: 0 },
     lookSensitivity: DEFAULT_LOOK_SENSITIVITY,
     idleHolding: false,
+    stabilityMode: true,
+    stabilityNotice: null,
   })
 
   const wsRef = useRef<WebSocket | null>(null)
@@ -122,6 +138,11 @@ export function useWorldStream() {
   const userPausedRef = useRef(false)
   const idleTimerRef = useRef<number | null>(null)
   const idleActionInFlightRef = useRef(false)
+  const stabilityModeRef = useRef(true)
+  const controlTickRef = useRef(0)
+  const locomotionMsRef = useRef(0)
+  const restoreInFlightRef = useRef(false)
+  const noticeTimerRef = useRef<number | null>(null)
 
   const queueRef = useRef<QueuedJpeg[]>([])
   const lastPresentRef = useRef(0)
@@ -159,6 +180,10 @@ export function useWorldStream() {
     if (idleTimerRef.current) {
       window.clearInterval(idleTimerRef.current)
       idleTimerRef.current = null
+    }
+    if (noticeTimerRef.current) {
+      window.clearTimeout(noticeTimerRef.current)
+      noticeTimerRef.current = null
     }
   }, [])
 
@@ -399,19 +424,65 @@ export function useWorldStream() {
     [],
   )
 
+  const showStabilityNotice = useCallback((message: string) => {
+    if (noticeTimerRef.current) window.clearTimeout(noticeTimerRef.current)
+    setState((s) => ({ ...s, stabilityNotice: message }))
+    noticeTimerRef.current = window.setTimeout(() => {
+      setState((s) => ({ ...s, stabilityNotice: null }))
+      noticeTimerRef.current = null
+    }, 5500)
+  }, [])
+
+  const restoreScene = useCallback(
+    async (reason: StabilityRestoreReason = 'manual') => {
+      if (!sessionIdRef.current || restoreInFlightRef.current) return
+      restoreInFlightRef.current = true
+      keysRef.current.clear()
+      mouseRef.current = { dx: 0, dy: 0, scroll: 0 }
+      queueRef.current = []
+      smoothLookRef.current = { dx: 0, dy: 0 }
+      cumulativeAbsYawRef.current = 0
+      locomotionMsRef.current = 0
+      lastSentMouseRef.current = { dx: 0, dy: 0 }
+      userPausedRef.current = false
+      setIdleHolding(false)
+      noteUserInput()
+      setState((s) => ({
+        ...s,
+        lookRisk: 'ok',
+        lastSentMouse: { dx: 0, dy: 0 },
+      }))
+      try {
+        await worldApi.action(sessionIdRef.current, 'reset')
+        if (phaseRef.current === 'paused') {
+          await worldApi.action(sessionIdRef.current, 'resume')
+          setPhase('streaming')
+        }
+        showStabilityNotice(stabilityRestoreMessage(reason))
+      } catch (err) {
+        setState((s) => ({ ...s, error: String(err) }))
+      } finally {
+        restoreInFlightRef.current = false
+      }
+    },
+    [noteUserInput, setIdleHolding, setPhase, showStabilityNotice],
+  )
+
   const sendControl = useCallback(() => {
     const ws = wsRef.current
     const paused = phaseRef.current === 'paused'
+    controlTickRef.current += 1
 
     // Always consume accumulation each tick — even if the socket cannot send —
     // so a bufferedAmount skip cannot dump a huge look later (double-apply / dump bug).
-    const       look = prepareLookDelta({
+    const look = prepareLookDelta({
       accumulatedDx: mouseRef.current.dx,
       accumulatedDy: mouseRef.current.dy,
       sensitivity: mouseSensRef.current,
+      maxPerTick: stabilityModeRef.current ? 20 : undefined,
       prevSmoothDx: smoothLookRef.current.dx,
       prevSmoothDy: smoothLookRef.current.dy,
-      smoothAlpha: 0.4,
+      smoothAlpha: 0.45,
     })
     mouseRef.current = { dx: 0, dy: 0, scroll: 0 }
     smoothLookRef.current = { dx: look.smoothDx, dy: look.smoothDy }
@@ -423,8 +494,28 @@ export function useWorldStream() {
     const mouse_dx = paused ? 0 : look.mouse_dx
     const mouse_dy = paused ? 0 : look.mouse_dy
     lastSentMouseRef.current = { dx: mouse_dx, dy: mouse_dy }
-    if (!paused) {
+
+    let keys = paused
+      ? ([] as string[])
+      : [...keysRef.current].filter((k) => /^[WASD]$/.test(k)).map((k) => k.toLowerCase())
+
+    if (!paused && stabilityModeRef.current) {
+      const moving = keys.some((k) => /^[wasd]$/.test(k))
+      if (moving) locomotionMsRef.current += CONTROL_MS
+      keys = filterStabilityMoveKeys(keys, controlTickRef.current)
       cumulativeAbsYawRef.current += Math.abs(mouse_dx)
+      if (shouldRestoreForLook(cumulativeAbsYawRef.current)) {
+        void restoreScene('look_budget')
+        keys = []
+      } else if (shouldRestoreForWalk(locomotionMsRef.current)) {
+        void restoreScene('walk_budget')
+        keys = []
+      }
+    } else if (!paused) {
+      cumulativeAbsYawRef.current += Math.abs(mouse_dx)
+    }
+
+    if (!paused) {
       const risk = lookDriftRisk(cumulativeAbsYawRef.current)
       setState((s) =>
         s.lookRisk === risk &&
@@ -439,15 +530,13 @@ export function useWorldStream() {
       JSON.stringify({
         type: 'control',
         seq: ++seqRef.current,
-        keys: paused
-          ? []
-          : [...keysRef.current].filter((k) => /^[WASD]$/.test(k)).map((k) => k.toLowerCase()),
-        mouse_dx,
-        mouse_dy,
+        keys,
+        mouse_dx: restoreInFlightRef.current ? 0 : mouse_dx,
+        mouse_dy: restoreInFlightRef.current ? 0 : mouse_dy,
         timestamp_ms: performance.now(),
       }),
     )
-  }, [])
+  }, [restoreScene])
 
   const openSocket = useCallback(
     (sessionId: string) => {
@@ -692,6 +781,7 @@ export function useWorldStream() {
     mouseRef.current = { dx: 0, dy: 0, scroll: 0 }
     smoothLookRef.current = { dx: 0, dy: 0 }
     cumulativeAbsYawRef.current = 0
+    locomotionMsRef.current = 0
     lastSentMouseRef.current = { dx: 0, dy: 0 }
     queueRef.current = []
     setState((s) => ({
@@ -705,36 +795,23 @@ export function useWorldStream() {
       lookRisk: 'ok',
       lastSentMouse: { dx: 0, dy: 0 },
       idleHolding: false,
+      stabilityNotice: null,
     }))
   }, [clearTimers])
 
   const reset = useCallback(async () => {
-    if (!sessionIdRef.current) return
-    keysRef.current.clear()
-    mouseRef.current = { dx: 0, dy: 0, scroll: 0 }
-    queueRef.current = []
-    smoothLookRef.current = { dx: 0, dy: 0 }
-    cumulativeAbsYawRef.current = 0
-    lastSentMouseRef.current = { dx: 0, dy: 0 }
-    userPausedRef.current = false
-    setIdleHolding(false)
-    noteUserInput()
-    setState((s) => ({
-      ...s,
-      lookRisk: 'ok',
-      lastSentMouse: { dx: 0, dy: 0 },
-    }))
-    try {
-      await worldApi.action(sessionIdRef.current, 'reset')
-      // Reset restores seed and may leave paused; resume so judges can continue.
-      if (phaseRef.current === 'paused') {
-        await worldApi.action(sessionIdRef.current, 'resume')
-        setPhase('streaming')
-      }
-    } catch (err) {
-      setState((s) => ({ ...s, error: String(err) }))
+    await restoreScene('manual')
+  }, [restoreScene])
+
+  const setStabilityMode = useCallback((on: boolean) => {
+    stabilityModeRef.current = on
+    setState((s) => ({ ...s, stabilityMode: on }))
+    if (on) {
+      showStabilityNotice(
+        'Stability Mode on — slow look/walk; seed auto-restores with a notice before melt.',
+      )
     }
-  }, [noteUserInput, setIdleHolding, setPhase])
+  }, [showStabilityNotice])
 
   const reconnect = useCallback(() => {
     if(!sessionIdRef.current) {void start('facility','First-person industrial research facility',seedRef.current);return}
@@ -914,5 +991,6 @@ export function useWorldStream() {
     requestPointerLock,
     switchWorld,
     activeSeed,
+    setStabilityMode,
   }
 }

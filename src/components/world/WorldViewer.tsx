@@ -39,6 +39,9 @@ interface Props {
   onLookSensitivity?: (v: number) => void
   lastSentMouse?: { dx: number; dy: number }
   idleHolding?: boolean
+  stabilityMode?: boolean
+  onStabilityMode?: (on: boolean) => void
+  stabilityNotice?: string | null
   /** Saved / preset worlds — switch without remounting React */
   worlds?: SwitchableWorld[]
   activeSeed?: string | null
@@ -66,6 +69,9 @@ export function WorldViewer({
   onLookSensitivity,
   lastSentMouse,
   idleHolding = false,
+  stabilityMode = true,
+  onStabilityMode,
+  stabilityNotice = null,
   worlds,
   activeSeed,
   onSwitchWorld,
@@ -188,7 +194,16 @@ export function WorldViewer({
           </div>
         )}
 
-        {lookRisk !== 'ok' && live && hasFrame && (
+        {stabilityNotice && (
+          <div className="absolute inset-x-0 top-14 z-40 mx-auto flex max-w-lg justify-center px-4">
+            <div className="rounded-lg border border-ok/40 bg-ok/15 px-4 py-3 text-sm text-bright shadow-xl backdrop-blur">
+              <p className="font-semibold">Scene kept clean</p>
+              <p className="mt-1 text-xs text-soft">{stabilityNotice}</p>
+            </div>
+          </div>
+        )}
+
+        {!stabilityNotice && lookRisk !== 'ok' && live && hasFrame && !stabilityMode && (
           <div className="absolute inset-x-0 top-14 z-30 mx-auto flex max-w-lg justify-center px-4">
             <div
               className={clsx(
@@ -204,9 +219,8 @@ export function WorldViewer({
                   : 'Large camera turn — prefer slow look'}
               </p>
               <p className="mt-1 text-xs text-soft">
-                Waypoint does not keep persistent 3D geometry. Spinning in place often collapses
-                the view. Use <span className="text-bright">Restore Scene</span> to jump back to
-                the seed (visible reset — not automatic).
+                Turn on Stability Mode for automatic seed restore with a notice, or click Restore
+                Scene now.
               </p>
               <button
                 type="button"
@@ -266,9 +280,10 @@ export function WorldViewer({
                 </li>
               </ul>
               <p className="mt-3 text-xs text-muted">
-                Verified Explorer controls only. Prefer slow look; full-circle spins usually break
-                coherence. <span className="text-bright">Restore Scene</span> calls backend reset
-                (seed jump). Filters cannot fix generative drift.
+                Verified Explorer controls only. With <span className="text-bright">Stability</span>{' '}
+                on (default), walk/look are slowed and the seed auto-restores with a visible notice
+                before the image typically melts — that is how the world stays clean on Waypoint.
+                Filters cannot invent persistent geometry.
               </p>
             </div>
           </div>
@@ -311,6 +326,22 @@ export function WorldViewer({
               />
               <span className="font-mono text-[10px] text-muted">
                 {lookSensitivity.toFixed(2)}
+              </span>
+            </label>
+          )}
+          {onStabilityMode && (
+            <label
+              className="flex items-center gap-1.5 text-soft"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <input
+                type="checkbox"
+                checked={stabilityMode}
+                onChange={(e) => onStabilityMode(e.target.checked)}
+                className="accent-[var(--color-signal,#5eead4)]"
+              />
+              <span className="whitespace-nowrap text-[10px] uppercase tracking-wider text-muted">
+                Stability
               </span>
             </label>
           )}

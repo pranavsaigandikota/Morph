@@ -20,6 +20,17 @@
 4. **Presentation scale (minor)**  
    Stretching 640×360 fullscreen can look “muddier.” Cap CSS enlargement; mild contrast filter is cosmetic only.
 
+## Stability Mode (default ON)
+
+Waypoint cannot keep a freely explored first-person video coherent forever. **Stability Mode** is the practical way to keep the picture clean while walking:
+
+- Slower look (tighter per-tick clamp) and half-rate WASD into the model  
+- Idle hold when you stop moving  
+- **Informed auto-restore** of the SDXL seed after ~22 s of walking or a large look budget, with an on-screen “Scene kept clean” notice (never a silent reset)  
+- Small clear 640×360 @ ≤1.5× presentation  
+
+Toggle **Stability** in the Explorer footer. Turning it off returns to manual Restore-only behavior (image can melt again).
+
 ## Outcome A — safest release-ready improvement (this branch)
 
 | Change | Before (6423304) | After |
