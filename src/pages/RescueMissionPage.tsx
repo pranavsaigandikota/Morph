@@ -1,7 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { MapLegend } from '../components/simulation/MapLegend'
 import { RescueScene } from '../components/simulation/RescueScene'
+import {
+  createDiscreteKeyGate,
+  isRescueMoveCode,
+} from '../services/rescueDiscreteInput'
 import {
   rescueEnvAdapter,
   rescueEnvSourceLabel,
@@ -54,6 +58,17 @@ export function RescueMissionPage() {
   const [mission, setMission] = useState<RescueMissionState | null>(null)
   const [showAstar, setShowAstar] = useState(false)
   const [scenarioId, setScenarioId] = useState('facility_a')
+  const [collisionFlash, setCollisionFlash] = useState(false)
+  const [boardFocused, setBoardFocused] = useState(false)
+
+  const missionRef = useRef<RescueMissionState | null>(null)
+  const gateRef = useRef(createDiscreteKeyGate())
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const boardRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    missionRef.current = mission
+  }, [mission])
 
   useEffect(() => {
     let cancelled = false
@@ -67,6 +82,11 @@ export function RescueMissionPage() {
         }
         setMap(m)
         setMission(rescueEnvAdapter.create(m))
+        setShowAstar(false)
+        setCollisionFlash(false)
+        gateRef.current.reset()
+        // Focus board after paint so physical WASD works without an extra click.
+        requestAnimationFrame(() => boardRef.current?.focus())
       })
       .catch((err) => {
         if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Failed to load map')
@@ -81,31 +101,90 @@ export function RescueMissionPage() {
     [map],
   )
 
-  const applyMove = (move: RescueMove) => {
-    setMission((m) => {
-      if (!m || m.status === 'success' || m.status === 'failed') return m
-      return rescueEnvAdapter.step(m, move)
-    })
+  const clearFlashTimer = () => {
+    if (flashTimerRef.current) {
+      clearTimeout(flashTimerRef.current)
+      flashTimerRef.current = null
+    }
   }
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.repeat) return
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-      const move = rescueEnvAdapter.keyToMove(e.code)
-      if (!move) return
-      e.preventDefault()
-      applyMove(move)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+  const pulseCollision = useCallback(() => {
+    clearFlashTimer()
+    setCollisionFlash(true)
+    flashTimerRef.current = setTimeout(() => {
+      setCollisionFlash(false)
+      flashTimerRef.current = null
+    }, 280)
   }, [])
 
-  const restart = () => {
-    if (map) {
-      setMission(rescueEnvAdapter.create(map))
-      setShowAstar(false)
+  useEffect(() => () => clearFlashTimer(), [])
+
+  const applyMove = useCallback(
+    (move: RescueMove) => {
+      const current = missionRef.current
+      if (!current || current.status === 'success' || current.status === 'failed') return
+
+      const next = rescueEnvAdapter.step(current, move)
+      if (next.collisions > current.collisions) pulseCollision()
+      missionRef.current = next
+      setMission(next)
+
+      if (next.status === 'success' || next.status === 'failed') {
+        gateRef.current.reset()
+      }
+    },
+    [pulseCollision],
+  )
+
+  useEffect(() => {
+    const board = boardRef.current
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!isRescueMoveCode(e.code)) return
+      // Prevent page scroll whenever arrows/WASD hit while the board (or its descendants) own focus.
+      const active = document.activeElement
+      const focused =
+        board != null &&
+        (active === board || (active instanceof Node && board.contains(active)))
+      if (!focused) return
+
+      e.preventDefault()
+
+      const current = missionRef.current
+      if (!current || current.status === 'success' || current.status === 'failed') return
+
+      const move = gateRef.current.onKeyDown(e.code, e.repeat)
+      if (!move) return
+      applyMove(move)
     }
+
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (!isRescueMoveCode(e.code)) return
+      gateRef.current.onKeyUp(e.code)
+    }
+
+    const onBlurWindow = () => gateRef.current.reset()
+
+    window.addEventListener('keydown', onKeyDown, { capture: true })
+    window.addEventListener('keyup', onKeyUp, { capture: true })
+    window.addEventListener('blur', onBlurWindow)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, { capture: true })
+      window.removeEventListener('keyup', onKeyUp, { capture: true })
+      window.removeEventListener('blur', onBlurWindow)
+    }
+  }, [applyMove])
+
+  const restart = () => {
+    if (!map) return
+    clearFlashTimer()
+    gateRef.current.reset()
+    setShowAstar(false)
+    setCollisionFlash(false)
+    const fresh = rescueEnvAdapter.create(map)
+    missionRef.current = fresh
+    setMission(fresh)
+    boardRef.current?.focus()
   }
 
   if (loadError) {
@@ -202,7 +281,21 @@ export function RescueMissionPage() {
         )}
 
         <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_300px]">
-          <div className="relative h-[min(70vh,640px)] min-h-[360px]">
+          <div
+            ref={boardRef}
+            tabIndex={0}
+            role="application"
+            aria-label="Rescue mission board. Press WASD or arrow keys for one step each."
+            onFocus={() => setBoardFocused(true)}
+            onBlur={() => {
+              setBoardFocused(false)
+              gateRef.current.reset()
+            }}
+            onPointerDown={() => boardRef.current?.focus()}
+            className={`relative h-[min(70vh,640px)] min-h-[360px] rounded-2xl outline-none ring-offset-2 ring-offset-void focus-visible:ring-2 focus-visible:ring-hazard/70 ${
+              boardFocused ? 'ring-1 ring-hazard/30' : ''
+            }`}
+          >
             <RescueScene
               map={map}
               agent={mission.agent}
@@ -210,7 +303,17 @@ export function RescueMissionPage() {
               comparePath={showAstar ? astar : undefined}
               interactiveCamera
             />
-            <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-line/80 bg-ink/75 px-2.5 py-1.5 text-[10px] uppercase tracking-wider text-soft backdrop-blur">
+            {collisionFlash && (
+              <div
+                className="pointer-events-none absolute inset-0 z-20 animate-fade-up rounded-2xl border-2 border-hazard bg-hazard/25"
+                aria-live="polite"
+              >
+                <p className="absolute left-1/2 top-4 -translate-x-1/2 rounded-md bg-ink/90 px-3 py-1 text-xs font-bold uppercase tracking-wider text-hazard">
+                  Blocked
+                </p>
+              </div>
+            )}
+            <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-lg border border-line/80 bg-ink/75 px-2.5 py-1.5 text-[10px] uppercase tracking-wider text-soft backdrop-blur">
               <span className="mr-3 inline-flex items-center gap-1.5">
                 <span className="h-1.5 w-4 rounded-full bg-signal" /> Your path
               </span>
@@ -220,6 +323,15 @@ export function RescueMissionPage() {
                 </span>
               )}
             </div>
+            {!boardFocused && !ended && (
+              <button
+                type="button"
+                className="absolute inset-x-0 bottom-4 z-10 mx-auto w-fit rounded-md border border-line bg-ink/85 px-3 py-1.5 text-xs text-soft backdrop-blur"
+                onClick={() => boardRef.current?.focus()}
+              >
+                Click board for keyboard · one step per keypress
+              </button>
+            )}
           </div>
 
           <aside className="space-y-4">
@@ -248,14 +360,18 @@ export function RescueMissionPage() {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted">Collisions</dt>
-                  <dd className="font-mono">{mission.collisions}</dd>
+                  <dd className={`font-mono ${collisionFlash ? 'text-hazard font-bold' : ''}`}>
+                    {mission.collisions}
+                  </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted">Hazard hits</dt>
                   <dd className="font-mono">{mission.hazardHits}</dd>
                 </div>
               </dl>
-              <p className="mt-3 text-xs text-soft">{mission.message}</p>
+              <p className={`mt-3 text-xs ${collisionFlash ? 'font-semibold text-hazard' : 'text-soft'}`}>
+                {mission.message}
+              </p>
             </div>
 
             <div className="ws-panel rounded-2xl p-4">
@@ -263,8 +379,10 @@ export function RescueMissionPage() {
                 Move
               </p>
               <DPad disabled={playDisabled} onMove={applyMove} />
-              <p className="mt-3 text-[11px] text-muted">
-                Also <kbd className="text-signal">WASD</kbd> / arrows · drag orbit on the map
+              <p className="mt-3 text-[11px] leading-snug text-muted">
+                <kbd className="text-signal">WASD</kbd> / arrows = <strong className="text-soft">one
+                step per press</strong> (release before the next). No hold-to-move. D-pad = one click,
+                one step. Drag orbit on the map.
               </p>
             </div>
 

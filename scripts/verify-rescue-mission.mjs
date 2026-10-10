@@ -11,6 +11,7 @@ import {
   shortestExitPath,
   stepMission,
 } from '../src/services/browserRescueSim.ts'
+import { createDiscreteKeyGate } from '../src/services/rescueDiscreteInput.ts'
 
 const manifest = JSON.parse(readFileSync('public/data/rescue/manifest.json', 'utf8'))
 const showdown = JSON.parse(
@@ -49,6 +50,20 @@ check(
 )
 
 check('WASD keymap', keyToMove('KeyW') === 'N' && keyToMove('ArrowLeft') === 'W')
+
+{
+  const gate = createDiscreteKeyGate()
+  check('discrete: first KeyW steps', gate.onKeyDown('KeyW', false) === 'N')
+  check('discrete: ignore event.repeat', gate.onKeyDown('KeyW', true) === null)
+  check('discrete: ignore held without release', gate.onKeyDown('KeyW', false) === null)
+  gate.onKeyUp('KeyW')
+  check('discrete: after release can step again', gate.onKeyDown('KeyW', false) === 'N')
+  gate.onKeyUp('KeyW')
+  check('discrete: ArrowUp one step', gate.onKeyDown('ArrowUp', false) === 'N')
+  check('discrete: ArrowUp held blocked', gate.onKeyDown('ArrowUp', false) === null)
+  gate.reset()
+  check('discrete: reset clears hold', gate.onKeyDown('ArrowUp', false) === 'N')
+}
 
 const astar = shortestExitPath(map)
 check('A* finds exit path on facility_a', astar.length >= 2, `len=${astar.length}`)
