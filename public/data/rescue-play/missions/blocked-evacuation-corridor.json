@@ -1,0 +1,260 @@
+{
+  "version": 1,
+  "seed": 900003,
+  "width": 8,
+  "height": 8,
+  "start": [
+    1,
+    1
+  ],
+  "goal": [
+    6,
+    1
+  ],
+  "walls": [
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      2
+    ],
+    [
+      0,
+      3
+    ],
+    [
+      0,
+      4
+    ],
+    [
+      0,
+      5
+    ],
+    [
+      0,
+      6
+    ],
+    [
+      0,
+      7
+    ],
+    [
+      1,
+      0
+    ],
+    [
+      1,
+      7
+    ],
+    [
+      2,
+      0
+    ],
+    [
+      2,
+      2
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      2,
+      5
+    ],
+    [
+      2,
+      7
+    ],
+    [
+      3,
+      0
+    ],
+    [
+      3,
+      7
+    ],
+    [
+      4,
+      0
+    ],
+    [
+      4,
+      2
+    ],
+    [
+      4,
+      4
+    ],
+    [
+      4,
+      6
+    ],
+    [
+      4,
+      7
+    ],
+    [
+      5,
+      0
+    ],
+    [
+      5,
+      4
+    ],
+    [
+      5,
+      7
+    ],
+    [
+      6,
+      0
+    ],
+    [
+      6,
+      7
+    ],
+    [
+      7,
+      0
+    ],
+    [
+      7,
+      1
+    ],
+    [
+      7,
+      2
+    ],
+    [
+      7,
+      3
+    ],
+    [
+      7,
+      4
+    ],
+    [
+      7,
+      5
+    ],
+    [
+      7,
+      6
+    ],
+    [
+      7,
+      7
+    ]
+  ],
+  "doors": [
+    [
+      2,
+      4
+    ]
+  ],
+  "blocked": [
+    [
+      4,
+      1
+    ]
+  ],
+  "hazards": [
+    [
+      4,
+      3
+    ]
+  ],
+  "max_steps": 64,
+  "mission": {
+    "id": "blocked-evacuation-corridor",
+    "title": "Blocked Evacuation Corridor",
+    "briefing": "The main evacuation corridor of a fictional office block is blocked by debris. Staff must be guided to the emergency exit via side rooms while avoiding a sparking panel.",
+    "objective": "Reach the emergency exit using the side rooms.",
+    "difficulty": "medium",
+    "handcrafted": true,
+    "generated": false,
+    "map_size": "8x8",
+    "par": 13,
+    "max_steps": 64,
+    "legend": {
+      "walls": "office walls",
+      "blocked": "debris piles",
+      "doors": "office doors",
+      "hazards": "sparking electrical panel",
+      "start": "stairwell",
+      "goal": "emergency exit"
+    },
+    "map_ascii": [
+      "########",
+      "#S..X.G#",
+      "#.#.#..#",
+      "#.#.^..#",
+      "#.D.##.#",
+      "#.#....#",
+      "#...#..#",
+      "########"
+    ],
+    "map_ascii_legend": {
+      "#": "walls",
+      "X": "blocked",
+      "^": "hazards",
+      "D": "doors",
+      "B": "blocked door (doors + blocked)",
+      "S": "start",
+      "G": "goal",
+      ".": "floor"
+    },
+    "design_notes": "The straight top corridor is blocked by debris. The tempting short cut through the middle room steps onto a sparking panel; the safe route goes down the side room and back up the east wall.",
+    "analysis": {
+      "par": 13,
+      "hazard_shortcut_length": 9,
+      "hazard_shortcut_exists": true,
+      "length_if_blocked_cleared": 5,
+      "blocked_forces_detour": true,
+      "dead_ends": [],
+      "hazards_adjacent_to_par_route": [
+        [
+          4,
+          3
+        ]
+      ],
+      "doors": 1
+    },
+    "controls": {
+      "up": [
+        "ArrowUp",
+        "W"
+      ],
+      "down": [
+        "ArrowDown",
+        "S"
+      ],
+      "left": [
+        "ArrowLeft",
+        "A"
+      ],
+      "right": [
+        "ArrowRight",
+        "D"
+      ],
+      "restart": [
+        "R"
+      ],
+      "undo": [
+        "U / Backspace (play feature)"
+      ],
+      "show_astar_after_finish": [
+        "H"
+      ]
+    },
+    "mechanics": "Identical to RescueEnv: no water flow, no spreading hazards, no physics. Narrative labels are cosmetic only.",
+    "disclaimer": "Fictional scenario. A discrete grid abstraction for gameplay and evaluation only; it is not representative of real-world flood, storm, structural or chemical behaviour and must not be used for operational planning or emergency response."
+  }
+}

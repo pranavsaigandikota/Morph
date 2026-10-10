@@ -1,5 +1,5 @@
 export type HazardType = 'fire' | 'smoke' | 'chemical' | 'collapse'
-export type CellType = 'floor' | 'wall' | 'exit' | 'hazard' | 'spawn'
+export type CellType = 'floor' | 'wall' | 'blocked' | 'door' | 'exit' | 'hazard' | 'spawn'
 
 export interface MapCell {
   x: number

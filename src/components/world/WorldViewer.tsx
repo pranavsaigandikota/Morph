@@ -1,7 +1,15 @@
 import clsx from 'clsx'
 import { useCallback, useEffect, useState, type RefObject } from 'react'
+import { DISPLAY_MAX_SCALE } from '../../hooks/useWorldStream'
 import type { WorldFrameMeta, WorldMetrics } from '../../types/world'
 import { PerformanceOverlay } from './PerformanceOverlay'
+
+export interface SwitchableWorld {
+  id: string
+  label: string
+  seed: string | null
+  mock?: boolean
+}
 
 interface Props {
   hasFrame: boolean
@@ -19,6 +27,12 @@ interface Props {
   onReset: () => void
   onDisconnect: () => void
   onReconnect: () => void
+  /** Auto-paused because input went idle (generation held). */
+  idleHolding?: boolean
+  /** Saved / preset worlds — switch without remounting React */
+  worlds?: SwitchableWorld[]
+  activeSeed?: string | null
+  onSwitchWorld?: (seed: string | null) => void
 }
 
 export function WorldViewer({
@@ -37,6 +51,10 @@ export function WorldViewer({
   onReset,
   onDisconnect,
   onReconnect,
+  idleHolding = false,
+  worlds,
+  activeSeed,
+  onSwitchWorld,
 }: Props) {
   const [helpOpen, setHelpOpen] = useState(true)
   const [fullscreen, setFullscreen] = useState(false)
@@ -98,8 +116,16 @@ export function WorldViewer({
       >
         <canvas
           ref={canvasElRef}
-          className="h-full w-full object-contain"
-          style={{ imageRendering: 'auto' }}
+          className="mx-auto object-contain"
+          style={{
+            imageRendering: 'auto',
+            // Cap enlargement of native 640×360 — sharper CSS scale ≠ recovered geometry.
+            maxWidth: `min(100%, calc(640px * ${DISPLAY_MAX_SCALE}))`,
+            maxHeight: `min(100%, calc(360px * ${DISPLAY_MAX_SCALE}))`,
+            width: '100%',
+            height: '100%',
+            filter: 'contrast(1.04)',
+          }}
         />
 
         {!hasFrame && (
@@ -143,12 +169,19 @@ export function WorldViewer({
         {!pointerLocked && live && hasFrame && (
           <div className="pointer-events-none absolute inset-x-0 bottom-24 z-10 flex justify-center">
             <p className="rounded-md border border-line bg-ink/80 px-3 py-1.5 text-sm text-soft backdrop-blur">
-              Click to capture mouse · press H for help · F fullscreen
+              Click for pointer lock · or drag to look · H help · F fullscreen
             </p>
           </div>
         )}
 
-        {phase === 'paused' && (
+        {phase === 'paused' && idleHolding && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-28 z-10 flex justify-center">
+            <p className="rounded-md border border-line bg-ink/85 px-3 py-1.5 text-sm text-soft backdrop-blur">
+              Idle hold — generation paused · move to resume
+            </p>
+          </div>
+        )}
+        {phase === 'paused' && !idleHolding && (
           <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-void/40">
             <p className="font-display text-3xl font-bold tracking-wide text-bright">Paused</p>
           </div>
@@ -172,23 +205,26 @@ export function WorldViewer({
               </div>
               <ul className="space-y-1 text-soft">
                 <li>
-                  <kbd className="text-bright">W A S D</kbd> / arrows — move
+                  <kbd className="text-bright">W A S D</kbd> — move
                 </li>
                 <li>
-                  <kbd className="text-bright">Mouse</kbd> — look (pointer lock)
+                  <kbd className="text-bright">Mouse</kbd> — look (pointer lock or drag-look)
                 </li>
                 <li>
-                  <kbd className="text-bright">Space</kbd> jump · <kbd className="text-bright">Shift</kbd>{' '}
-                  sprint · wheel scroll
-                </li>
-                <li>
-                  <kbd className="text-bright">Esc</kbd> release lock · <kbd className="text-bright">F</kbd>{' '}
-                  fullscreen · <kbd className="text-bright">H</kbd> help
+                  <kbd className="text-bright">Esc</kbd> release lock ·{' '}
+                  <kbd className="text-bright">F</kbd> fullscreen ·{' '}
+                  <kbd className="text-bright">H</kbd> help
                 </li>
               </ul>
               <p className="mt-3 text-xs text-muted">
-                First-person Waypoint stream only. Geometry in video is not a reliable physics map —
-                use Rescue Lab for that.
+                Only controls verified with the Waypoint backend are listed. First-person stream —
+                use Rescue Mission for grid navigation.
+              </p>
+              <p className="mt-2 text-xs text-muted">
+                Long walks accumulate visual drift away from the seed. Idle holds generation when
+                you stop moving; <kbd className="text-bright">Reset</kbd> restores the original
+                seed image and clears history. Higher resolution does not guarantee persistent
+                geometry.
               </p>
             </div>
           </div>
@@ -204,11 +240,35 @@ export function WorldViewer({
       </div>
 
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-panel px-4 py-3">
-        <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-xs text-muted">
           <span className="font-mono">
             {meta ? `${meta.width}×${meta.height}` : '—'} · frame {meta?.frame_id ?? '—'} · gen{' '}
             {meta ? `${meta.inference_ms}ms` : '—'} · tc {meta?.temporal_compression ?? '—'}
           </span>
+          {worlds && worlds.length > 0 && onSwitchWorld && (
+            <label className="flex items-center gap-2 text-soft">
+              <span className="whitespace-nowrap text-[10px] uppercase tracking-wider text-muted">
+                World
+              </span>
+              <select
+                className="max-w-[220px] rounded-md border border-line bg-ink px-2 py-1 text-xs text-bright outline-none focus:border-signal"
+                value={activeSeed ?? ''}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => {
+                  e.stopPropagation()
+                  const v = e.target.value
+                  onSwitchWorld(v.length ? v : null)
+                }}
+              >
+                {worlds.map((w) => (
+                  <option key={w.id} value={w.seed ?? ''}>
+                    {w.label}
+                    {w.mock ? ' (MOCK)' : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <ControlButton
@@ -227,11 +287,15 @@ export function WorldViewer({
           >
             {fullscreen ? 'Exit full' : 'Fullscreen'}
           </ControlButton>
-          <ControlButton onClick={onPause} disabled={!live} active={phase === 'paused'}>
+          <ControlButton
+            onClick={onPause}
+            disabled={!live}
+            active={phase === 'paused' && !idleHolding}
+          >
             {phase === 'paused' ? 'Resume' : 'Pause'}
           </ControlButton>
           <ControlButton onClick={onReset} disabled={!live && phase !== 'error'}>
-            Reset
+            Reset seed
           </ControlButton>
           <ControlButton onClick={onReconnect} disabled={phase === 'idle'}>
             Reconnect

@@ -1,0 +1,14 @@
+{
+  "base_commit": "9685845b214ed46595b95fac7753edae9a2b92b5",
+  "build": "PASS: npm.cmd run build (TypeScript and Vite); existing large-chunk warning",
+  "offline_rescue_showdown": "PASS: 19 checks, A* 34 steps; not a GPU test",
+  "real_direct_protocol": "PASS: 5 checks including 16 genuine frame JSON + JPEG pairs",
+  "real_proxy_protocol": "PASS: same 5 checks through http://127.0.0.1:4821/engine",
+  "preset_import_check": "PASS: all six image hashes verified",
+  "frozen_backend_hashes": "PASS: every FROZEN_BASELINE.json entry unchanged",
+  "rescue_zip": "PASS: original bytes, integrity, 72-file inventory; no listed secret signatures or generated dependencies",
+  "pages_components_static_data": "PASS: no diff relative to latest Cursor base",
+  "git_diff_check": "PASS",
+  "benchmark": "Accepted 218.494 seconds: 71.58094 generated /17.95930 canvas FPS, zero continuous server drops; see CURSOR_INTEGRATION_218S.md",
+  "unpublished_requested_files": []
+}

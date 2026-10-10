@@ -1,0 +1,52 @@
+{
+  "evaluation_id": "eval_verified_showdown",
+  "title": "AI Showdown — verified recorded evaluation",
+  "mode": "recorded_evaluation",
+  "scenario_id": "facility_verified",
+  "created_at": "2026-10-10T00:00:00.000Z",
+  "note": "Verified offline metrics for judging. Not live AI inference. Guided PPO has access to shortest-path information. Dual rates are scenario A / scenario B success.",
+  "agents": [
+    {
+      "agent_id": "random-walker",
+      "display_name": "Random",
+      "note": "Uninformed random policy",
+      "metrics": {
+        "success_rate": 0.195,
+        "success_rate_b": 0.08,
+        "mean_reward": 0,
+        "mean_steps": 0,
+        "mean_latency_ms": 0,
+        "mean_victims_rescued": 0
+      },
+      "episodes": []
+    },
+    {
+      "agent_id": "ppo-path-guidance",
+      "display_name": "PPO + Path Guidance",
+      "note": "Guided PPO — has access to shortest-path information",
+      "metrics": {
+        "success_rate": 0.995,
+        "success_rate_b": 0.99,
+        "mean_reward": 0,
+        "mean_steps": 0,
+        "mean_latency_ms": 0,
+        "mean_victims_rescued": 0
+      },
+      "episodes": []
+    },
+    {
+      "agent_id": "astar-planner",
+      "display_name": "A*",
+      "note": "Shortest-path planner oracle",
+      "metrics": {
+        "success_rate": 1.0,
+        "success_rate_b": 1.0,
+        "mean_reward": 0,
+        "mean_steps": 0,
+        "mean_latency_ms": 0,
+        "mean_victims_rescued": 0
+      },
+      "episodes": []
+    }
+  ]
+}

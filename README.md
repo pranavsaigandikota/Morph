@@ -1,47 +1,49 @@
 # WorldShift AI
 
-First-person **Waypoint** interactive worlds (Codex GPU) + offline **Rescue Lab** evaluation.
+**Create. Explore. Survive. Adapt.**
 
-## Two modes
+First-person **Waypoint** worlds (Codex GPU) + interactive **Rescue Missions** + verified **AI Showdown**.
 
-1. **World Explorer** — real-time Waypoint-generated video (`WS /stream`, binary JPEG envelopes). Needs Codex on `http://127.0.0.1:8000`.
-2. **Rescue Lab** — recorded Random / A* / PPO replays & charts from `public/data/rescue/` via `fetch()`. No Python/FastAPI/PPO service.
+## Modes
 
-## Quick start
+| Route | Purpose |
+|-------|---------|
+| `/create` | Create Anything — freeform SDXL seeds |
+| `/world` | World Explorer — Phase-2 `/stream` |
+| `/mission` | Playable rescue on verified facility map |
+| `/simulation` | Recorded Random / PPO / A* replays |
+| `/agents` | AI Showdown verified rates |
 
-**Windows:** see [docs/WINDOWS_VERIFY.md](docs/WINDOWS_VERIFY.md) for clone + GPU acceptance tests.
+## Quick start (Windows)
 
-```bash
+```powershell
+git clone https://github.com/pranavsaigandikota/Morph.git
+cd Morph
 npm install
-cp .env.example .env   # VITE_WORLD_API_BASE_URL=http://127.0.0.1:8000
+Copy-Item .env.example .env
+# Start Codex Waypoint (+ SDXL) on :8000
 npm run dev
 ```
 
-- UI: http://127.0.0.1:4821  
-- World: http://127.0.0.1:4821/world  
-- Rescue: http://127.0.0.1:4821/simulation  
+UI: **http://127.0.0.1:4821**
 
-If `:8000` is down, the UI shows a **connection error**. It does **not** silently start mock. Explicit mock:
-
-```bash
-npm run dev:mock
-npm run test:mock-protocol
-```
+- Real GPU: Codex on `:8000` — no silent mock fallback
+- Explicit mock: `npm run dev:mock`
+- Judging script: [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md)
 
 ## Scripts
 
 | Command | Purpose |
 |---------|---------|
-| `npm run dev` | Vite → real `:8000` (no auto-mock) |
-| `npm run dev:mock` | Explicit protocol mock on `:4822` |
+| `npm run dev` | Vite → real `:8000` |
+| `npm run dev:mock` | Explicit protocol mock |
 | `npm run build` | Production build |
-| `npm run test:mock-protocol` | Automated Phase-2 mock checks |
-| `npm run test:stream60` | 60s control harness (`ENGINE_URL`) |
+| `npm run test:mock-protocol` | Phase-2 mock checks |
+| `npm run test:stream60` | 60s harness |
 
-## Protocol
+## Notes
 
-[docs/WAYPOINT_PROTOCOL.md](docs/WAYPOINT_PROTOCOL.md). Place Codex’s `FRONTEND_INTEGRATION.md` under `docs/` when available and reconcile before claiming GPU pass.
-
-## Status
-
-[docs/VALIDATION_STATUS.md](docs/VALIDATION_STATUS.md) — mock vs real tracks kept separate.
+- Rescue Missions & Showdown work from `public/data/rescue/` without a GPU.
+- Guided PPO metrics assume shortest-path access — labeled on Showdown.
+- Robots do **not** navigate Waypoint video.
+- Third-person Waypoint postponed.

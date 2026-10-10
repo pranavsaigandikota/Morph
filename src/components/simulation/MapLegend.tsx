@@ -1,10 +1,9 @@
 const ITEMS = [
   { color: '#2a3544', label: 'Walls' },
-  { color: '#ef4444', label: 'Fire' },
-  { color: '#94a3b8', label: 'Smoke' },
-  { color: '#a3e635', label: 'Chemical' },
-  { color: '#f5a623', label: 'Collapse' },
-  { color: '#34d399', label: 'Exit' },
+  { color: '#8a5a2b', label: 'Blocked' },
+  { color: '#c9b77a', label: 'Doors' },
+  { color: '#a3e635', label: 'Hazards' },
+  { color: '#34d399', label: 'Goal' },
   { color: '#2ee6d6', label: 'Agent' },
 ]
 

@@ -1,0 +1,300 @@
+{
+  "zip_bytes": 1195950,
+  "sha256": "d3fb2c83811056633d8193ae56cf5d053d0c67f94b6813c676aa45ed925d3a6d",
+  "files": [
+    {
+      "path": "rescue_play/INTEGRATION.md",
+      "bytes": 5292
+    },
+    {
+      "path": "rescue_play/README.md",
+      "bytes": 11822
+    },
+    {
+      "path": "rescue_play/data/rescue-play/manifest.json",
+      "bytes": 2813
+    },
+    {
+      "path": "rescue_play/data/rescue-play/missions/blocked-evacuation-corridor.json",
+      "bytes": 3805
+    },
+    {
+      "path": "rescue_play/data/rescue-play/missions/cypress-lane-flood.json",
+      "bytes": 5024
+    },
+    {
+      "path": "rescue_play/data/rescue-play/missions/emergency-supply-route.json",
+      "bytes": 4014
+    },
+    {
+      "path": "rescue_play/data/rescue-play/missions/hazardous-research-building.json",
+      "bytes": 4855
+    },
+    {
+      "path": "rescue_play/data/rescue-play/missions/storm-damaged-facility.json",
+      "bytes": 4912
+    },
+    {
+      "path": "rescue_play/data/rescue-play/routes/blocked-evacuation-corridor_astar.json",
+      "bytes": 887
+    },
+    {
+      "path": "rescue_play/data/rescue-play/routes/cypress-lane-flood_astar.json",
+      "bytes": 1033
+    },
+    {
+      "path": "rescue_play/data/rescue-play/routes/emergency-supply-route_astar.json",
+      "bytes": 842
+    },
+    {
+      "path": "rescue_play/data/rescue-play/routes/hazardous-research-building_astar.json",
+      "bytes": 1279
+    },
+    {
+      "path": "rescue_play/data/rescue-play/routes/storm-damaged-facility_astar.json",
+      "bytes": 1266
+    },
+    {
+      "path": "rescue_play/demo/index.html",
+      "bytes": 1340
+    },
+    {
+      "path": "rescue_play/demo/main.js",
+      "bytes": 4381
+    },
+    {
+      "path": "rescue_play/demo/main.ts",
+      "bytes": 4205
+    },
+    {
+      "path": "rescue_play/demo/tsconfig.json",
+      "bytes": 306
+    },
+    {
+      "path": "rescue_play/dist/actions.d.ts",
+      "bytes": 964
+    },
+    {
+      "path": "rescue_play/dist/actions.js",
+      "bytes": 1831
+    },
+    {
+      "path": "rescue_play/dist/astar.d.ts",
+      "bytes": 1092
+    },
+    {
+      "path": "rescue_play/dist/astar.js",
+      "bytes": 4367
+    },
+    {
+      "path": "rescue_play/dist/env.d.ts",
+      "bytes": 4563
+    },
+    {
+      "path": "rescue_play/dist/env.js",
+      "bytes": 7754
+    },
+    {
+      "path": "rescue_play/dist/game.d.ts",
+      "bytes": 4957
+    },
+    {
+      "path": "rescue_play/dist/game.js",
+      "bytes": 6978
+    },
+    {
+      "path": "rescue_play/dist/index.d.ts",
+      "bytes": 983
+    },
+    {
+      "path": "rescue_play/dist/index.js",
+      "bytes": 642
+    },
+    {
+      "path": "rescue_play/dist/pyrepr.d.ts",
+      "bytes": 145
+    },
+    {
+      "path": "rescue_play/dist/pyrepr.js",
+      "bytes": 954
+    },
+    {
+      "path": "rescue_play/dist/pyround.d.ts",
+      "bytes": 577
+    },
+    {
+      "path": "rescue_play/dist/pyround.js",
+      "bytes": 1783
+    },
+    {
+      "path": "rescue_play/dist/scenario.d.ts",
+      "bytes": 2560
+    },
+    {
+      "path": "rescue_play/dist/scenario.js",
+      "bytes": 9507
+    },
+    {
+      "path": "rescue_play/fixtures/parity_fixtures.json",
+      "bytes": 11015200
+    },
+    {
+      "path": "rescue_play/fixtures/ts_runs.json",
+      "bytes": 15440633
+    },
+    {
+      "path": "rescue_play/missions/blocked-evacuation-corridor.json",
+      "bytes": 3805
+    },
+    {
+      "path": "rescue_play/missions/cypress-lane-flood.json",
+      "bytes": 5024
+    },
+    {
+      "path": "rescue_play/missions/emergency-supply-route.json",
+      "bytes": 4014
+    },
+    {
+      "path": "rescue_play/missions/hazardous-research-building.json",
+      "bytes": 4855
+    },
+    {
+      "path": "rescue_play/missions/index.json",
+      "bytes": 1603
+    },
+    {
+      "path": "rescue_play/missions/storm-damaged-facility.json",
+      "bytes": 4912
+    },
+    {
+      "path": "rescue_play/package-lock.json",
+      "bytes": 44516
+    },
+    {
+      "path": "rescue_play/package.json",
+      "bytes": 950
+    },
+    {
+      "path": "rescue_play/reports/parity_ts_summary.json",
+      "bytes": 462
+    },
+    {
+      "path": "rescue_play/reports/rescue_sim_integrity.json",
+      "bytes": 632
+    },
+    {
+      "path": "rescue_play/reports/rescue_sim_sha256_after.txt",
+      "bytes": 8339
+    },
+    {
+      "path": "rescue_play/reports/rescue_sim_sha256_before.txt",
+      "bytes": 8339
+    },
+    {
+      "path": "rescue_play/reports/ts_in_python_results.json",
+      "bytes": 283
+    },
+    {
+      "path": "rescue_play/samples/session_astar_comparison.json",
+      "bytes": 9952
+    },
+    {
+      "path": "rescue_play/samples/session_cypress-lane-flood.json",
+      "bytes": 440014
+    },
+    {
+      "path": "rescue_play/samples/session_python_check_input.json",
+      "bytes": 79389
+    },
+    {
+      "path": "rescue_play/samples/session_python_verification.json",
+      "bytes": 770
+    },
+    {
+      "path": "rescue_play/samples/session_score.json",
+      "bytes": 1595
+    },
+    {
+      "path": "rescue_play/scripts/gen_ts_runs.mjs",
+      "bytes": 2055
+    },
+    {
+      "path": "rescue_play/scripts/make_missions.py",
+      "bytes": 14224
+    },
+    {
+      "path": "rescue_play/scripts/make_parity_fixtures.py",
+      "bytes": 15659
+    },
+    {
+      "path": "rescue_play/scripts/make_sample_session.mjs",
+      "bytes": 3886
+    },
+    {
+      "path": "rescue_play/scripts/parity.mjs",
+      "bytes": 1138
+    },
+    {
+      "path": "rescue_play/scripts/run_python.mjs",
+      "bytes": 1531
+    },
+    {
+      "path": "rescue_play/scripts/verify_ts_in_python.py",
+      "bytes": 4211
+    },
+    {
+      "path": "rescue_play/src/actions.ts",
+      "bytes": 2075
+    },
+    {
+      "path": "rescue_play/src/astar.ts",
+      "bytes": 4490
+    },
+    {
+      "path": "rescue_play/src/env.ts",
+      "bytes": 9502
+    },
+    {
+      "path": "rescue_play/src/game.ts",
+      "bytes": 9194
+    },
+    {
+      "path": "rescue_play/src/index.ts",
+      "bytes": 991
+    },
+    {
+      "path": "rescue_play/src/pyrepr.ts",
+      "bytes": 892
+    },
+    {
+      "path": "rescue_play/src/pyround.ts",
+      "bytes": 1712
+    },
+    {
+      "path": "rescue_play/src/scenario.ts",
+      "bytes": 10334
+    },
+    {
+      "path": "rescue_play/test/game.test.ts",
+      "bytes": 8018
+    },
+    {
+      "path": "rescue_play/test/parity.test.ts",
+      "bytes": 4775
+    },
+    {
+      "path": "rescue_play/tsconfig.json",
+      "bytes": 415
+    },
+    {
+      "path": "rescue_play/vitest.config.mjs",
+      "bytes": 82
+    }
+  ],
+  "secret_findings": [],
+  "generated_dependency_files": [],
+  "archive_integrity": "passed",
+  "integration_md": [
+    "rescue_play/INTEGRATION.md"
+  ]
+}

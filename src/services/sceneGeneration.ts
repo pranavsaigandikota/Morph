@@ -1,22 +1,29 @@
 /**
- * Text → seed-image adapter.
+ * Text → seed-image adapter (Codex SDXL / scene API).
  *
- * Waypoint does NOT process the prompt. A text-to-image model (or mock) produces the
- * initial seed; Waypoint then makes that seed interactive over /stream?seed=.
+ * Waypoint does NOT process the prompt. SDXL (or mock) produces the seed;
+ * Waypoint makes it interactive via the saved image and /world/start.
  *
- * Set VITE_SCENE_API_BASE_URL when Codex exposes a real scene API.
- * Until then we use an explicit MOCK generator — never claim AI generation.
+ * Prefer VITE_SCENE_API_BASE_URL; in Vite dev, default to /engine (proxied :8000).
+ * Failed live generation surfaces an error — MOCK only via explicit request.
  */
+
+import { engineHttpBase, worldApiBaseUrl } from './engineConfig'
+
+export type WorldStyle = 'cinematic' | 'photorealistic' | 'fantasy' | 'stylized'
 
 export interface GeneratedScene {
   id: string
   prompt: string
+  style: WorldStyle
   /** Object URL or data URL of the seed preview */
   imageUrl: string
-  /** Seed token to pass to WS /stream?seed= (name or uploaded id) */
+  /** Saved scene ID resolved before /world/start */
   seed: string | null
   mock: boolean
   createdAt: string
+  generationSeed?: number
+  source?: string
 }
 
 export interface SceneProgress {
@@ -25,25 +32,75 @@ export interface SceneProgress {
   message: string
 }
 
-const PRESETS = [
-  'An abandoned futuristic city at sunset',
-  'An underwater research station',
-  'A mysterious alien planet',
-  'A medieval castle courtyard',
-  'A post-apocalyptic research facility',
+export const WORLD_STYLES: Array<{ id: WorldStyle; label: string; hint: string }> = [
+  { id: 'cinematic', label: 'Cinematic', hint: 'Dramatic light, film still' },
+  { id: 'photorealistic', label: 'Photorealistic', hint: 'Believable camera world' },
+  { id: 'fantasy', label: 'Fantasy', hint: 'Mythic color & atmosphere' },
+  { id: 'stylized', label: 'Stylized', hint: 'Bold graphic look' },
 ]
 
-const STORAGE_KEY = 'worldshift.savedScenes.v1'
+const PRESETS: Array<{ title: string; prompt: string; style: WorldStyle }> = [
+  {
+    title: 'Neon alley',
+    prompt: 'A rain-soaked neon alley in a vertical megacity at night, reflective puddles, steam vents',
+    style: 'cinematic',
+  },
+  {
+    title: 'Coral observatory',
+    prompt: 'An underwater glass observatory surrounded by bioluminescent coral reefs',
+    style: 'fantasy',
+  },
+  {
+    title: 'Cliff monastery',
+    prompt: 'A cliffside monastery above endless clouds at golden hour, stone courtyards',
+    style: 'photorealistic',
+  },
+  {
+    title: 'Desert bazaar',
+    prompt: 'A bustling desert bazaar at dusk with lanterns, spice stalls, and distant dunes',
+    style: 'stylized',
+  },
+  {
+    title: 'Orbital garden',
+    prompt: 'A zero-gravity botanical garden inside a transparent orbital habitat',
+    style: 'cinematic',
+  },
+  {
+    title: 'Frozen cathedral',
+    prompt: 'An ice cathedral carved into a glacier, pale blue shafts of light',
+    style: 'fantasy',
+  },
+]
 
-export function scenePresets(): string[] {
-  return [...PRESETS]
+const RANDOM_IDEAS = [
+  'A library where books float between towering shelves of living wood',
+  'A rooftop jazz garden above a glowing metropolis',
+  'An abandoned theme park reclaimed by fluorescent moss',
+  'A train station suspended between two floating islands',
+  'A candlelit labyrinth of mirrors under a purple sky',
+  'A coastal lighthouse town during a green aurora',
+  'A workshop filled with clockwork animals and brass skylights',
+  'A bamboo forest shrine with floating lanterns at midnight',
+]
+
+const STORAGE_KEY = 'worldshift.savedScenes.v2'
+
+export function scenePresets() {
+  return PRESETS.map((p) => ({ ...p }))
+}
+
+export function randomWorldIdea(): string {
+  return RANDOM_IDEAS[Math.floor(Math.random() * RANDOM_IDEAS.length)]!
 }
 
 export function loadSavedScenes(): GeneratedScene[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem('worldshift.savedScenes.v1')
     if (!raw) return []
-    return JSON.parse(raw) as GeneratedScene[]
+    return (JSON.parse(raw) as GeneratedScene[]).map((s) => ({
+      ...s,
+      style: s.style ?? 'cinematic',
+    }))
   } catch {
     return []
   }
@@ -62,43 +119,60 @@ function hashPrompt(s: string): number {
   return h >>> 0
 }
 
-/** Deterministic MOCK seed image (canvas) — labeled, not AI-generated. */
-export async function generateMockSeedImage(prompt: string): Promise<{ dataUrl: string; seed: string }> {
+function sceneApiBase(): string {
+  if (import.meta.env.VITE_SCENE_API_BASE_URL) {
+    return String(import.meta.env.VITE_SCENE_API_BASE_URL).replace(/\/$/, '')
+  }
+  // Same host as Waypoint in local Windows demos (proxied in Vite).
+  if (import.meta.env.DEV) return engineHttpBase()
+  return worldApiBaseUrl()
+}
+
+/** Deterministic MOCK seed — labeled, never claimed as AI. */
+export async function generateMockSeedImage(
+  prompt: string,
+  style: WorldStyle,
+): Promise<{ dataUrl: string; seed: string }> {
   const canvas = document.createElement('canvas')
   canvas.width = 1280
   canvas.height = 720
   const ctx = canvas.getContext('2d')!
-  const h = hashPrompt(prompt)
+  const h = hashPrompt(`${style}:${prompt}`)
   const hue = h % 360
   const g = ctx.createLinearGradient(0, 0, 1280, 720)
-  g.addColorStop(0, `hsl(${hue} 35% 12%)`)
-  g.addColorStop(0.5, `hsl(${(hue + 40) % 360} 30% 18%)`)
-  g.addColorStop(1, `hsl(${(hue + 80) % 360} 25% 8%)`)
+  g.addColorStop(0, `hsl(${hue} 38% 10%)`)
+  g.addColorStop(0.55, `hsl(${(hue + 48) % 360} 32% 16%)`)
+  g.addColorStop(1, `hsl(${(hue + 96) % 360} 28% 7%)`)
   ctx.fillStyle = g
   ctx.fillRect(0, 0, 1280, 720)
 
-  // Atmospheric bands
-  for (let i = 0; i < 12; i++) {
-    ctx.fillStyle = `hsla(${(hue + i * 12) % 360} 40% 40% / ${0.04 + (i % 3) * 0.02})`
-    ctx.fillRect(0, 40 + i * 55, 1280, 30)
+  for (let i = 0; i < 14; i++) {
+    ctx.fillStyle = `hsla(${(hue + i * 14) % 360} 45% 45% / ${0.035 + (i % 3) * 0.02})`
+    ctx.fillRect(0, 28 + i * 48, 1280, 26)
   }
 
-  ctx.fillStyle = 'rgba(249,115,22,0.9)'
-  ctx.font = 'bold 28px Syne, sans-serif'
-  ctx.fillText('MOCK SEED — not AI-generated', 48, 64)
+  ctx.fillStyle = 'rgba(249,115,22,0.92)'
+  ctx.font = 'bold 26px Syne, sans-serif'
+  ctx.fillText('MOCK SEED — not AI-generated', 48, 58)
 
-  ctx.fillStyle = 'rgba(232,238,245,0.92)'
-  ctx.font = '600 36px Syne, sans-serif'
-  const lines = wrapText(ctx, prompt, 1100)
-  lines.slice(0, 4).forEach((line, i) => ctx.fillText(line, 48, 160 + i * 48))
+  ctx.fillStyle = 'rgba(46,230,214,0.85)'
+  ctx.font = '600 18px DM Sans, sans-serif'
+  ctx.fillText(`Style · ${style}`, 48, 96)
 
-  ctx.fillStyle = 'rgba(154,171,190,0.8)'
-  ctx.font = '16px DM Sans, sans-serif'
-  ctx.fillText('Text→image mock adapter · Waypoint will animate a real seed when available', 48, 680)
+  ctx.fillStyle = 'rgba(238,243,248,0.94)'
+  ctx.font = '600 34px Syne, sans-serif'
+  wrapText(ctx, prompt, 1120)
+    .slice(0, 4)
+    .forEach((line, i) => ctx.fillText(line, 48, 170 + i * 46))
 
-  const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
-  const seed = `mock_${(h % 1e8).toString(36)}`
-  return { dataUrl, seed }
+  ctx.fillStyle = 'rgba(154,171,190,0.75)'
+  ctx.font = '15px DM Sans, sans-serif'
+  ctx.fillText('Explicit mock preview · start Codex SDXL for live seeds', 48, 680)
+
+  return {
+    dataUrl: canvas.toDataURL('image/jpeg', 0.85),
+    seed: `mock_${(h % 1e8).toString(36)}`,
+  }
 }
 
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
@@ -116,69 +190,76 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines
 }
 
+interface SceneMetadata {
+  scene_id:string;prompt:string;style?:string|null;seed:number;image_url:string;created_at:string
+}
+function fromMetadata(m:SceneMetadata):GeneratedScene {
+  const style=WORLD_STYLES.some(s=>s.id===m.style)?m.style as WorldStyle:'cinematic'
+  return {id:m.scene_id,prompt:m.prompt,style,imageUrl:sceneApiBase()+m.image_url,
+    seed:m.scene_id,mock:false,createdAt:m.created_at,source:'sdxl',generationSeed:m.seed}
+}
+async function sceneRequest(path:string,init?:RequestInit) {
+  const res=await fetch(sceneApiBase()+path,init);const body=await res.json()
+  if(!res.ok) throw new Error(`Scene API ${res.status}: ${JSON.stringify(body.detail??body)}`)
+  return body
+}
+export async function listServerScenes():Promise<GeneratedScene[]> {
+  const result:GeneratedScene[]=[]
+  for(let offset=0;;offset+=100) {
+    const page=await sceneRequest(`/scenes?limit=100&offset=${offset}`)
+    result.push(...page.scenes.filter((m:{kind:string})=>m.kind==='generated').map(fromMetadata))
+    if(offset+100>=page.total) return result
+  }
+}
+
+export type GenerateMode = 'live' | 'mock'
+
 /**
- * Attempt real scene API if VITE_SCENE_API_BASE_URL is set; otherwise MOCK.
- * Never labels a mock result as AI-generated.
+ * Live SDXL/scene generation. Pass mode:'mock' only for an explicit mock preview.
  */
 export async function generateScene(
   prompt: string,
-  onProgress?: (p: SceneProgress) => void,
+  options: {
+    style?: WorldStyle
+    seed?: number | null
+    mode?: GenerateMode
+    onProgress?: (p: SceneProgress) => void
+  } = {},
 ): Promise<GeneratedScene> {
   const trimmed = prompt.trim()
-  if (!trimmed) throw new Error('Enter a world description')
+  if (!trimmed) throw new Error('Describe a world you want to explore')
+  const style = options.style ?? 'cinematic'
+  const onProgress = options.onProgress
 
-  const api = import.meta.env.VITE_SCENE_API_BASE_URL as string | undefined
-  onProgress?.({ stage: 'submitting', percent: 10, message: 'Submitting prompt…' })
-
-  if (api) {
-    try {
-      onProgress?.({ stage: 'generating', percent: 40, message: 'Requesting text→image seed…' })
-      const res = await fetch(`${api.replace(/\/$/, '')}/scenes/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: trimmed }),
-      })
-      if (!res.ok) throw new Error(`Scene API ${res.status}`)
-      const body = (await res.json()) as {
-        id?: string
-        seed?: string
-        image_url?: string
-        mock?: boolean
-      }
-      if (body.mock) {
-        // Backend explicitly returned mock — honor that
-      }
-      if (!body.image_url && !body.seed) throw new Error('Scene API missing image_url/seed')
-      onProgress?.({ stage: 'ready', percent: 100, message: 'Seed ready' })
-      return {
-        id: body.id ?? `scene_${Date.now().toString(36)}`,
-        prompt: trimmed,
-        imageUrl: body.image_url ?? '',
-        seed: body.seed ?? null,
-        mock: !!body.mock,
-        createdAt: new Date().toISOString(),
-      }
-    } catch (err) {
-      onProgress?.({
-        stage: 'generating',
-        percent: 55,
-        message: `Scene API unavailable (${err instanceof Error ? err.message : 'error'}) — using MOCK seed`,
-      })
+  if (options.mode === 'mock') {
+    onProgress?.({ stage: 'generating', percent: 40, message: 'Rendering explicit MOCK preview…' })
+    await new Promise((r) => setTimeout(r, 350))
+    const { dataUrl, seed } = await generateMockSeedImage(trimmed, style)
+    onProgress?.({ stage: 'ready', percent: 100, message: 'MOCK seed ready (not AI-generated)' })
+    return {
+      id: `mock_${Date.now().toString(36)}`,
+      prompt: trimmed,
+      style,
+      imageUrl: dataUrl,
+      seed,
+      mock: true,
+      createdAt: new Date().toISOString(),
+      source: 'mock',
     }
   }
 
-  // Explicit mock path
-  await new Promise((r) => setTimeout(r, 600))
-  onProgress?.({ stage: 'generating', percent: 70, message: 'Rendering MOCK seed preview…' })
-  await new Promise((r) => setTimeout(r, 400))
-  const { dataUrl, seed } = await generateMockSeedImage(trimmed)
-  onProgress?.({ stage: 'ready', percent: 100, message: 'MOCK seed ready (not AI-generated)' })
-  return {
-    id: `mock_${Date.now().toString(36)}`,
-    prompt: trimmed,
-    imageUrl: dataUrl,
-    seed,
-    mock: true,
-    createdAt: new Date().toISOString(),
+  onProgress?.({stage:'submitting',percent:5,message:'Submitting to local SDXL Turbo…'})
+  const submitted=await sceneRequest('/scenes/generate',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt:trimmed,style,seed:options.seed??null,steps:4,perspective:'first_person'})})
+  for(;;) {
+    const job=await sceneRequest(submitted.poll_url)
+    if(job.status==='error') throw new Error(job.error||'SDXL generation failed')
+    if(job.status==='ready') {
+      onProgress?.({stage:'ready',percent:100,message:'Real SDXL image saved; ready for Waypoint'})
+      return fromMetadata(job.metadata)
+    }
+    onProgress?.({stage:'generating',percent:10+80*job.step/job.total_steps,
+      message:`${job.phase.replaceAll('_',' ')} · ${job.step}/${job.total_steps} denoising steps`})
+    await new Promise(r=>setTimeout(r,500))
   }
 }

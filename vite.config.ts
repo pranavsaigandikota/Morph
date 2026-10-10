@@ -27,10 +27,13 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/engine/, ''),
           ws: true,
+          rewriteWsOrigin: false,
+          headers: { Origin: "http://127.0.0.1:3000" },
           configure: (proxy) => {
             proxy.on('error', (err, _req, res) => {
               console.warn(`[vite] /engine → ${engineTarget} error:`, err.message)
-              if (res && 'writeHead' in res && typeof res.writeHead === 'function') {
+              if (res && 'writeHead' in res && typeof res.writeHead === 'function'
+                && !res.headersSent && !res.writableEnded && !res.destroyed) {
                 res.writeHead(502, { 'Content-Type': 'application/json' })
                 res.end(
                   JSON.stringify({

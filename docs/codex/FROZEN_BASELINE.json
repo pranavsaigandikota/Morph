@@ -1,0 +1,46 @@
+[
+  {
+    "path": "C:\\Users\\filma\\Documents\\Morph\\Codex Plus\\worldshift\\backend.py",
+    "sha256": "460ac878a793ce0c9f49650257ef33974d573ce59bb918637ac4c273631b8287"
+  },
+  {
+    "path": "C:\\Users\\filma\\Documents\\Morph\\Codex Plus\\worldshift\\protocol.py",
+    "sha256": "8431abffef08785d3222579724b3c5bc302d921c125a874e1ba8b9838620bd5d"
+  },
+  {
+    "path": "C:\\Users\\filma\\Documents\\Morph\\Codex Plus\\worldshift\\scenes_backend.py",
+    "sha256": "23fa63dce640499d476bc7d0fe0b2ee8d8a4c2b8f54a2c05981e10c15bc749e7"
+  },
+  {
+    "path": "C:\\Users\\filma\\Documents\\Morph\\Codex Plus\\worldshift\\scene_service.py",
+    "sha256": "859cbab0beb96f3c355ee6e6210be7e31d20f99381359279e790f11eb48901be"
+  },
+  {
+    "path": "C:\\Users\\filma\\Documents\\Morph\\Codex Plus\\worldshift\\service.py",
+    "sha256": "a5e88e67273fef752a6e88eed541ab0e616f70c93d1f91dc780a12af00612f6c"
+  },
+  {
+    "path": "C:\\Users\\filma\\Documents\\Morph\\Codex Plus\\worldshift\\__init__.py",
+    "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+  },
+  {
+    "path": "C:\\Users\\filma\\Documents\\Morph\\Codex Plus\\requirements.txt",
+    "sha256": "867f51659f192ff8bd047091ede2fca24d8d188e0670355a6571fb45a154c705"
+  },
+  {
+    "path": "C:\\Users\\filma\\Documents\\Morph\\Codex Plus\\requirements-scenes.txt",
+    "sha256": "608a21cc7fcb9772edf3e627a968f0b915dc829c65e87d8ad21d593e1de009f0"
+  },
+  {
+    "path": "C:\\Users\\filma\\Documents\\Morph\\Codex Plus\\start.ps1",
+    "sha256": "ae086c07148ccc4912b82d4f8b4f27cfd4de90b7e9dfbe1b3b701fad6c3a5241"
+  },
+  {
+    "path": "C:\\Users\\filma\\Documents\\Morph\\Codex Plus\\start-with-scenes.ps1",
+    "sha256": "6b886ee50acd634793abcda1c6bb88538ee93f2271cb8aa2a45f56d2c08e071b"
+  },
+  {
+    "path": "C:\\Users\\filma\\Documents\\Morph\\Codex Plus\\scripts\\benchmark.py",
+    "sha256": "df8585855f4bbf8db9d77d78ea9cdd472e0e08f077d2a4d84822cc210c6323ea"
+  }
+]

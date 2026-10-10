@@ -91,7 +91,8 @@ Record from the report JSON:
 In the browser overlay also note:
 
 - **Disp FPS** (~canvas paints, often ~20 by design)
-- **Dropped** (presentation-queue drops are OK; decode errors are not)
+- **Pres. Skips** (intentional client presentation-queue skips are OK; Decode Err are not)
+- **Srv Drops** (true server loss when backend reports it; otherwise “unavailable”)
 
 ## Rescue Lab without GPU
 

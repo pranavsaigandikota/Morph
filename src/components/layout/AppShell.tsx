@@ -3,16 +3,17 @@ import clsx from 'clsx'
 
 const NAV = [
   { to: '/', label: 'Home', end: true },
-  { to: '/create', label: 'Create World' },
-  { to: '/world', label: 'World Explorer' },
-  { to: '/simulation', label: 'Rescue Lab' },
-  { to: '/agents', label: 'Agent Eval' },
+  { to: '/create', label: 'Create' },
+  { to: '/world', label: 'Explore' },
+  { to: '/mission', label: 'Mission' },
+  { to: '/simulation', label: 'Replays' },
+  { to: '/agents', label: 'Showdown' },
 ]
 
 export function AppShell() {
   return (
-    <div className="min-h-full flex flex-col bg-void text-bright">
-      <header className="relative z-40 border-b border-line/80 bg-ink/90 backdrop-blur-md">
+    <div className="flex min-h-full flex-col bg-void text-bright">
+      <header className="relative z-40 border-b border-line/70 bg-ink/85 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
           <NavLink to="/" className="group flex items-center gap-2.5">
             <span className="grid h-8 w-8 place-items-center rounded-md border border-signal/40 bg-panel">
@@ -26,7 +27,7 @@ export function AppShell() {
             </span>
           </NavLink>
 
-          <nav className="flex items-center gap-1 overflow-x-auto text-sm">
+          <nav className="flex items-center gap-0.5 overflow-x-auto text-sm">
             {NAV.map((item) => (
               <NavLink
                 key={item.to}
@@ -34,7 +35,7 @@ export function AppShell() {
                 end={item.end}
                 className={({ isActive }) =>
                   clsx(
-                    'whitespace-nowrap rounded-md px-3 py-1.5 transition-colors',
+                    'whitespace-nowrap rounded-md px-2.5 py-1.5 transition-colors sm:px-3',
                     isActive
                       ? 'bg-elevated text-signal'
                       : 'text-soft hover:bg-panel hover:text-bright',

@@ -11,7 +11,7 @@
 3. `npm run dev` — **do not** set `USE_MOCK_ENGINE` (no silent mock fallback)
 4. Open http://127.0.0.1:4821/world → green **LIVE**, no MOCK badge
 5. Start Exploring → pointer lock → WASD + mouse change pixels
-6. Telemetry: Gen FPS (wire), Disp FPS (~20 paints), Dropped OK, decode errors not OK
+6. Telemetry: Gen FPS (wire), Disp FPS (~20 paints), Pres. Skips OK (client queue), Decode Err not OK; Srv Drops when backend reports them
 7. Pause / Reset / Reconnect
 8. `$env:ENGINE_URL='http://127.0.0.1:8000'; npm run test:stream60`
 9. Stop Codex → Rescue Lab at `/simulation` still loads static JSON; World Explorer shows connection error (not MOCK)
