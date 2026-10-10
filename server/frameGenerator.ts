@@ -70,10 +70,10 @@ function clamp(v: number, min: number, max: number): number {
 }
 
 /**
- * Procedurally paint a first-person research-facility view.
- * This is synthetic mock imagery for frontend development — not engine output.
+ * Procedurally paint a first-person research-facility view (RGB buffer).
+ * Synthetic mock imagery for frontend development — not engine output.
  */
-export function generateFacilityFrame(
+export function generateFacilityRgb(
   width: number,
   height: number,
   view: ViewState,
@@ -169,7 +169,35 @@ export function generateFacilityFrame(
   // Burn a small MOCK watermark into the bottom-right pixels
   stampMockLabel(rgb, width, height)
 
-  return encodePng(width, height, rgb)
+  return rgb
+}
+
+/** PNG-encoded facility frame (legacy mock path). */
+export function generateFacilityFrame(
+  width: number,
+  height: number,
+  view: ViewState,
+  frameId: number,
+): Buffer {
+  return encodePng(width, height, generateFacilityRgb(width, height, view, frameId))
+}
+
+/** RGBA buffer for jpeg-js encode. */
+export function generateFacilityRgba(
+  width: number,
+  height: number,
+  view: ViewState,
+  frameId: number,
+): Buffer {
+  const rgb = generateFacilityRgb(width, height, view, frameId)
+  const rgba = Buffer.alloc(width * height * 4)
+  for (let i = 0, j = 0; i < rgb.length; i += 3, j += 4) {
+    rgba[j] = rgb[i]!
+    rgba[j + 1] = rgb[i + 1]!
+    rgba[j + 2] = rgb[i + 2]!
+    rgba[j + 3] = 255
+  }
+  return rgba
 }
 
 function stampMockLabel(rgb: Buffer, width: number, height: number): void {

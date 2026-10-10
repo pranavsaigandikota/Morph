@@ -23,10 +23,14 @@ npm run dev
 ```
 
 - App: [http://127.0.0.1:4821](http://127.0.0.1:4821)
-- Mock API: `http://127.0.0.1:4822`
-- Health: `GET http://127.0.0.1:4822/health`
+- **Waypoint engine (Codex):** `http://127.0.0.1:8000` — preferred for World Explorer
+- Protocol mock (fallback): `http://127.0.0.1:4822` (`WS /stream`, same envelope)
 
-`npm run dev` starts the mock API and Vite together. Use `npm run mock` / `npm run dev:web` to run them separately.
+`npm run dev` probes `:8000` first; if Codex isn’t up it falls back to the protocol mock and keeps the **MOCK** badge on. Force the real target with `ENGINE_TARGET=http://127.0.0.1:8000 npm run dev`.
+
+```bash
+ENGINE_URL=http://127.0.0.1:8000 npm run test:stream60
+```
 
 ## Scripts
 
@@ -64,6 +68,7 @@ See [docs/INTEGRATION.md](docs/INTEGRATION.md) for world/sim/agent contracts, pr
 
 ## Design notes
 
+- World Explorer uses the **Codex Waypoint Phase-2** protocol (`docs/WAYPOINT_PROTOCOL.md`) — binary JPEG envelopes, not prerecorded playback.
 - Do **not** infer reliable physical geometry from generated video — use the simulator map.
-- Do **not** implement Waypoint inference or reinforcement learning in this repo.
-- Frame delivery uses a one-frame display policy to avoid unbounded buffering.
+- Do **not** implement Waypoint inference or RL training in this frontend.
+- Generated FPS counts wire JPEGs; presentation drops never reduce that counter.

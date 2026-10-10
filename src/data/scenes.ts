@@ -8,6 +8,7 @@ export const WORLD_SCENES: WorldScene[] = [
     prompt: 'First-person industrial research facility',
     atmosphere: 'Cold fluorescent light, concrete floors, sealed lab doors',
     available: true,
+    seed: null,
   },
   {
     id: 'warehouse',
@@ -16,6 +17,7 @@ export const WORLD_SCENES: WorldScene[] = [
     prompt: 'First-person logistics warehouse with tall aisles',
     atmosphere: 'Coming online for the next engine drop',
     available: false,
+    seed: null,
   },
   {
     id: 'lab_corridor',
@@ -24,5 +26,6 @@ export const WORLD_SCENES: WorldScene[] = [
     prompt: 'First-person sterile laboratory corridor',
     atmosphere: 'Coming online for the next engine drop',
     available: false,
+    seed: null,
   },
 ]

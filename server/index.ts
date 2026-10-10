@@ -12,7 +12,7 @@ import {
   resetSession,
   stopSession,
 } from './worldSessions.ts'
-import type { WorldSceneId, WorldStartRequest } from '../src/types/world.ts'
+import { attachWaypointStream, isEngineBusy } from './waypointStream.ts'
 
 const PORT = Number(process.env.MOCK_API_PORT ?? 4822)
 
@@ -20,23 +20,54 @@ const app = express()
 app.use(cors())
 app.use(express.json({ limit: '2mb' }))
 
+/** Waypoint Phase-2 health surface (Codex / Biome-compatible). */
+app.get('/healthz', (_req, res) => {
+  res.json({ status: 'ok' })
+})
+
+app.get('/readyz', (_req, res) => {
+  res.json({ ready: true, mode: 'mock', engine: 'MockWaypointEngine' })
+})
+
+app.get('/status', (_req, res) => {
+  res.json({
+    mode: 'mock',
+    engine: 'MockWaypointEngine',
+    model: 'mock-facility',
+    quant: null,
+    temporal_compression: 4,
+    busy: isEngineBusy(),
+    mock: true,
+  })
+})
+
+app.get('/actions', (_req, res) => {
+  res.json({
+    buttons: ['W', 'A', 'S', 'D', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'SPACE', 'SHIFT'],
+    mouse: { dx: '[-1,1]', dy: '[-1,1]' },
+    scroll: [-1, 0, 1],
+  })
+})
+
+app.get('/seeds', (_req, res) => {
+  res.json({ seeds: ['facility_default'] })
+})
+
 app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     mock: true,
-    services: {
-      world: 'ok',
-      simulation: 'ok',
-      agents: 'ok',
-    },
+    services: { world: 'ok', simulation: 'ok', agents: 'ok' },
   })
 })
 
+/** Legacy WorldShift contract (kept for older clients). */
 app.post('/world/start', (req, res) => {
-  const body = req.body as WorldStartRequest
-  const sceneId = (body.scene_id ?? 'facility') as WorldSceneId
-  const prompt = body.prompt ?? 'First-person industrial research facility'
-  const session = createSession(sceneId, prompt)
+  const body = req.body as { scene_id?: string; prompt?: string }
+  const session = createSession(
+    (body.scene_id as 'facility') ?? 'facility',
+    body.prompt ?? 'First-person industrial research facility',
+  )
   res.status(202).json({ session_id: session.id, status: 'starting' })
 })
 
@@ -124,9 +155,36 @@ app.get('/agents/replays/:id', (req, res) => {
 })
 
 const server = createServer(app)
-const wss = new WebSocketServer({ server, path: '/world/stream' })
 
-wss.on('connection', (socket, req) => {
+/** Codex / Waypoint Phase-2 live stream. */
+const wssWaypoint = new WebSocketServer({ noServer: true })
+/** Legacy WorldShift stream. */
+const wssLegacy = new WebSocketServer({ noServer: true })
+
+server.on('upgrade', (req, socket, head) => {
+  const url = new URL(req.url ?? '', `http://127.0.0.1:${PORT}`)
+  if (url.pathname === '/stream') {
+    wssWaypoint.handleUpgrade(req, socket, head, (ws) => {
+      wssWaypoint.emit('connection', ws, req)
+    })
+    return
+  }
+  if (url.pathname === '/world/stream') {
+    wssLegacy.handleUpgrade(req, socket, head, (ws) => {
+      wssLegacy.emit('connection', ws, req)
+    })
+    return
+  }
+  socket.destroy()
+})
+
+wssWaypoint.on('connection', (socket, req) => {
+  const url = new URL(req.url ?? '', `http://127.0.0.1:${PORT}`)
+  const seed = url.searchParams.get('seed')
+  attachWaypointStream(socket, seed)
+})
+
+wssLegacy.on('connection', (socket, req) => {
   const url = new URL(req.url ?? '', `http://127.0.0.1:${PORT}`)
   const sessionId = url.searchParams.get('session_id')
   if (!sessionId || !getSession(sessionId)) {
@@ -138,6 +196,7 @@ wss.on('connection', (socket, req) => {
 })
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`[worldshift-mock] listening on http://127.0.0.1:${PORT}`)
-  console.log(`[worldshift-mock] ws://127.0.0.1:${PORT}/world/stream?session_id=...`)
+  console.log(`[worldshift-mock] http://127.0.0.1:${PORT}`)
+  console.log(`[worldshift-mock] Waypoint WS  ws://127.0.0.1:${PORT}/stream?seed=…`)
+  console.log(`[worldshift-mock] Legacy  WS  ws://127.0.0.1:${PORT}/world/stream?session_id=…`)
 })
