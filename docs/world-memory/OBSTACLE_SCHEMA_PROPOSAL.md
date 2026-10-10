@@ -1,0 +1,15 @@
+# Optional visual obstacle observations — Cursor review required
+
+Status: PROPOSED, not an active API. No production protocol changes. Implement only after checkpoint/restoration/navigation validation and Cursor schema agreement. Cursor Cloud has no reachable connector in this session; this branch is the coordination artifact, not evidence Cursor approved it.
+
+Use ORIGINAL checkpoint bytes and SHA256 for analysis. Enhanced candidates are presentation assets and never geometry evidence. Proposed addition to existing checkpoint JSON: `obstacle_analysis` with status `disabled|queued|running|ready|error`, job ID, model revisions, raw-image SHA256, latency and observation list. Existing fields remain unchanged; missing field means unsupported/disabled. No new binary WebSocket format. Proposal for best-effort JSON `checkpoint_updated` payload only, authoritative checkpoint GET remains available.
+
+Each observation: `{observation_id,source_checkpoint_id,source_image_sha256,label,bbox_normalized:[x0,y0,x1,y1],direction:{screen_x,screen_y,bearing_rad:null},relative_depth:{value,units:"within_image_rank",near_is:"lower",scale_scope:"checkpoint",confidence:null},estimated_navigation:{x,z,yaw,pitch,segment_id,confidence},estimated_position:null,detection_score,review_status:"unreviewed",limitations:[]}`.
+
+No guessed metric position: monocular relative depth cannot be multiplied by arbitrary navigation units. Navigation association is the checkpoint camera estimate; obstacle world coordinates stay null until defensible calibration. Screen directions are observable; bearing stays null without verified FOV. Detection scores are model scores, not calibrated probabilities. Depth confidence stays null unless measured. Do not merge observations across checkpoints as the same physical object without evidence. This is a visual observation overlay, never a collision map or A* graph.
+
+Candidate CPU-only evaluation: pinned Depth Anything V2 Small (relative depth), separately pinned OWL-ViT for open-vocabulary candidate boxes including walls, buildings, vehicles, fallen trees, debris, flooded ground and visible pathways. CPU thread cap and single bounded worker; user selects checkpoints, no per-frame inference. Avoid loading either on Waypoint's GPU. Dense flood/path regions may need segmentation later; a detector box is not a verified traversable path or flood boundary. These models are candidates, not yet runtime-tested here.
+
+Before activation: review schema with Cursor; test raw-hash provenance, missing models/errors, bounded queue/storage, CPU contention during live streaming, false positives/negatives on clean and degraded screenshots, representative hurricane/city/underwater scenes. Record model revisions, timings, memory and human review. Disable by default; never substitute fabricated detections.
+
+Primary references: [Depth Anything V2 Small](https://huggingface.co/depth-anything/Depth-Anything-V2-Small), [OWL-ViT documentation](https://huggingface.co/docs/transformers/model_doc/owlvit).

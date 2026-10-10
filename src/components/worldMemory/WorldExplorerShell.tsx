@@ -8,7 +8,7 @@ import { CheckpointGallery } from './CheckpointGallery'
 import { CheckpointPreview } from './CheckpointPreview'
 import { RestoreOverlay } from './RestoreOverlay'
 import { getMockWorldMemoryClient } from '../../services/worldMemory/mockWorldMemoryClient'
-import type { InferredObstacle } from '../../types/worldMemory'
+import type { ObstacleObservation } from '../../types/worldMemory'
 
 interface Props {
   worldName: string
@@ -53,7 +53,7 @@ export function WorldExplorerShell(props: Props) {
   const memory = useWorldMemory()
   const [showTrail, setShowTrail] = useState(true)
   const [showObstacles, setShowObstacles] = useState(false)
-  const [selectedObstacle, setSelectedObstacle] = useState<InferredObstacle | null>(null)
+  const [selectedObstacle, setSelectedObstacle] = useState<ObstacleObservation | null>(null)
   const [saving, setSaving] = useState(false)
   const [centerTick, setCenterTick] = useState(false)
 
@@ -260,10 +260,10 @@ export function WorldExplorerShell(props: Props) {
                 showTrail={showTrail}
                 mock={memory.source === 'mock'}
                 showObstacles={showObstacles}
-                selectedObstacleId={selectedObstacle?.id ?? null}
+                selectedObstacleId={selectedObstacle?.observation_id ?? null}
                 onSelectObstacle={(obs) => {
                   setSelectedObstacle(obs)
-                  memory.selectCheckpoint(obs.checkpointId)
+                  memory.selectCheckpoint(obs.source_checkpoint_id)
                 }}
               />
             </div>
@@ -284,21 +284,23 @@ export function WorldExplorerShell(props: Props) {
                 {showObstacles && (
                   <>
                     <li>
-                      <span className="text-danger">◌</span> Blocked (inferred)
+                      <span className="text-danger">◌</span> Blocked suggestion
                     </li>
                     <li>
-                      <span className="text-hazard">◌</span> Hazard (inferred)
+                      <span className="text-hazard">◌</span> Hazard suggestion
                     </li>
                     <li>
-                      <span className="text-ok">◌</span> Possibly walkable
+                      <span className="text-ok">◌</span> Walkable suggestion
                     </li>
-                    <li className="text-[10px]">Opacity ≈ confidence — not collision mesh</li>
+                    <li className="text-[10px]">
+                      Screen-plane sketch · depth = image rank · not meters / not collision
+                    </li>
                   </>
                 )}
               </ul>
               <p className="mt-3 text-[10px] leading-relaxed text-muted">
-                Memory / navigation / obstacles are MOCK until Codex publishes the world-memory
-                contract. Live video remains the real Waypoint stream when connected.
+                Obstacle overlay follows Codex&apos;s proposed schema (MOCK data). Toggle stays off
+                by default; LIVE API not wired. Stream adapters unchanged.
               </p>
             </aside>
           </div>

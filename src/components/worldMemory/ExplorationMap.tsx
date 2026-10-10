@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   Checkpoint,
   EstimatedPose,
-  InferredObstacle,
+  ObstacleObservation,
   TrailPoint,
 } from '../../types/worldMemory'
 import { ObstacleOverlay } from './ObstacleOverlay'
@@ -19,7 +19,7 @@ interface Props {
   mock: boolean
   showObstacles: boolean
   selectedObstacleId: string | null
-  onSelectObstacle: (obs: InferredObstacle) => void
+  onSelectObstacle: (obs: ObstacleObservation) => void
 }
 
 export function ExplorationMap({

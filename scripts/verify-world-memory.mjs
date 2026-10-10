@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { MockWorldMemoryClient } from '../src/services/worldMemory/mockWorldMemoryClient.ts'
+import { suggestionClassFromLabel } from '../src/services/worldMemory/mockObstacles.ts'
 
 let failed = 0
 function check(name, fn) {
@@ -55,13 +56,32 @@ check('mock can expose enhancement candidates', () => {
 
 await c.saveView()
 await c.saveView()
-check('mock obstacles attach to non-start checkpoints', () => {
-  const withObs = c.getSession().checkpoints.filter((x) => (x.obstacles?.length ?? 0) > 0)
-  assert.ok(withObs.length >= 1)
-  const o = withObs[0].obstacles[0]
-  assert.ok(['blocked', 'hazard', 'walkable_hint'].includes(o.kind))
-  assert.ok(o.confidence > 0 && o.confidence <= 1)
-  assert.equal(o.checkpointId, withObs[0].id)
+check('Codex-shaped obstacle_analysis on non-start checkpoints', () => {
+  const ready = c
+    .getSession()
+    .checkpoints.filter((x) => x.obstacleAnalysis?.status === 'ready')
+  assert.ok(ready.length >= 1)
+  const o = ready[0].obstacleAnalysis.observations[0]
+  assert.equal(o.source_checkpoint_id, ready[0].id)
+  assert.equal(o.source_image_sha256, ready[0].imageSha256)
+  assert.equal(o.source_image_sha256.length, 64)
+  assert.equal(o.direction.bearing_rad, null)
+  assert.equal(o.relative_depth.units, 'within_image_rank')
+  assert.equal(o.estimated_position, null)
+  assert.equal(o.bbox_normalized.length, 4)
+  assert.ok(typeof o.detection_score === 'number')
+})
+
+check('suggestion classes are soft labels only', () => {
+  assert.equal(suggestionClassFromLabel('wall'), 'blocked')
+  assert.equal(suggestionClassFromLabel('flooded ground'), 'hazard')
+  assert.equal(suggestionClassFromLabel('visible pathway'), 'walkable_hint')
+})
+
+check('start analysis disabled with empty observations', () => {
+  const start = c.getSession().checkpoints[0]
+  assert.equal(start.obstacleAnalysis.status, 'disabled')
+  assert.equal(start.obstacleAnalysis.observations.length, 0)
 })
 
 console.log('\n=== WORLD MEMORY MOCK SUMMARY ===')

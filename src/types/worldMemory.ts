@@ -52,6 +52,11 @@ export interface Checkpoint {
   /** data URL or http(s) URL — only from backend/mock, never invented captions */
   imageUrl: string
   enhancedImageUrl?: string | null
+  /**
+   * SHA-256 of **original** checkpoint image bytes (provenance for analysis).
+   * Never the enhanced candidate hash.
+   */
+  imageSha256?: string | null
   pose?: EstimatedPose | null
   status: CheckpointStatus
   restorable: boolean
@@ -59,33 +64,69 @@ export interface Checkpoint {
   /** true = user Save View; false = auto mock/backend capture */
   manual: boolean
   /**
-   * AI-inferred obstacles near this checkpoint (Codex schema when live).
-   * Never treat as verified collision geometry.
+   * Codex proposal: docs/world-memory/OBSTACLE_SCHEMA_PROPOSAL.md
+   * Missing / null ⇒ unsupported or disabled — do not fabricate in LIVE.
    */
-  obstacles?: InferredObstacle[]
+  obstacleAnalysis?: ObstacleAnalysis | null
+}
+
+/** Aligns with Codex OBSTACLE_SCHEMA_PROPOSAL — not an active API. */
+export type ObstacleAnalysisStatus =
+  | 'disabled'
+  | 'queued'
+  | 'running'
+  | 'ready'
+  | 'error'
+
+export interface ObstacleAnalysis {
+  status: ObstacleAnalysisStatus
+  job_id?: string | null
+  model_revisions?: Record<string, string>
+  source_image_sha256: string
+  latency_ms?: number | null
+  observations: ObstacleObservation[]
+}
+
+export interface ObstacleObservation {
+  observation_id: string
+  source_checkpoint_id: string
+  source_image_sha256: string
+  label: string
+  bbox_normalized: [number, number, number, number]
+  direction: {
+    screen_x: number
+    screen_y: number
+    /** null unless backend verified FOV — never invent on the client */
+    bearing_rad: number | null
+  }
+  relative_depth: {
+    value: number | null
+    units: 'within_image_rank'
+    near_is: 'lower' | 'higher'
+    scale_scope: 'checkpoint'
+    confidence: number | null
+  }
+  /** Approximate camera-nav association only — not physical world meters. */
+  estimated_navigation: {
+    x: number
+    z: number
+    yaw: number
+    pitch: number
+    segment_id: string | null
+    confidence: number | null
+  } | null
+  /** Always null until Codex provides calibrated world position. */
+  estimated_position: null
+  detection_score: number
+  review_status: 'unreviewed' | 'accepted' | 'rejected'
+  limitations: string[]
 }
 
 /**
- * Provisional obstacle observation — replace fields when Codex publishes the
- * authoritative schema in docs/world-memory/API_CONTRACT.md.
+ * Soft UI suggestion only — never collision geometry.
+ * Derived from labels for styling; not a Codex wire field.
  */
-export type ObstacleKind = 'blocked' | 'hazard' | 'walkable_hint'
-
-export interface InferredObstacle {
-  id: string
-  checkpointId: string
-  kind: ObstacleKind
-  /** Relative bearing from checkpoint pose, degrees in session frame. */
-  directionDeg: number
-  /** Approximate distance in session units (not meters unless Codex says so). */
-  relativeDistance: number
-  /** 0–1; style opacity/dash from this. */
-  confidence: number
-  /** Optional footprint radius for map glyph. */
-  radius?: number
-  label?: string
-  source: MemorySource
-}
+export type ObstacleSuggestionClass = 'blocked' | 'hazard' | 'walkable_hint' | 'unknown'
 
 export interface RestoreJob {
   checkpointId: string

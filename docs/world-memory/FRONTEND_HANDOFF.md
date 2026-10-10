@@ -17,7 +17,8 @@
 | High Quality create mode | UI stub — disabled until Codex |
 | Live WorldMemoryClient | Not started (await contract) |
 | AI enhancement compare | MOCK candidates on some checkpoints |
-| AI-Inferred Obstacles map overlay | MOCK layer, toggle off by default |
+| AI-Inferred Obstacles map overlay | MOCK, Codex-shaped DTO, toggle **off by default**; LIVE not wired |
+| Schema reconcile | See `SCHEMA_COMPATIBILITY_REPORT.md` |
 
 ## Honest labels
 

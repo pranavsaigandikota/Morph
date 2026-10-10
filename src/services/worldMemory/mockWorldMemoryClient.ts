@@ -1,5 +1,5 @@
 import { MOCK_BADGE, mockCheckpointImage, mockEnhancedCheckpointImage } from './mockFixtures'
-import { mockObstaclesForCheckpoint } from './mockObstacles'
+import { mockImageSha256, mockObstacleAnalysisForCheckpoint } from './mockObstacles'
 import type {
   Checkpoint,
   EstimatedPose,
@@ -69,18 +69,27 @@ export class MockWorldMemoryClient implements WorldMemoryClient {
     epoch: number
   }): void {
     const pose = emptyPose(opts.epoch)
+    const startId = `mock-start-${opts.sessionId ?? 'local'}`
+    const startSha = mockImageSha256(startId)
     const startCp: Checkpoint = {
-      id: `mock-start-${opts.sessionId ?? 'local'}`,
+      id: startId,
       index: 0,
       name: 'Start',
       capturedAtMs: Date.now(),
       imageUrl: mockCheckpointImage(0, 'Start'),
       enhancedImageUrl: null,
+      imageSha256: startSha,
       pose,
       status: 'available',
       restorable: true,
       source: 'mock',
       manual: false,
+      obstacleAnalysis: {
+        status: 'disabled',
+        job_id: null,
+        source_image_sha256: startSha,
+        observations: [],
+      },
     }
     this.autoIndex = 0
     this.lastAutoAt = performance.now()
@@ -176,8 +185,10 @@ export class MockWorldMemoryClient implements WorldMemoryClient {
   private async captureInternal(manual: boolean, name: string): Promise<Checkpoint> {
     const index = this.session.checkpoints.length
     const withEnhance = index > 0 && index % 2 === 1
+    const id = `mock-cp-${Date.now()}-${index}`
+    const imageSha256 = mockImageSha256(id)
     const draft: Checkpoint = {
-      id: `mock-cp-${Date.now()}-${index}`,
+      id,
       index,
       name,
       capturedAtMs: Date.now(),
@@ -185,6 +196,7 @@ export class MockWorldMemoryClient implements WorldMemoryClient {
       enhancedImageUrl: withEnhance
         ? mockEnhancedCheckpointImage(index + 3, name)
         : null,
+      imageSha256,
       pose: { ...this.session.pose },
       status: withEnhance ? 'enhanced' : 'available',
       restorable: true,
@@ -193,7 +205,8 @@ export class MockWorldMemoryClient implements WorldMemoryClient {
     }
     const cp: Checkpoint = {
       ...draft,
-      obstacles: mockObstaclesForCheckpoint(draft),
+      // Analysis always keyed to original SHA — never enhanced bytes.
+      obstacleAnalysis: mockObstacleAnalysisForCheckpoint(draft),
     }
     this.session = {
       ...this.session,
