@@ -1,5 +1,7 @@
 # Backend API Gap Analysis
 
+> **Revision 4 status (2026-10-10):** Phase A0 is **complete, result NO-GO** for reliable fixed-angle turning (Codex: 21 GPU trials, 3 scenes; trial report not yet published in the repo). **Guided manual calibration is approved without degree mapping** (soft labels only). Automated or fixed-angle calibration is **BLOCKED(A0 NO-GO)**, not scheduled. Canonical LIVE contract: [LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md](LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md). Source-qualified doc links: [DOCUMENTATION_SOURCES.md](DOCUMENTATION_SOURCES.md).
+
 Reviewed 2026-10-10 against `feature/worldshift-spatial-memory-backend` @ `ad71609`
 (`experiments/backend/worldshift/{memory.py,memory_service.py,service.py}`) and the frontend at
 `feature/worldshift-visual-memory-ui` @ `0bf4f9b`. This document **does not invent APIs**. Anything not in
@@ -37,7 +39,7 @@ unchanged and outside the scope of this analysis.
 | `headingDeg` | `yaw` (rad, [−π, π)) | `((yaw·180/π) % 360 + 360) % 360` |
 | `uncertainty?` | `confidence` (heuristic, 1 = best) | **Do not convert.** Add an optional `navConfidence` field and show it as qualitative and heuristic |
 | `epoch` | `epoch` | copy |
-| `updatedAtMs` | `server_elapsed_ms` (server `perf_counter` clock) | `updatedAtMs = performance.now()` at receipt. **Never subtract server and client clocks** (API_CONTRACT rule) |
+| `updatedAtMs` | `server_elapsed_ms` (server `perf_counter` clock) | `updatedAtMs = performance.now()` at receipt. **Never subtract server and client clocks** ([backend World Memory API v1](https://github.com/pranavsaigandikota/Morph/blob/ad71609995c05199fe8951a74cc289b11dc0c4e7/docs/world-memory/API_CONTRACT.md) rule) |
 | — | `pitch`, `units:'estimated_units'`, `cumulative_movement`, `segment_id`, `relationship`, `control_seq` | Add optional pass-through fields. **`segment_id` is required** for correct trail breaks |
 
 ### 2.2 Trail: `TrailPoint` ↔ `trajectory[]`
@@ -122,7 +124,7 @@ and proposed calibration and reset flows may diverge.
 | Assumption | Where | Correction |
 |---|---|---|
 | Live memory can come from the 8000 production backend | Frontend default origin | Memory API exists only on 8002. Use `ENGINE_TARGET`/env, not code changes |
-| `docs/world-memory/API_CONTRACT.md` is "PENDING" | Frontend branch placeholder | The backend branch has the v1 contract at the **same path**. When branches meet, keep the backend version and drop the placeholder |
+| `docs/world-memory/API_CONTRACT.md` is "PENDING" | Frontend branch placeholder | The backend branch has the v1 contract at the **same path**. **Revision 4:** cite by source and commit only ([DOCUMENTATION_SOURCES.md](DOCUMENTATION_SOURCES.md)). When branches meet, keep the backend version and drop the placeholder |
 | Navigation at 5–10 Hz exists | FRONTEND_REQUIREMENTS | It is 1 Hz today |
 | Manual vs auto is known | Frontend `manual` | Needs `capture_reason` (PROPOSED K5) |
 | Enhancement is available | Mock `enhancementSupported:true` | PLANNED; must be false in live |
@@ -154,7 +156,7 @@ Implications:
 - The copied pose means the new segment starts *on top of* the anchor's old marker. That is honest only
   with a "restored from" label. Without `restored_from_checkpoint_id` (K4), the frontend can attribute
   the jump using the restore HTTP response (`checkpoint_id`) or the `recovery` object.
-- `geometric_continuity` is implicit today (always none). The rule lives in documentation (API_CONTRACT:
+- `geometric_continuity` is implicit today (always none). The rule lives in documentation ([backend World Memory API v1](https://github.com/pranavsaigandikota/Morph/blob/ad71609995c05199fe8951a74cc289b11dc0c4e7/docs/world-memory/API_CONTRACT.md):
   "Position proximity is not physical return") and in the frontend's `continuous:false`.
 - `/world/reset` (also used by the frontend's Stability Mode auto-restore through `stream.reset()`) emits
   **no memory event**, only a stream `{type:'status', status, epoch}`. A polling memory client detects it

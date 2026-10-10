@@ -1,5 +1,7 @@
 # Visual Spatial Memory and Calibration: Architecture
 
+> **Revision 4 status (2026-10-10):** Phase A0 is **complete, result NO-GO** for reliable fixed-angle turning (Codex: 21 GPU trials, 3 scenes; trial report not yet published in the repo). **Guided manual calibration is approved without degree mapping** (soft labels only). Automated or fixed-angle calibration is **BLOCKED(A0 NO-GO)**, not scheduled. Canonical LIVE contract: [LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md](LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md). Source-qualified doc links: [DOCUMENTATION_SOURCES.md](DOCUMENTATION_SOURCES.md).
+
 Status: **PROPOSED** (design only, not implemented). Written 2026-10-10 against branch
 `feature/worldshift-spatial-memory-backend` @ `ad71609`. It extends that branch's isolated native720
 service (port 8002). Production 8000 and release `6423304` are untouched.
@@ -19,6 +21,7 @@ Companion documents in this folder:
 | [BACKEND_API_GAP_ANALYSIS.md](BACKEND_API_GAP_ANALYSIS.md) | Implemented API vs frontend DTOs: mismatches and gaps (revision 2) |
 | [CURSOR_IMPLEMENTATION_HANDOFF.md](CURSOR_IMPLEMENTATION_HANDOFF.md) | What Cursor can build now (revision 2) |
 | [CODEX_CALIBRATION_HANDOFF.md](CODEX_CALIBRATION_HANDOFF.md) | A0 protocol and A0-dependent backend work (revision 2) |
+| [DOCUMENTATION_SOURCES.md](DOCUMENTATION_SOURCES.md) | Canonical, source-qualified, commit-pinned links; resolves the duplicate `API_CONTRACT.md` path (revision 4) |
 | [LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md](LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md) | **Authoritative LIVE v1 contract**: answers Cursor's eight API questions; field-level TS, JSON, state machines, compatibility matrix (revision 3) |
 
 Revision 2 (2026-10-10) reviewed `feature/worldshift-visual-memory-ui` @ `0bf4f9b` and corrected

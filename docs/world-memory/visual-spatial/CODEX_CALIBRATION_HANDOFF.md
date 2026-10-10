@@ -1,5 +1,7 @@
 # Codex Handoff: Phase A0 Turn-Gain Probe and Calibration-Dependent Backend Work
 
+> **Revision 4 status (2026-10-10):** Phase A0 is **complete, result NO-GO** for reliable fixed-angle turning (Codex: 21 GPU trials, 3 scenes; trial report not yet published in the repo). **Guided manual calibration is approved without degree mapping** (soft labels only). Automated or fixed-angle calibration is **BLOCKED(A0 NO-GO)**, not scheduled. Canonical LIVE contract: [LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md](LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md). Source-qualified doc links: [DOCUMENTATION_SOURCES.md](DOCUMENTATION_SOURCES.md).
+
 **For:** Codex (owner of `feature/worldshift-spatial-memory-backend`, isolated 8002 service; running A0)
 **Read with:** [CALIBRATION_WORKFLOW.md](CALIBRATION_WORKFLOW.md), [BACKEND_API_GAP_ANALYSIS.md](BACKEND_API_GAP_ANALYSIS.md)
 
@@ -9,7 +11,7 @@
   it is. The calibration seam (K9) lives in the service loop (`service.py run()`), which chooses *which
   controls* are passed to `generate`. It does not change how they are processed.
 - One GPU world at a time. HF offline. Unique run folders. Production 8000 and release `6423304` untouched.
-- All new API fields are **additive and optional**. Update `docs/world-memory/API_CONTRACT.md` on the
+- All new API fields are **additive and optional**. Update the [backend World Memory API v1](https://github.com/pranavsaigandikota/Morph/blob/ad71609995c05199fe8951a74cc289b11dc0c4e7/docs/world-memory/API_CONTRACT.md) (`docs/world-memory/API_CONTRACT.md` on the
   backend branch with an explicit status (IMPLEMENTED / PLANNED / PROPOSED) for each change.
 
 ## 1. Phase A0 protocol (refined after the frontend review)
@@ -97,11 +99,11 @@ precision.
 
 ## 4. Backend work items, prioritised
 
-All are additive. Each must update API_CONTRACT.md and RESULTS.md with tested status.
+All are additive. Each must update the backend World Memory API v1 and the backend RESULTS.md with tested status.
 
 | ID | Item | Why (consumer) | A0? | Priority |
 |---|---|---|---|---|
-| **K8** | Resolve the `docs/world-memory/API_CONTRACT.md` path collision: publish the v1 contract with a status table, and tell Cursor to drop its "PENDING" placeholder at merge | Otherwise either merge conflicts or the wrong contract wins | No | **P0** |
+| **K8** | Resolve the `docs/world-memory/API_CONTRACT.md` path collision. **Revision 4:** interim resolution is source-qualified links ([DOCUMENTATION_SOURCES.md](DOCUMENTATION_SOURCES.md)); at merge, rename the backend file to `WORLD_MEMORY_API_V1.md` and drop the frontend placeholder | Otherwise either merge conflicts or the wrong contract wins | No | **P0** |
 | **K3** | Invariant and test: every memory event's `epoch` equals the current service epoch at emit time, and none is emitted between `epoch += 1` and the post-restore `status` message | The frontend stream hook adopts the epoch from **any** JSON message and flushes frames | No | **P0** |
 | **K5** | `capture_reason: 'initial_seed'|'manual'|'periodic'` on checkpoints | The frontend cannot reliably tell manual from auto (it currently string-matches `label`) | No | P1 |
 | **K4** | `restored_from_checkpoint_id` on the `restored_view` trajectory point (null for reset → use `anchor:'reset_to_seed'`) | "Restored from" labels on the map | No | P1 |
@@ -118,7 +120,7 @@ All are additive. Each must update API_CONTRACT.md and RESULTS.md with tested st
 
 ## 5. Hand-back to Cursor
 
-When each item lands: update API_CONTRACT.md status, add a RESULTS.md entry with test evidence, and notify
+When each item lands: update the backend World Memory API v1 status, add a RESULTS.md entry with test evidence, and notify
 Cursor with the commit SHA. Cursor's live client then enables the corresponding field (see
 [CURSOR_IMPLEMENTATION_HANDOFF.md §2](CURSOR_IMPLEMENTATION_HANDOFF.md#2-do-not-implement-yet)).
 Calibration becomes live only after A0's `turn_gain_probe.json` is committed **and** K9 passes T1/T2 on

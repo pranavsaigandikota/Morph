@@ -1,5 +1,7 @@
 # Frontend Compatibility Report
 
+> **Revision 4 status (2026-10-10):** Phase A0 is **complete, result NO-GO** for reliable fixed-angle turning (Codex: 21 GPU trials, 3 scenes; trial report not yet published in the repo). **Guided manual calibration is approved without degree mapping** (soft labels only). Automated or fixed-angle calibration is **BLOCKED(A0 NO-GO)**, not scheduled. Canonical LIVE contract: [LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md](LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md). Source-qualified doc links: [DOCUMENTATION_SOURCES.md](DOCUMENTATION_SOURCES.md).
+
 Reviewed 2026-10-10. Read-only review; no frontend code was changed.
 
 | | Branch | Commit |
@@ -136,7 +138,7 @@ The internal enum can stay.
 - The frontend defaults to `http://127.0.0.1:8000` (`engineConfig.ts`, `vite.config.ts`). Memory routes
   exist only on the isolated **8002** service. Live memory demos need `ENGINE_TARGET=http://127.0.0.1:8002`
   (supported by `vite.config.ts`) or `VITE_WORLD_API_BASE_URL`, without code changes.
-- **Path collision:** both branches contain `docs/world-memory/API_CONTRACT.md`. The frontend's copy is a
+- **Path collision** (revision 4: cite by source and commit, see [DOCUMENTATION_SOURCES.md](DOCUMENTATION_SOURCES.md))**:** both branches contain `docs/world-memory/API_CONTRACT.md`. The frontend's copy is a
   17-line "PENDING" placeholder; the backend's copy is the real v1 contract. Merging either branch into
   the other will conflict. The backend version must win (BACKEND_API_GAP_ANALYSIS §6).
 - Both branches contain `docs/world-memory/OBSTACLE_SCHEMA_PROPOSAL.md`. The frontend's copy is identical

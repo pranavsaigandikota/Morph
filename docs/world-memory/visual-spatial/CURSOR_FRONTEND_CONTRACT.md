@@ -1,6 +1,6 @@
 # Live Visual Memory Map: Frontend Contract (Feature 5)
 
-Status: **PROPOSED contract v0.1**, additive to [API_CONTRACT.md](../API_CONTRACT.md) (World Memory API v1).
+Status: **PROPOSED contract v0.1**, additive to the [backend World Memory API v1](https://github.com/pranavsaigandikota/Morph/blob/ad71609995c05199fe8951a74cc289b11dc0c4e7/docs/world-memory/API_CONTRACT.md). **Revision 4:** for LIVE calibration and memory, the canonical contract is [LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md](LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md); this document remains the longer-term PROPOSED design.
 Cursor owns the UI. Endpoints marked PLANNED do not exist yet. Build against the MOCK fixtures in §7 until
 the backend reports them as implemented in RESULTS.md.
 
@@ -180,7 +180,7 @@ New `MemoryEvent.type` values (payloads in brackets):
 
 Fixtures must include `"mock": true` at the root and set `evidence:"mock"` on every value. Thumbnails must
 be visibly watermarked placeholders, never real-looking scene images. The mock event sequence extends the
-one in API_CONTRACT.md:
+one in the backend World Memory API v1:
 
 ```
 hello → frame/JPEG pairs → calibration_progress(running) ×5 → calibration_progress(completed)

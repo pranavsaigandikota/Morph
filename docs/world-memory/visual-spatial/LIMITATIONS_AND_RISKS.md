@@ -1,5 +1,7 @@
 # Technical Limitations and Risks
 
+> **Revision 4 status (2026-10-10):** Phase A0 is **complete, result NO-GO** for reliable fixed-angle turning (Codex: 21 GPU trials, 3 scenes; trial report not yet published in the repo). **Guided manual calibration is approved without degree mapping** (soft labels only). Automated or fixed-angle calibration is **BLOCKED(A0 NO-GO)**, not scheduled. Canonical LIVE contract: [LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md](LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md). Source-qualified doc links: [DOCUMENTATION_SOURCES.md](DOCUMENTATION_SOURCES.md).
+
 ## 1. What can and cannot be established
 
 | Question | Answer with this system | Class |
@@ -74,11 +76,13 @@ must handle them.
 | R13 | DINOv2 weights unavailable offline at demo time | Low | Medium | Pin and pre-cache; fall back to the cached CLIP B/32 with `embedding_model` recorded | Phase C |
 | R14 | Race between calibration and user restore/reset/stop | Medium | Medium | Calibration holds a state flag; lifecycle actions cancel it; the safe exit is idempotent | T2, T10 |
 | R15 | ~~Branch `feature/worldshift-visual-memory-ui` unseen~~ **Resolved (rev. 2):** the branch exists (@ `0bf4f9b`). The first revision's "not found" came from a local TLS failure: Norton intercepts HTTPS, and `git -c http.sslBackend=schannel` with verification on resolved it. Reviewed in FRONTEND_COMPATIBILITY_REPORT. Residual risk: the frontend's provisional types differ from the backend wire shape (axes, degrees, confidence polarity) | Resolved → Medium | Medium | A single mapping module with unit tests (Cursor C1) | Cursor |
-| R16 | `docs/world-memory/API_CONTRACT.md` exists on both branches with different content (frontend "PENDING" placeholder vs backend v1 contract) | High at merge | Medium | The backend version wins; Codex K8 | Codex + Cursor |
+| R16 | `docs/world-memory/API_CONTRACT.md` exists on both branches with different content (frontend "PENDING" placeholder vs backend v1 contract) | Mitigated (rev. 4) | Medium | Source-qualified, commit-pinned links ([DOCUMENTATION_SOURCES.md](DOCUMENTATION_SOURCES.md)); at merge, rename the backend file and drop the placeholder (K8) | Codex + Cursor |
 | R17 | The frontend stream hook adopts the epoch from **any** JSON message, so a memory event with a mismatched epoch would flush presentation frames | Low today | High | Codex invariant K3 with a test; frontend stream code frozen | Codex |
 | R18 | The frontend defaults to port 8000, which has no memory routes; a live demo silently stays on MOCK or 404s | Medium | Medium | `ENGINE_TARGET=http://127.0.0.1:8002`; live client shows "Memory unavailable" on 404 | Cursor |
 | R19 | Frontend anchor policy (`waypoint_frame` never restorable) vs backend review-gated restore leaves the gallery's restore buttons mostly disabled | High | Low | Product decision, documented. Default `approved && policy` | Product owner |
-| R20 | A0 finds rate-dependent or scene-dependent turn gain, so no single units-per-degree value exists | Medium | Medium | Report `null`, use small-arc or disable calibration; never average across scenes | Codex |
+| R20 | A0 finds rate-dependent or scene-dependent turn gain, so no single units-per-degree value exists | **Occurred (rev. 4):** A0 NO-GO, 21 trials, 3 scenes | Medium | Automated/fixed-angle calibration BLOCKED(A0 NO-GO); guided manual calibration with soft labels approved; no degree values displayed | Codex / Claude |
+| R21 | A0 NO-GO evidence is not published in the repository, so the decision is not independently auditable | Current | Low–Medium | Codex commits the trial report on the backend branch; link it in DOCUMENTATION_SOURCES | Codex |
+| R22 | `:8000` is mistaken for a 360p product fallback | Medium | Medium | `:8000` is archived, regression-only; product acceptance on `:8002` (LIVE contract §8) | All |
 
 ## 5. Claims we must not make
 

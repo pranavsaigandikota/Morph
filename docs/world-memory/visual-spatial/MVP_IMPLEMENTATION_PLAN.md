@@ -1,5 +1,7 @@
 # MVP Implementation Plan
 
+> **Revision 4 status (2026-10-10):** Phase A0 is **complete, result NO-GO** for reliable fixed-angle turning (Codex: 21 GPU trials, 3 scenes; trial report not yet published in the repo). **Guided manual calibration is approved without degree mapping** (soft labels only). Automated or fixed-angle calibration is **BLOCKED(A0 NO-GO)**, not scheduled. Canonical LIVE contract: [LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md](LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md). Source-qualified doc links: [DOCUMENTATION_SOURCES.md](DOCUMENTATION_SOURCES.md).
+
 Status: **PLAN**. No code in this plan has been written yet. Work belongs on
 `feature/worldshift-spatial-memory-backend` (backend, isolated port 8002) and a Cursor UI branch.
 Production 8000 and release `6423304` stay untouched, and the frozen-hash manifest check must keep passing.

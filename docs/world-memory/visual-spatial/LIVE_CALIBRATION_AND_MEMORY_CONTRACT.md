@@ -3,7 +3,9 @@
 **Answers:** `docs/ux/API_QUESTIONS_FOR_CLAUDE.md` on `cursor/worldshift-ux-polish-cd95` @ `535f02e`
 **Verified against:** backend `feature/worldshift-spatial-memory-backend` @ `ad71609` (isolated, port **8002**) and
 production `Codex Plus/worldshift` (port **8000**)
-**Date:** 2026-10-10 · **Phase A0 (turn gain): NOT complete**
+**Date:** 2026-10-10 · **Revision 4** · **Phase A0 (turn gain): COMPLETE, result NO-GO** for reliable fixed-angle turning
+(reported by Codex: 21 GPU trials across 3 scenes; the raw trial report is **not yet published in the repository** and should be
+committed on the backend branch for traceability) · **Guided manual calibration: APPROVED, without degree mapping**
 
 ## Status tags (on every field and endpoint)
 
@@ -11,7 +13,8 @@ production `Codex Plus/worldshift` (port **8000**)
 |---|---|
 | **IMPLEMENTED** | Exists in code on 8002 @ `ad71609` and was GPU-tested in isolation (RESULTS.md). Callable today |
 | **PROPOSED** | Designed in this folder; not callable. Build only behind MOCK |
-| **BLOCKED(x)** | Cannot be specified honestly until dependency *x* lands (for example A0, K9) |
+| **BLOCKED(x)** | Cannot be specified honestly until dependency *x* lands (for example K13) |
+| **BLOCKED(A0 NO-GO)** | Ruled out by the A0 result. **Not scheduled.** Would need a new experiment with a different method; do not build toward it |
 | **CLIENT** | Computed or held by the frontend only; never sent as backend truth |
 
 ## 0. The decision in one paragraph
@@ -21,8 +24,9 @@ direction with their own mouse, waits until they stop sending input, and capture
 **IMPLEMENTED** `POST /world/checkpoints/save`. Each capture is therefore a genuine Waypoint frame with a
 server-computed SHA-256, applied-control history and a nominal pose estimate. It uses only IMPLEMENTED
 endpoints, so it **does not depend on A0**. It only runs against **8002**. **Automated** camera turning
-(by script or backend controller) is **BLOCKED(A0, K9)**, because nobody yet knows how many mouse units
-make a 90° turn. After the sweep, calibration exits through the IMPLEMENTED `POST /world/reset`, so
+(by script or backend controller) is **BLOCKED(A0 NO-GO)**: Codex's 21-trial A0 found no reliable mapping
+from mouse units to a fixed turn angle across three scenes. **Revision 4: guided manual calibration is
+approved without any degree mapping.** Directions are *soft labels* the player assigns, never angles. After the sweep, calibration exits through the IMPLEMENTED `POST /world/reset`, so
 exploration starts from the clean seed.
 
 ---
@@ -39,20 +43,22 @@ exploration starts from the clean seed.
   (≤140 ms) older than the one saved, so the UI must display the **returned** image, not the canvas.
 - Captures are tagged through the IMPLEMENTED `label` field: `calibration:<calibration_id>:<kind>:<direction>`
   (≤100 chars). A dedicated `capture_reason:'calibration'` field is **PROPOSED (K5)**.
-- **Directions are intended, not measured.** `intendedYawDeg` (Cursor's `DIRECTION_YAW_DEG`) is a UI
-  schematic. The backend's `navigation.yaw` for the capture is a nominal estimate from applied mouse units
-  (0.002 rad/unit, arbitrary until A0).
+- **Directions are soft labels, not angles** (revision 4). A capture may be labelled `forward`, `right`, …
+  or `unlabeled`. No degree value is attached in LIVE: `intendedYawDeg` is **removed** (always `null`), and
+  Cursor's `DIRECTION_YAW_DEG` is MOCK-only. *(Superseded text kept for history:* `intendedYawDeg` was a UI
+  schematic.) The backend's `navigation.yaw` for the capture is a nominal estimate from applied mouse units
+  (0.002 rad/unit; arbitrary, and A0 found no reliable mapping to a visual angle).
 - **Default LIVE plan:** `forward → right → left → forward (return check)`. **Behind is off by default**:
   a 180° turn is the highest-drift view (CALIBRATION_WORKFLOW §4). It can be enabled as an option.
-  Eight-direction is **BLOCKED(A0 + test T1)**.
+  Eight *labels* may be offered as soft labels. An eight-direction *angular* layout is **BLOCKED(A0 NO-GO)**.
 
 ### Q2. Who turns the camera?
 
 | Mode | Turning by | Status |
 |---|---|---|
 | `guided_manual` | The **player**, through existing controls (`lookControl.ts`, unchanged); the UI only prompts and waits | **IMPLEMENTED endpoints → buildable now (8002)** |
-| `automated_backend` | Backend `CalibrationController` through a `ControlSource` seam | **BLOCKED(A0, K9)** |
-| `automated_frontend` (UI scripts `mouse_dx` over WS) | — | **Not recommended.** Browser timer and rAF throttling (NATIVE720_UPDATE measured callback gaps up to ~1 s) plus the 0.5 s server control timeout make the turn amounts non-deterministic. Use only as a fallback if K9 is rejected, and only after A0 |
+| `automated_backend` | Backend `CalibrationController` through a `ControlSource` seam | **BLOCKED(A0 NO-GO)**; K9 not scheduled |
+| `automated_frontend` (UI scripts `mouse_dx` over WS) | — | **BLOCKED(A0 NO-GO); not permitted.** Browser timer and rAF throttling (NATIVE720_UPDATE measured callback gaps up to ~1 s) plus the 0.5 s server control timeout make the turn amounts non-deterministic. Use only as a fallback if K9 is rejected, and only after A0 |
 
 The UI must **not** synthesise turning in guided mode. It must not invent a degree value either: on-screen
 copy says "Turn to roughly your right", not "Turn 90°".
@@ -67,7 +73,7 @@ copy says "Turn to roughly your right", not "Turn 90°".
 | Epoch | Increments on every `reset` and `restore`. Old-epoch frames are flushed | IMPLEMENTED |
 | Segment | New `segment_id` on every reset/restore; `relationship:'restored_view'` on the first point. **Trail breaks on `segment_id` change** (`continuous:false` in Cursor's model) | IMPLEMENTED |
 | Restored pose | The backend **copies the anchor checkpoint's pose** into the new segment (reset → checkpoint 0 = origin). Draw a "↺ restored / reset" marker, never a connecting line | IMPLEMENTED (behaviour) |
-| Calibration rays | v1: draw **intended** directions as a schematic fan at the forward capture's pose, styled "intended". Rays at the backend's nominal yaw are **BLOCKED(A0)**: before A0 they can disagree arbitrarily with what the player saw | CLIENT now / BLOCKED |
+| Calibration rays | **Revision 4: no angular rays.** Show calibration captures as markers at their *estimated* pose (usually near the origin) with the soft label as text. Bearing = `null`. Rays at nominal yaw or at label angles are **BLOCKED(A0 NO-GO)** | CLIENT / BLOCKED(A0 NO-GO) |
 | Uncertainty ring | No backend uncertainty radius exists. `sigma_xy`/`sigma_yaw` are **PROPOSED (K7)**. LIVE: no ring sized from data; optionally a fixed-size ring with a qualitative `confidence` band labelled "heuristic" | BLOCKED(K7) |
 
 ### Q4. Recovery anchors, approval, SHA-256
@@ -110,18 +116,19 @@ the mismatches found are in §2.6.
 | Obstacle `detection_score` | MODEL SCORE, uncalibrated | PROPOSED | MOCK only |
 | Obstacle `relative_depth.confidence`, `bearing_rad`, `estimated_position` | UNAVAILABLE (always null) | PROPOSED | — |
 | Revisit / place-match strength | UNAVAILABLE | PROPOSED (Phase E) | — |
-| Turn gain (units per degree) | UNAVAILABLE | BLOCKED(A0) | — |
+| Turn gain (units per degree) | UNAVAILABLE | BLOCKED(A0 NO-GO) | Never display |
 
 ### Q7. Refresh World vs checkpoint restore
 
-| Path | 8000 (production, 360p model) | 8002 (isolated native 720p) | Product use |
+| Path | 8000 (**archived** release, 360p model; regression testing only) | 8002 (isolated native 720p; **product target**) | Product use |
 |---|---|---|---|
 | `POST /world/reset {session_id}` | IMPLEMENTED | IMPLEMENTED (+ new memory segment at checkpoint 0) | **Refresh World**: the approved default recovery path |
 | `POST /world/checkpoints/restore` | **Does not exist** (404) | IMPLEMENTED, review-gated, GPU-tested in isolation | Explicit "Restore this view" on **approved** anchors, 8002 only |
 | Automatic restore | Cursor's Stability Mode calls reset (CLIENT policy) | Same | Unchanged |
 | Degradation-triggered suggestion | — | PROPOSED (Phase F) | — |
 
-So, yes: **reset is the only recovery path on 8000**, and it remains the default on 8002. A
+So, yes: **reset is the only recovery path on 8000**, and it remains the default on 8002. *(Revision 4: 8000 is an archived
+service for regression testing only, **not a 360p product fallback**; new Explorer features are never required of it.)* A
 restore-from-image API exists **only on 8002**. It is usable for explicit, approved-anchor restores but is
 not yet merged or production. User preference recorded in NATIVE720_UPDATE: original-seed restoration,
 which is what reset does.
@@ -131,7 +138,7 @@ which is what reset does.
 The **wire protocol is identical** on 8000 and 8002 (same `hello`, `frame` + binary JPEG envelope,
 `display_ack`, `control`, `control_ack`, `status`, credit window of 8). Differences a frontend can see:
 
-| Item | 8000 | 8002 |
+| Item | 8000 (archived, regression only) | 8002 (product target) |
 |---|---|---|
 | `/health.model` | `Overworld/Waypoint-1.5-1B-360P` | `Overworld/Waypoint-1.5-1B` |
 | `frame.width × height` | 640 × 360 | **1280 × 720** |
@@ -146,6 +153,26 @@ stream as product-native only if `health.model === 'Overworld/Waypoint-1.5-1B'` 
 memory/calibration only when both conditions hold. Remaining Codex dependencies are in §6.
 
 ---
+
+## 1A. Calibration capture acceptance ≠ recovery-anchor approval (revision 4)
+
+These are two different decisions about two different things. They must never share a button, a field
+or an endpoint.
+
+| | Calibration capture acceptance | Recovery-anchor approval |
+|---|---|---|
+| Question asked | "Is this a usable view for my look-around memory?" | "Is this frame clean enough to **restart generation from**?" |
+| Where stored | CLIENT `LiveCalibrationCapture.calibrationReview` (`pending · accepted · rejected · retaken`) | Server `quality.reviewed` / `quality.approved` on the checkpoint |
+| Endpoint | **None** (server calibration review is PROPOSED only) | `POST /world/checkpoints/{id}/review` (IMPLEMENTED) |
+| Effect | Shown or hidden in the calibration strip and gallery filter | Enables `POST /world/checkpoints/restore` for that checkpoint (IMPLEMENTED; 409 otherwise) |
+| Default | `pending` | `reviewed:false, approved:false` |
+| Retake | New capture = new checkpoint; old one marked `retaken` (CLIENT) and **kept** as evidence | n/a |
+| Can one imply the other? | **No.** Accepting a calibration view never calls `/review` | **No.** Approving an anchor never marks a calibration capture accepted |
+
+If a player explicitly wants a calibration view as a recovery anchor, that is a second, separate action
+in the checkpoint gallery (the anchor-approval flow, subject to the CLIENT anchor policy). Calibration
+captures are Waypoint frames (`kind:'waypoint_frame'`), so the current strict frontend policy will
+usually refuse them as anchors anyway.
 
 ## 2. Field-level TypeScript contract
 
@@ -267,11 +294,11 @@ export interface WireMemoryEvent {
 
 export type CalibrationMode =
   | 'guided_manual'        // IMPLEMENTED endpoints; player turns. Buildable now (8002)
-  | 'automated_backend'    // BLOCKED(A0, K9)
+  | 'automated_backend'    // BLOCKED(A0 NO-GO): not scheduled
 
 export type CalibrationCaptureKind = 'capture' | 'return_check'
 
-/** LIVE default: behind omitted (highest drift); eight-direction BLOCKED(A0+T1) */
+/** Suggested PROMPT ORDER only (rev. 4); soft labels, no angles. Behind omitted by default (highest drift) */
 export const LIVE_DEFAULT_PLAN: Array<{ kind: CalibrationCaptureKind; direction: CalibrationDirection }> = [
   { kind: 'capture', direction: 'forward' },
   { kind: 'capture', direction: 'right' },
@@ -293,15 +320,17 @@ export interface LiveCalibrationSession {           // CLIENT-held (sessionStora
   exitAction: 'reset_to_seed'                       // IMPLEMENTED /world/reset
   outcome: null | 'completed' | 'completed_with_flags' | 'cancelled'
          | 'aborted_world_changed' | 'aborted_quota' | 'aborted_session_lost' | 'error'
-  turnGainSource: 'none'                            // BLOCKED(A0) → later 'human_estimate_from_probe'
+  turnGainSource: 'none'                            // A0 NO-GO: stays 'none'; no degree mapping exists
   createdAtMs: number; completedAtMs: number | null
 }
 
 export interface LiveCalibrationCapture {
   id: string                                        // = checkpoint_id (IMPLEMENTED)
   kind: CalibrationCaptureKind
-  direction: CalibrationDirection                   // INTENDED (prompt), CLIENT
-  intendedYawDeg: number                            // CLIENT schematic from DIRECTION_YAW_DEG, NOT measured
+  direction: CalibrationDirection                   // prompt shown when captured (CLIENT)
+  softLabel: CalibrationDirection | 'unlabeled'     // player-assigned tag (CLIENT, rev. 4); NOT a commanded or measured angle
+  intendedYawDeg: null                              // REMOVED in rev. 4 (A0 NO-GO); always null in LIVE
+  supersededBy: string | null                       // CLIENT: set on retake; the old checkpoint is kept as evidence
   source: 'live_waypoint'
   checkpointId: string                              // IMPLEMENTED
   imageUrl: string                                  // IMPLEMENTED raw variant URL
@@ -309,11 +338,11 @@ export interface LiveCalibrationCapture {
   shaVerified: boolean | null                       // CLIENT (crypto.subtle)
   frameId: number | null; epoch: number             // IMPLEMENTED
   capturedAtMs: number                              // from created_at (IMPLEMENTED)
-  estimatedYawDeg: number                           // ESTIMATED nominal (IMPLEMENTED); display only as "est. (uncalibrated)"
-  nominalYawDeltaDeg: number | null                 // ESTIMATED vs the forward capture; BLOCKED(A0) for any degree claim
+  estimatedYawRad: number                           // ESTIMATED nominal (IMPLEMENTED); diagnostics only, NEVER rendered as an angle (A0 NO-GO)
+  nominalYawDeltaDeg: null                          // REMOVED in rev. 4: no degree claims
   inputIdleMsBeforeCapture: number                  // CLIENT-measured (no controls sent)
   confidence: null                                  // UNAVAILABLE in LIVE. Always null
-  calibrationReview: 'pending' | 'accepted' | 'rejected'   // CLIENT; NOT /review (not anchor approval)
+  calibrationReview: 'pending' | 'accepted' | 'rejected' | 'retaken'   // CLIENT; NOT /review (§1A: not anchor approval)
   qualityIndicators: { luma_std: number; laplacian_variance: number }  // MEASURED stats, diagnostics only
 }
 
@@ -399,9 +428,9 @@ proposal, and Cursor's `ObstacleAnalysis` / `ObstacleObservation`.
   "image_sha256": "3c1f…(64 hex)", "actions_history_reference": { "...": "…" } }
 ```
 
-Note: `yaw: 0.31` rad (≈18° nominal) after the player turned "right". That is **expected and unresolved
-before A0**. The nominal constant may not match the visual turn, so the UI shows "intended: right" and
-"est. 18° (uncalibrated)", never "90°".
+Note: `yaw: 0.31` rad after the player turned "right". A0 found **no reliable** mapping from mouse units
+to a fixed visual angle, so this number is diagnostics only. The UI shows the soft label "right" and **no
+degree value at all** (revision 4).
 
 Errors (IMPLEMENTED):
 
@@ -478,7 +507,7 @@ live: attached ── poll GET /world/memory (1 Hz) ──► applied (drop if e
 
 ## 5. API compatibility matrix
 
-| Capability | 8000 production (360p) | 8002 isolated (720p) | Frontend today (`535f02e`) | LIVE v1 action |
+| Capability | 8000 archived (360p; regression only) | 8002 isolated (720p; product target) | Frontend today (`535f02e` / `7d0ea97`) | LIVE v1 action |
 |---|---|---|---|---|
 | Stream `hello/frame/ack/control` | IMPLEMENTED | IMPLEMENTED (identical wire) | LIVE | none |
 | 1280×720 frames | — (640×360) | IMPLEMENTED | targets 720p, flags sub-720p | detect via model + dims |
@@ -493,9 +522,10 @@ live: attached ── poll GET /world/memory (1 Hz) ──► applied (drop if e
 | Segment breaks | — | IMPLEMENTED (`segment_id`) | MOCK (`continuous:false`) | derive from `segment_id` |
 | Uncertainty radius | — | PROPOSED (K7) | MOCK ring | hide or qualitative only |
 | Guided manual calibration | — | IMPLEMENTED endpoints | MOCK flow `/calibrate` | **build now** (§4.1) |
-| Automated calibration turning | — | BLOCKED(A0, K9) | — | wait |
-| Eight directions | — | BLOCKED(A0, T1) | reserved in types | wait |
-| Calibration rays at estimated yaw | — | BLOCKED(A0) | MOCK at intended yaw | intended-only schematic |
+| Automated calibration turning | — | BLOCKED(A0 NO-GO) | removed in `7d0ea97` | none |
+| Eight angular directions | — | BLOCKED(A0 NO-GO) | soft labels only | soft labels |
+| Calibration rays at any angle | — | BLOCKED(A0 NO-GO) | MOCK rays (`535f02e`) | markers + soft-label text, no rays |
+| Approve / reject / retake calibration capture | — | CLIENT state (no server route) | MOCK (`7d0ea97`) | CLIENT; never calls `/review` |
 | Server calibration session / review | — | PROPOSED | — | client-held |
 | `capture_reason`, review metadata, `nav_model`, capabilities | — | PROPOSED (K5, K12, K6, K13) | — | ignore if absent |
 | Observations > 32, revisit links, localization | — | PROPOSED | — | wait |
@@ -508,13 +538,13 @@ live: attached ── poll GET /world/memory (1 Hz) ──► applied (drop if e
 
 | ID | Item | Unblocks |
 |---|---|---|
-| **A0** | Turn-gain probe on 3 scenes → `turn_gain_probe.json` (CODEX_CALIBRATION_HANDOFF) | degree claims, automated turning, estimated-yaw rays, 8 directions, sigma_yaw prior |
+| ~~A0~~ | **Done: NO-GO** (21 GPU trials, 3 scenes). Remaining action: publish the trial report on the backend branch | — (degree claims, automated turning, angular rays and 8-direction layouts are now BLOCKED(A0 NO-GO)) |
 | K8 | Resolve the `API_CONTRACT.md` path collision (frontend placeholder vs backend v1) | clean merge |
 | K3 | Memory-event epoch invariant + test | stream-safety guarantee for the epoch-adopting frontend parser |
 | K13 | `/health.capabilities` | robust LIVE/MOCK switching (replaces the model-string check) |
 | K5 / K12 | `capture_reason` (incl. `'calibration'`); review metadata | reliable calibration tagging, auditable approvals |
 | K2 / K6 / K7 | light navigation read; `nav_model`; sigma fields | smoother map, honest uncertainty |
-| K9 | Backend calibration controller (after A0) | `automated_backend` mode |
+| K9 | ~~Backend calibration controller~~ **Not scheduled** (A0 NO-GO) | — |
 | — | Final validated native-720p integration contract (presentation/foreground FPS runs still pending per NATIVE720_UPDATE) | Cursor's adapter freeze lift for 720p |
 
 ## 7. Notes on Cursor's MOCK shell (535f02e) for the LIVE switch
@@ -540,15 +570,15 @@ results. Items owned by Claude, or affected by this contract:
 | 1.1 lifecycle | §4.1. Create (CLIENT) → plan (`LIVE_DEFAULT_PLAN`) → capture × n (IMPLEMENTED save) → review (CLIENT) → exit via reset (IMPLEMENTED) → complete \| skipped \| aborted |
 | 1.2 UI phases 1:1 | `world_created` ↔ `checking_capabilities` + `awaiting_first_frame` · `scan_prompt` ↔ `prompting[0]` · `capturing` ↔ `prompting`/`waiting_for_hold`/`capturing`/`captured` · `review` ↔ `review` · `complete` ↔ `exiting` → `complete` · `skipped` ↔ `skipped`. **New UI states needed:** `unsupported`, `aborted`, `error` (no MOCK equivalent today) |
 | 1.3 skip | **Documented no-op before the first capture** (no backend call; the player has not been prompted to turn). After ≥1 capture, skip or cancel performs the exit reset (`POST /world/reset`), so exploration starts from the clean seed. No server calibration object exists, so there is no "acknowledged skip" event (PROPOSED only) |
-| 1.4 no client yaw commands | Satisfied. `guided_manual` sends **no** scripted mouse commands; only the player's own input flows through unchanged `lookControl`. Scripted turning is BLOCKED(A0, K9) |
-| 1.5 contract-driven directions | The direction list is `LIVE_DEFAULT_PLAN` (§2B) and its `intendedYawDeg` table, which this contract owns (same values as Cursor's `DIRECTION_YAW_DEG`, but labelled *intended*). `includeBehind` defaults to false. Eight directions BLOCKED |
+| 1.4 no client yaw commands | Satisfied. `guided_manual` sends **no** scripted mouse commands; only the player's own input flows through unchanged `lookControl`. Scripted turning is BLOCKED(A0 NO-GO) |
+| 1.5 contract-driven directions | **Revision 4:** the contract owns the *soft-label vocabulary* `forward, forward_right, right, behind_right, behind, behind_left, left, forward_left, unlabeled` and a suggested prompt order (`LIVE_DEFAULT_PLAN`). **No angle table.** `intendedYawDeg` is removed (A0 NO-GO). `includeBehind` defaults to false |
 | 2.1 required `source` | `LiveCalibrationCapture.source: 'live_waypoint'` (required). `'mock_ui'` only in MOCK. **`'sdxl'` is not a valid calibration capture source**: the SDXL seed is checkpoint 0 (`provenance:'initial_seed'`), shown as a reference, not as a capture |
 | 2.2 / 2.4 raw SHA, no substitution | §1 Q1/Q4: server SHA-256 of served raw bytes; show the **returned** image, never the canvas |
 | 2.5 enhanced separate | Enhancement PLANNED; `enhanced_image_url: null`; analysis SHA stays on the raw image |
 | 3.1 gallery mapper fields | `id ← checkpoint_id`, image ← `image_url`, time ← `created_at`, direction ← label parse (later `capture_reason`, K5), review ← `quality.reviewed/approved` (anchor) **or** CLIENT `calibrationReview` (calibration), **confidence ← `null`** |
 | 3.2 suitability from backend/human | Server: `quality.approved` (human, IMPLEMENTED). CLIENT: `recoverySuitable = approved && policy(kind)`. A server-side suitability field does not exist; the reject reason is CLIENT text until K12 |
 | 4.1–4.3 pose semantics | §1 Q3 and §2A `WireNavigation`. `uncertainty` has **no LIVE source**: show "n/a" or the qualitative heuristic `confidence` band; never a % |
-| 4.4 calibration rays | Intended-direction schematic from the contract table (labelled *intended*). **Estimated bearing = `null` until A0** |
+| 4.4 calibration rays | **Bearing = `null`, permanently under A0 NO-GO.** No rays; markers with soft-label text (rev. 4) |
 | 5.1 epoch + discontinuity | Epoch +1 and new `segment_id` on reset and restore. Trail break keyed on `segment_id` |
 | 5.2 server enforce | Server enforces **review** (409 without approval). The stricter "no Waypoint-frame anchors" policy is CLIENT-only; server enforcement of a kind-policy is not implemented (would need a new PROPOSED flag) |
 | 5.3 Refresh = `/world/reset` | Confirmed (§1 Q7) |
@@ -556,17 +586,34 @@ results. Items owned by Claude, or affected by this contract:
 | 6.4 calibration identity on reconnect | Key `(session_id, world_id)`. **Same session, same epoch:** resume; rebuild captures from `GET /world/memory` checkpoints whose label starts `calibration:<id>:`. **Epoch changed:** `aborted_world_changed`. **New session or world:** discard CLIENT state (server checkpoints of the old world stay archived). Never create a new calibration implicitly |
 | 7.1 frame ≥1280×720 | Only **8002** satisfies this (§1 Q8) |
 
-### ⚠ Conflict: §8 Windows acceptance targets `:8000`
+### §8 acceptance aligned to `:8002` (revision 4: decided)
 
-Checklist §8 says to run acceptance "with Codex Waypoint on **`:8000`**" and requires **native 1280×720**
-(8.1) and LIVE calibration/restore (8.5, 8.6). Production 8000 serves `Waypoint-1.5-1B-360P` (640×360) and
-has **no** memory, checkpoint or restore routes. As written, 8.1, 8.5 and 8.6 **cannot pass on 8000**.
-Recommended amendment: run §8 against the isolated **8002** service
-(`ENGINE_TARGET=http://127.0.0.1:8002`), and keep 8000 for the Rescue/Showdown regression (8.8) and the
-360p fallback archive. This needs agreement from the user and Codex. It is recorded here, not decided.
+The earlier conflict is resolved. **Product acceptance runs on the isolated native-720p service `:8002`**
+(`ENGINE_TARGET=http://127.0.0.1:8002`). The archived `:8000` service is **never required to gain new
+Explorer functionality**. It is kept only for a **separate regression concern**: confirming that the
+archived release, Rescue Mission and AI Showdown still behave as recorded. It is **not a 360p product
+fallback**, and no 360p mode, selector or demo is offered (`PRODUCT_NATIVE_720P.md`).
+
+| Checklist §8 item | Run against | Status of what it exercises |
+|---|---|---|
+| 8.1 LIVE stream, native 1280×720, decode errors 0 | **:8002** | IMPLEMENTED |
+| 8.2 WASD + mouse-look 60–120 s; Gen/Disp FPS vs Codex native-720p baseline | **:8002** | IMPLEMENTED (baseline: Codex native-720p notes; not an A0 baseline) |
+| 8.3 A0 camera-turn test recorded | Codex record | **Done: NO-GO** (21 trials, 3 scenes); trial report to be published |
+| 8.4 Pause / Resume / Refresh World (`/world/reset`) / Disconnect | **:8002** | IMPLEMENTED |
+| 8.5 LIVE guided calibration captures show real provenance and SHA; MOCK path still labelled | **:8002** | IMPLEMENTED endpoints; UI wiring pending |
+| 8.6 Gallery restore blocked for unapproved or policy-unsuitable anchors; seed / approved restore OK | **:8002** | IMPLEMENTED (review-gated restore) + CLIENT policy |
+| 8.7 Map shows estimated pose only; no geographic or physical claims | **:8002** | IMPLEMENTED (nominal estimate) |
+| 8.8 Rescue Mission five missions + Showdown rates unchanged | **archived :8000 / offline data** | **Regression only** (separate concern) |
+| 8.9 No silent MOCK when the backend is down; no silent LIVE in `dev:mock` | **:8002** + `dev:mock` | CLIENT |
+| 8.10 Frontend branch isolated; merge only after sign-off | — | process |
+
+Optional archived-service regression (separate from product acceptance): `:8000` starts, streams and
+resets exactly as recorded for release `6423304`, with no new routes expected. Failures there are
+regressions in the archive, not product blockers for native 720p.
 
 ### Gate status (this contract's part)
 
-`[x] Claude reviewed contract`: this document on `docs/visual-spatial-memory`. It is **not** in the
-frontend branch's `docs/world-memory/API_CONTRACT.md` placeholder, which collides with the backend's v1
-file (K8). Cursor should reference this file by commit until K8 resolves the path.
+`[x] Claude reviewed contract`: **this file is the canonical LIVE calibration and visual-memory
+contract**, `docs/visual-spatial-memory:docs/world-memory/visual-spatial/LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md`.
+The backend wire contract it builds on is cited by source and commit, never by the bare path
+`API_CONTRACT.md` (two different files share that path). See [DOCUMENTATION_SOURCES.md](DOCUMENTATION_SOURCES.md).
