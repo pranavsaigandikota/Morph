@@ -364,17 +364,12 @@ function sleep(ms: number) {
 
 let singleton: MockWorldMemoryClient | null = null
 
-/** Default client until Codex contract + live adapter exist. */
-export function getWorldMemoryClient(): WorldMemoryClient {
+export function getMockWorldMemoryClient(): MockWorldMemoryClient {
   if (!singleton) singleton = new MockWorldMemoryClient()
   return singleton
 }
 
-export function getMockWorldMemoryClient(): MockWorldMemoryClient {
-  const c = getWorldMemoryClient()
-  if (!(c instanceof MockWorldMemoryClient)) {
-    singleton = new MockWorldMemoryClient()
-    return singleton
-  }
-  return c
+/** @deprecated Prefer worldMemoryClient.getWorldMemoryClient */
+export function getWorldMemoryClient(): WorldMemoryClient {
+  return getMockWorldMemoryClient()
 }

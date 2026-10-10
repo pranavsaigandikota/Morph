@@ -9,7 +9,7 @@ First-person **Waypoint** worlds (Codex GPU) + interactive **Rescue Missions** +
 | Route | Purpose |
 |-------|---------|
 | `/create` | Create Anything — HQ SDXL contact sheet (approve before Waypoint) + Turbo secondary |
-| `/calibrate` | Optional MOCK **user-guided** calibration (Capture View; no auto fixed-angle) |
+| `/calibrate` | Optional **user-guided** calibration (MOCK shell, or LIVE overlay when memory gate passes) |
 | `/world` | World Explorer — product native **1280×720** Waypoint |
 | `/mission` | Playable rescue on verified facility map |
 | `/simulation` | Recorded Random / PPO / A* replays |
@@ -22,14 +22,19 @@ git clone https://github.com/pranavsaigandikota/Morph.git
 cd Morph
 npm install
 Copy-Item .env.example .env
-# Start Codex Waypoint (+ SDXL) on :8000
-npm run dev
+# Start live-memory backend (native 720p) on :8002, then:
+$env:VITE_WORLD_API_BASE_URL='http://127.0.0.1:8002'
+$env:ENGINE_TARGET='http://127.0.0.1:8002'
+$env:VITE_WORLD_MEMORY_SOURCE='live'
+npm.cmd run dev
 ```
 
-UI: **http://127.0.0.1:4821**
+UI: **http://127.0.0.1:4821** (allowed by backend WS origin check)
 
-- Real GPU: Codex on `:8000` — no silent mock fallback
-- Explicit mock: `npm run dev:mock`
+- Product GPU: World Memory API v1.1 on `:8002` — see [docs/world-memory/WORLD_MEMORY_API_V1.md](docs/world-memory/WORLD_MEMORY_API_V1.md)
+- `:8000` is an **archived 360p** regression service only — never add features for it
+- Explicit mock: `npm run dev:mock` (`VITE_WORLD_MEMORY_SOURCE=mock`)
+- LIVE calibration contract: [docs/world-memory/visual-spatial/LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md](docs/world-memory/visual-spatial/LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md)
 - Judging script: [docs/DEMO_GUIDE.md](docs/DEMO_GUIDE.md)
 
 ## Scripts
@@ -43,6 +48,8 @@ UI: **http://127.0.0.1:4821**
 | `npm run test:stream60` | 60s harness |
 | `npm run test:hq-starters` | HQ approval / recovery policy checks |
 | `npm run test:world-memory` | World memory MOCK + unsuitable anchors |
+| `npm run test:live-mapping` | LIVE mapping / capability gate / request invariants |
+| `npm run test:calibration-ui` | User-guided calibration UI policy |
 
 HQ contact sheet (Windows GPU, experimental HIGH API): `.\scripts\Generate-HqStarterContactSheet.ps1` — see [docs/world-memory/HQ_STARTER_APPROVAL.md](docs/world-memory/HQ_STARTER_APPROVAL.md). Early Waypoint frames are **not** recovery anchors.
 

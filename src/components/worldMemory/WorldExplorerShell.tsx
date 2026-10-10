@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type RefObject } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { WorldViewer, type SwitchableWorld } from '../world/WorldViewer'
 import type { WorldFrameMeta, WorldMetrics } from '../../types/world'
 import { useWorldMemory } from '../../hooks/useWorldMemory'
@@ -9,7 +10,10 @@ import { RestoreOverlay } from './RestoreOverlay'
 import { MemoryGallery, type GalleryFilter } from './MemoryGallery'
 import { HuggingFaceAttribution } from '../brand/HuggingFaceAttribution'
 import { getMockWorldMemoryClient } from '../../services/worldMemory/mockWorldMemoryClient'
+import { confidenceBand } from '../../services/worldMemory/liveMapping'
 import { loadCalibrationSession } from '../../services/calibration/mockCalibration'
+import { loadLiveCalibration } from '../../services/calibration/liveCalibration'
+import { LiveCalibrationOverlay } from '../calibration/LiveCalibrationOverlay'
 import type { ObstacleObservation } from '../../types/worldMemory'
 import type { CalibrationCapture } from '../../types/calibration'
 
@@ -50,18 +54,24 @@ interface Props {
 
 /**
  * Explorer layout: prominent 16:9 world → map → gallery.
- * Memory/nav/calibration data is MOCK until Claude/Codex contracts land.
+ * LIVE memory when VITE_WORLD_MEMORY_SOURCE=live and capability gate passes.
  */
 export function WorldExplorerShell(props: Props) {
   const memory = useWorldMemory()
+  const [params, setParams] = useSearchParams()
+  const liveCalibrate = params.get('live_calibrate') === '1'
   const [showTrail, setShowTrail] = useState(true)
+  // Obstacles stay MOCK and off by default (contract).
   const [showObstacles, setShowObstacles] = useState(false)
   const [selectedObstacle, setSelectedObstacle] = useState<ObstacleObservation | null>(null)
   const [saving, setSaving] = useState(false)
+  const [reviewing, setReviewing] = useState(false)
   const [centerTick, setCenterTick] = useState(false)
   const [galleryFilter, setGalleryFilter] = useState<GalleryFilter>('all')
   const [calibrationCaptures, setCalibrationCaptures] = useState<CalibrationCapture[]>([])
   const [refreshFlash, setRefreshFlash] = useState(false)
+  const [calActive, setCalActive] = useState(liveCalibrate)
+  const [keysHeld, setKeysHeld] = useState(false)
 
   useEffect(() => {
     memory.attach({
@@ -71,11 +81,47 @@ export function WorldExplorerShell(props: Props) {
       epoch: props.streamEpochHint,
     })
     const cal = loadCalibrationSession()
-    setCalibrationCaptures(cal?.captures ?? [])
+    const live = loadLiveCalibration()
+    if (live?.captures?.length) {
+      setCalibrationCaptures(
+        live.captures.map((c, i) => ({
+          id: c.id,
+          suggestedLabel: c.softLabel,
+          imageUrl: c.imageUrl,
+          capturedAtMs: c.capturedAtMs,
+          source: 'live_waypoint' as const,
+          imageSha256: c.imageSha256,
+          reviewStatus:
+            c.calibrationReview === 'accepted'
+              ? ('approved' as const)
+              : c.calibrationReview === 'rejected'
+                ? ('rejected' as const)
+                : ('pending' as const),
+          confidence: null,
+          layoutIndex: i,
+        })),
+      )
+    } else {
+      setCalibrationCaptures(cal?.captures ?? [])
+    }
     return () => memory.detach()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.sessionId, props.worldName, props.promptSummary])
 
+  // Re-validate LIVE when native frames arrive.
+  useEffect(() => {
+    if (memory.memoryMode === 'live' || params.get('memory') === 'live') {
+      if (props.meta?.width && props.meta?.height) {
+        void memory.revalidateLive({
+          width: props.meta.width,
+          height: props.meta.height,
+        })
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.meta?.width, props.meta?.height])
+
+  // MOCK-only pose driver — never in LIVE.
   useEffect(() => {
     if (memory.source !== 'mock') return
     if (props.phase !== 'streaming' && !(props.phase === 'paused' && props.idleHolding)) return
@@ -96,6 +142,7 @@ export function WorldExplorerShell(props: Props) {
   useEffect(() => {
     const w = window as unknown as { __wsKeys?: Set<string> }
     w.__wsKeys = w.__wsKeys ?? new Set()
+    const sync = () => setKeysHeld((w.__wsKeys?.size ?? 0) > 0)
     const down = (e: KeyboardEvent) => {
       const map: Record<string, string> = {
         KeyW: 'w',
@@ -104,7 +151,10 @@ export function WorldExplorerShell(props: Props) {
         KeyD: 'd',
       }
       const k = map[e.code]
-      if (k) w.__wsKeys!.add(k)
+      if (k) {
+        w.__wsKeys!.add(k)
+        sync()
+      }
     }
     const up = (e: KeyboardEvent) => {
       const map: Record<string, string> = {
@@ -114,9 +164,15 @@ export function WorldExplorerShell(props: Props) {
         KeyD: 'd',
       }
       const k = map[e.code]
-      if (k) w.__wsKeys!.delete(k)
+      if (k) {
+        w.__wsKeys!.delete(k)
+        sync()
+      }
     }
-    const blur = () => w.__wsKeys!.clear()
+    const blur = () => {
+      w.__wsKeys!.clear()
+      sync()
+    }
     window.addEventListener('keydown', down)
     window.addEventListener('keyup', up)
     window.addEventListener('blur', blur)
@@ -137,8 +193,16 @@ export function WorldExplorerShell(props: Props) {
     props.phase,
     props.mock ? 'stream MOCK' : 'Waypoint live',
     props.engineName ?? '',
-    memory.source === 'mock' ? 'nav/memory MOCK' : 'nav live',
-    calibrationCaptures.length ? `cal ${calibrationCaptures.length} MOCK` : '',
+    memory.memoryMode === 'live'
+      ? 'nav/memory LIVE'
+      : memory.memoryMode === 'unavailable'
+        ? 'Memory unavailable'
+        : 'nav/memory MOCK',
+    calibrationCaptures.some((c) => c.source === 'live_waypoint')
+      ? `cal ${calibrationCaptures.length} LIVE`
+      : calibrationCaptures.length
+        ? `cal ${calibrationCaptures.length} MOCK`
+        : '',
   ]
     .filter(Boolean)
     .join(' · ')
@@ -151,8 +215,16 @@ export function WorldExplorerShell(props: Props) {
   const onRefreshWorld = () => {
     setRefreshFlash(true)
     props.onReset()
+    void memory.refreshWorldMemory()
     window.setTimeout(() => setRefreshFlash(false), 2200)
   }
+
+  const inputActive =
+    keysHeld ||
+    Math.abs(props.lastSentMouse?.dx ?? 0) > 0.01 ||
+    Math.abs(props.lastSentMouse?.dy ?? 0) > 0.01
+
+  const band = confidenceBand(0.7)
 
   return (
     <div className="relative flex h-[calc(100vh-3.5rem)] flex-col bg-void">
@@ -161,7 +233,9 @@ export function WorldExplorerShell(props: Props) {
         promptSummary={props.promptSummary}
         statusLabel={statusLabel}
         source={memory.session.source}
+        memoryMode={memory.memoryMode}
         pose={memory.session.pose}
+        confidenceBand={band}
         saving={saving}
         canRestore={
           !!selected?.restorable && selected.recoverySuitable !== false && !restoring
@@ -201,9 +275,13 @@ export function WorldExplorerShell(props: Props) {
             onLookSensitivity={props.onLookSensitivity}
             lastSentMouse={props.lastSentMouse}
             idleHolding={props.idleHolding}
-            stabilityMode={props.stabilityMode}
-            onStabilityMode={props.onStabilityMode}
-            stabilityNotice={props.stabilityNotice}
+            stabilityMode={calActive ? false : props.stabilityMode}
+            onStabilityMode={calActive ? undefined : props.onStabilityMode}
+            stabilityNotice={
+              calActive
+                ? 'Stability auto-restore disabled during LIVE calibration'
+                : props.stabilityNotice
+            }
             walkBudgetMs={props.walkBudgetMs}
             onWalkBudgetMs={props.onWalkBudgetMs}
             worlds={props.worlds}
@@ -225,16 +303,70 @@ export function WorldExplorerShell(props: Props) {
             checkpoint={selected}
             refreshMode={refreshFlash && !memory.session.restore}
           />
+          {calActive && props.sessionId && (
+            <div className="absolute bottom-3 left-3 right-3 z-20 max-w-xl sm:left-6">
+              <LiveCalibrationOverlay
+                sessionId={props.sessionId}
+                frameWidth={props.meta?.width ?? null}
+                frameHeight={props.meta?.height ?? null}
+                streamEpoch={props.streamEpochHint}
+                inputActive={inputActive}
+                onDisableStability={() => props.onStabilityMode?.(false)}
+                onFinished={() => {
+                  setCalActive(false)
+                  const next = new URLSearchParams(params)
+                  next.delete('live_calibrate')
+                  setParams(next, { replace: true })
+                  void memory.refreshWorldMemory()
+                  const live = loadLiveCalibration()
+                  if (live?.captures) {
+                    setCalibrationCaptures(
+                      live.captures.map((c, i) => ({
+                        id: c.id,
+                        suggestedLabel: c.softLabel,
+                        imageUrl: c.imageUrl,
+                        capturedAtMs: c.capturedAtMs,
+                        source: 'live_waypoint' as const,
+                        imageSha256: c.imageSha256,
+                        reviewStatus:
+                          c.calibrationReview === 'accepted'
+                            ? ('approved' as const)
+                            : c.calibrationReview === 'rejected'
+                              ? ('rejected' as const)
+                              : ('pending' as const),
+                        confidence: null,
+                        layoutIndex: i,
+                      })),
+                    )
+                  }
+                }}
+                onSkipToExplore={() => {
+                  setCalActive(false)
+                  const next = new URLSearchParams(params)
+                  next.delete('live_calibrate')
+                  setParams(next, { replace: true })
+                }}
+              />
+            </div>
+          )}
         </div>
 
         <section className="space-y-3 border-t border-line bg-void px-3 py-4 sm:px-4 lg:px-6">
           <div className="mx-auto max-w-[1400px] space-y-3">
+            {memory.memoryMode === 'unavailable' && (
+              <p className="rounded-lg border border-hazard/40 bg-hazard/10 px-3 py-2 text-xs text-hazard">
+                Memory unavailable
+                {memory.memoryModeReason ? ` — ${memory.memoryModeReason}` : ''}. Stream may still
+                run; map/checkpoints stay empty.
+              </p>
+            )}
+
             <div className="flex flex-wrap items-end justify-between gap-2">
               <div>
                 <h2 className="font-display text-base font-bold text-bright">Exploration map</h2>
                 <p className="text-xs text-muted">
-                  Estimated position, heading, calibration rays, checkpoints, and trail — not
-                  geographic / not physical meters.
+                  Estimated position, soft-label markers, checkpoints, and trail — not geographic /
+                  not physical meters. No angular calibration rays.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -255,7 +387,7 @@ export function WorldExplorerShell(props: Props) {
                     }}
                     className="accent-[var(--color-signal,#5eead4)]"
                   />
-                  AI-Inferred Obstacles
+                  AI-Inferred Obstacles (MOCK)
                 </label>
                 <button
                   type="button"
@@ -295,6 +427,7 @@ export function WorldExplorerShell(props: Props) {
                     memory.selectCheckpoint(obs.source_checkpoint_id)
                   }}
                   calibrationCaptures={calibrationCaptures}
+                  restoreBanner={memory.restoreBanner()}
                 />
               </div>
               <aside className="rounded-xl border border-line bg-panel/70 p-3 text-xs text-soft">
@@ -310,16 +443,16 @@ export function WorldExplorerShell(props: Props) {
                     <span className="text-danger">●</span> Unsuitable recovery anchor
                   </li>
                   <li>
-                    <span className="text-aurora">●</span> Cal view (optional label · not measured)
+                    <span className="text-aurora">●</span> Cal soft-label marker (not measured)
                   </li>
                   <li>
-                    <span className="text-hazard">○</span> Trail break after restore
+                    <span className="text-hazard">↺</span> Trail break after restore/reset
                   </li>
-                  <li>Arrow — estimated heading</li>
-                  <li>Ring — pose uncertainty</li>
+                  <li>Arrow — estimated heading from Start</li>
+                  <li>Ring — fixed size (no data-sized unc.)</li>
                   {showObstacles && (
                     <li className="text-[10px]">
-                      Obstacles: screen-plane MOCK suggestions — not collision
+                      Possible open path (unverified) — MOCK obstacles only
                     </li>
                   )}
                 </ul>
@@ -329,9 +462,17 @@ export function WorldExplorerShell(props: Props) {
             <CheckpointPreview
               checkpoint={selected}
               linkedObstacle={selectedObstacle}
-              enhancementSupported={memory.session.enhancementSupported}
+              enhancementSupported={false}
               onRestore={(id) => void memory.restoreCheckpoint(id)}
               restoring={restoring}
+              liveReview={memory.source === 'live'}
+              reviewing={reviewing}
+              onReviewAnchor={(id, approved) => {
+                setReviewing(true)
+                void memory
+                  .reviewCheckpoint(id, approved)
+                  .finally(() => setReviewing(false))
+              }}
             />
 
             <MemoryGallery

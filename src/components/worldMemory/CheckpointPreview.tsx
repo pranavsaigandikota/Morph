@@ -7,6 +7,10 @@ interface Props {
   enhancementSupported: boolean
   onRestore: (id: string) => void
   restoring: boolean
+  /** LIVE recovery-anchor review — separate from calibration acceptance. */
+  liveReview?: boolean
+  onReviewAnchor?: (id: string, approved: boolean) => void
+  reviewing?: boolean
 }
 
 export function CheckpointPreview({
@@ -15,6 +19,9 @@ export function CheckpointPreview({
   enhancementSupported,
   onRestore,
   restoring,
+  liveReview = false,
+  onReviewAnchor,
+  reviewing = false,
 }: Props) {
   if (!checkpoint) {
     return (
@@ -56,15 +63,42 @@ export function CheckpointPreview({
             </p>
           )}
         </div>
-        <button
-          type="button"
-          disabled={!canRestore}
-          onClick={() => onRestore(checkpoint.id)}
-          className="shrink-0 rounded-md border border-signal/40 bg-signal/10 px-2.5 py-1 text-[11px] font-semibold text-signal disabled:opacity-40"
-        >
-          Restore viewpoint
-        </button>
+        <div className="flex shrink-0 flex-col gap-1">
+          {liveReview && onReviewAnchor && (
+            <div className="flex gap-1">
+              <button
+                type="button"
+                disabled={reviewing}
+                onClick={() => onReviewAnchor(checkpoint.id, true)}
+                className="rounded-md border border-ok/40 bg-ok/10 px-2 py-1 text-[11px] font-semibold text-ok disabled:opacity-40"
+              >
+                Approve anchor
+              </button>
+              <button
+                type="button"
+                disabled={reviewing}
+                onClick={() => onReviewAnchor(checkpoint.id, false)}
+                className="rounded-md border border-danger/40 bg-danger/10 px-2 py-1 text-[11px] font-semibold text-danger disabled:opacity-40"
+              >
+                Reject
+              </button>
+            </div>
+          )}
+          <button
+            type="button"
+            disabled={!canRestore}
+            onClick={() => onRestore(checkpoint.id)}
+            className="rounded-md border border-signal/40 bg-signal/10 px-2.5 py-1 text-[11px] font-semibold text-signal disabled:opacity-40"
+          >
+            Restore viewpoint
+          </button>
+        </div>
       </div>
+      {liveReview && (
+        <p className="mb-2 text-[10px] text-muted">
+          Anchor Approve/Reject calls POST /review. This is not calibration acceptance.
+        </p>
+      )}
 
       {unsuitable && (
         <p className="mb-2 rounded border border-danger/40 bg-danger/10 px-2 py-1.5 text-[11px] text-soft">

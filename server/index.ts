@@ -15,6 +15,12 @@ import {
   stopSession,
 } from './worldSessions.ts'
 import { attachWaypointStream, isEngineBusy } from './waypointStream.ts'
+import {
+  attachMockMemoryV11,
+  discardMockMemory,
+  mockHealthCapabilities,
+  noteMockReset,
+} from './mockMemoryV11.ts'
 
 const PORT = Number(process.env.MOCK_API_PORT ?? 4822)
 
@@ -69,6 +75,7 @@ app.get('/health', (_req, res) => {
     prompt_conditioning: false,
     mock: true,
     services: { world: 'ok', simulation: 'ok', agents: 'ok' },
+    ...mockHealthCapabilities(),
   })
 })
 
@@ -84,12 +91,22 @@ app.post('/world/start', (req, res) => {
 
 app.post('/world/reset', (req, res) => {
   const sessionId = String(req.body?.session_id ?? '')
-  if (!sessionId || !resetSession(sessionId)) {
+  const result = sessionId ? resetSession(sessionId) : { ok: false as const }
+  if (!result.ok) {
     res.status(404).json({ error: 'session_not_found' })
     return
   }
-  res.json({ session_id: sessionId, status: 'ready' })
+  noteMockReset(sessionId)
+  res.json({
+    session_id: sessionId,
+    status: 'ready',
+    epoch: result.epoch,
+    mock: true,
+    seed_restored: true,
+  })
 })
+
+attachMockMemoryV11(app)
 
 app.post('/world/stop', (req, res) => {
   const sessionId = String(req.body?.session_id ?? '')
@@ -97,6 +114,7 @@ app.post('/world/stop', (req, res) => {
     res.status(404).json({ error: 'session_not_found' })
     return
   }
+  discardMockMemory(sessionId)
   res.json({ session_id: sessionId, status: 'stopped' })
 })
 

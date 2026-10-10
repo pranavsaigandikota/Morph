@@ -1,17 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CalibrationCapture } from '../../types/calibration'
 import { DIRECTION_LABEL } from '../../types/calibration'
-// Calibration markers use layoutIndex for sketch placement only — not measured headings.
 import type {
   Checkpoint,
   EstimatedPose,
   ObstacleObservation,
   TrailPoint,
 } from '../../types/worldMemory'
+import {
+  checkpointsWithPose,
+  confidenceBand,
+  type ConfidenceBand,
+} from '../../services/worldMemory/liveMapping'
 import { ObstacleOverlay } from './ObstacleOverlay'
 
 interface Props {
   pose: EstimatedPose
+  /** Optional LIVE heuristic confidence 0..1 for band label. */
+  navConfidence?: number | null
   trail: TrailPoint[]
   checkpoints: Checkpoint[]
   selectedId: string | null
@@ -23,12 +29,14 @@ interface Props {
   showObstacles: boolean
   selectedObstacleId: string | null
   onSelectObstacle: (obs: ObstacleObservation) => void
-  /** MOCK calibration bearings plotted as estimated rays — not physical. */
+  /** Soft-label markers only — no angular rays (A0 NO-GO). */
   calibrationCaptures?: CalibrationCapture[]
+  restoreBanner?: string | null
 }
 
 export function ExplorationMap({
   pose,
+  navConfidence,
   trail,
   checkpoints,
   selectedId,
@@ -41,10 +49,13 @@ export function ExplorationMap({
   selectedObstacleId,
   onSelectObstacle,
   calibrationCaptures = [],
+  restoreBanner = null,
 }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null)
   const [view, setView] = useState({ x: -180, y: -120, w: 360, h: 240 })
   const drag = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null)
+  const band: ConfidenceBand =
+    navConfidence != null ? confidenceBand(navConfidence) : 'medium'
 
   useEffect(() => {
     if (!centerRequest) return
@@ -62,6 +73,8 @@ export function ExplorationMap({
     }
     return parts.join(' ')
   }, [showTrail, trail])
+
+  const posedCheckpoints = useMemo(() => checkpointsWithPose(checkpoints), [checkpoints])
 
   const onWheel = (e: React.WheelEvent) => {
     e.preventDefault()
@@ -111,37 +124,45 @@ export function ExplorationMap({
           <path d={pathD} fill="none" stroke="#2ee6d6" strokeOpacity="0.55" strokeWidth="2.2" />
         )}
 
-        {/* Epoch / restore segment breaks — trail discontinuous markers */}
+        {/* Segment breaks — never draw a trail edge across segments */}
         {showTrail &&
           trail
             .filter((p) => !p.continuous)
             .map((p, i) => (
-              <circle
-                key={`seg-${i}-${p.atMs}`}
-                cx={p.x}
-                cy={p.y}
-                r="3.5"
-                fill="none"
-                stroke="#f5a623"
-                strokeWidth="1.4"
-                opacity="0.85"
-              />
+              <g key={`seg-${i}-${p.atMs}`}>
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r="3.5"
+                  fill="none"
+                  stroke="#f5a623"
+                  strokeWidth="1.4"
+                  opacity="0.85"
+                />
+                <text x={p.x + 5} y={p.y - 4} fill="#f5a623" fontSize="6">
+                  ↺
+                </text>
+              </g>
             ))}
 
-        {/* Calibration observations — layout sketch only; labels are optional, not measured headings */}
+        {/* Calibration soft-label markers — no angular rays (bearing null) */}
         {calibrationCaptures
-          .filter((c) => c.reviewStatus === 'approved')
-          .map((c, i) => {
-            const rad = ((i * 40 - 60) * Math.PI) / 180
-            const len = 22 + (c.layoutIndex % 3) * 4
-            const x2 = Math.cos(rad) * len
-            const y2 = Math.sin(rad) * len
-            const tag = DIRECTION_LABEL[c.suggestedLabel]
+          .filter((c) => c.reviewStatus === 'approved' || c.source === 'live_waypoint')
+          .map((c) => {
+            // Prefer linked checkpoint pose; skip if none (no 0,0 fallback)
+            const linked = posedCheckpoints.find((cp) => cp.id === c.id)
+            if (!linked?.pose) return null
+            const tag = DIRECTION_LABEL[c.suggestedLabel] ?? c.suggestedLabel
             return (
-              <g key={c.id} opacity="0.7">
-                <circle cx={x2} cy={y2} r="3.5" fill="#7c6cff" />
-                <text x={x2 + 5} y={y2 - 2} fill="#9aabbe" fontSize="6.5">
-                  {tag === 'No label' ? '·' : tag.slice(0, 1)}
+              <g key={c.id} opacity="0.85">
+                <circle cx={linked.pose.x} cy={linked.pose.y} r="3.5" fill="#7c6cff" />
+                <text
+                  x={linked.pose.x + 5}
+                  y={linked.pose.y - 2}
+                  fill="#9aabbe"
+                  fontSize="6.5"
+                >
+                  {tag === 'No label' ? '·' : tag}
                 </text>
               </g>
             )
@@ -155,9 +176,9 @@ export function ExplorationMap({
           />
         )}
 
-        {checkpoints.map((cp) => {
-          const px = cp.pose?.x ?? 0
-          const py = cp.pose?.y ?? 0
+        {posedCheckpoints.map((cp) => {
+          const px = cp.pose!.x
+          const py = cp.pose!.y
           const selected = cp.id === selectedId
           const unsuitable = cp.recoverySuitable === false
           return (
@@ -186,17 +207,6 @@ export function ExplorationMap({
                 strokeWidth="1.5"
                 opacity={unsuitable ? 0.65 : 1}
               />
-              {unsuitable && (
-                <circle
-                  cx={px}
-                  cy={py}
-                  r="9"
-                  fill="none"
-                  stroke="#ef4444"
-                  strokeWidth="1"
-                  strokeDasharray="2 2"
-                />
-              )}
               <text
                 x={px + 8}
                 y={py - 6}
@@ -210,10 +220,10 @@ export function ExplorationMap({
           )
         })}
 
-        {/* Player + uncertainty ring */}
+        {/* Player — fixed-size ring only; confidence as qualitative band, no % */}
         <g transform={`translate(${pose.x},${pose.y})`}>
           <circle
-            r={10 + (pose.uncertainty ?? 0.3) * 18}
+            r="14"
             fill="#2ee6d6"
             fillOpacity="0.08"
             stroke="#2ee6d6"
@@ -228,13 +238,18 @@ export function ExplorationMap({
       </svg>
 
       <div className="pointer-events-none absolute left-3 top-3 rounded-md border border-line bg-ink/85 px-2 py-1 text-[10px] uppercase tracking-wider text-muted backdrop-blur">
-        Estimated map · not physical{mock ? ' · MOCK' : ''}
-        {calibrationCaptures.length ? ' · cal labels (optional)' : ''}
-        {showObstacles ? ' · AI obstacles' : ''}
+        estimated units{mock ? ' · MOCK' : ' · LIVE'}
+        {calibrationCaptures.length ? ' · soft labels' : ''}
+        {showObstacles ? ' · obstacles MOCK' : ''}
       </div>
+      {restoreBanner && (
+        <div className="pointer-events-none absolute right-3 top-3 rounded-md border border-signal/40 bg-ink/90 px-2 py-1 text-[10px] font-semibold text-signal">
+          {restoreBanner}
+        </div>
+      )}
       <div className="pointer-events-none absolute bottom-3 left-3 font-mono text-[10px] text-muted">
         est ({pose.x.toFixed(0)}, {pose.y.toFixed(0)}) · heading {pose.headingDeg.toFixed(0)}° ·
-        unc {((pose.uncertainty ?? 0) * 100).toFixed(0)}% · epoch {pose.epoch}
+        confidence {band} (heuristic) · epoch {pose.epoch}
       </div>
     </div>
   )

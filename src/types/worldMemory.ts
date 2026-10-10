@@ -174,12 +174,21 @@ export interface WorldMemoryClient {
   detach(): void
   /**
    * Provisional local estimate driver for MOCK only.
-   * Live client must ignore this and wait for Codex navigation events.
+   * LIVE client must no-op (never estimate from controls).
    */
   noteControlHint?(hint: { keys: string[]; mouseDx: number; mouseDy: number }): void
   saveView(): Promise<Checkpoint | null>
   selectCheckpoint(id: string | null): void
   restoreCheckpoint(id: string): Promise<void>
+  /** Recovery-anchor approval (LIVE). Never used for calibration acceptance. */
+  reviewCheckpoint?(
+    id: string,
+    approved: boolean,
+    extra?: { reviewer?: string; reason?: string },
+  ): Promise<void>
+  /** Optional seed reset via memory client (LIVE). Explorer still uses stream reset. */
+  refreshWorld?(): Promise<void>
   centerOnPlayerRequested(): boolean
   consumeCenterRequest(): void
+  requestCenterOnPlayer?(): void
 }

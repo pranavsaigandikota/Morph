@@ -96,9 +96,10 @@ export function listSessionMetrics(id: string) {
   }
 }
 
-export function resetSession(id: string): boolean {
+/** Advances epoch, clears controls. Returns new epoch or null if missing. */
+export function resetSession(id: string): { ok: true; epoch: number } | { ok: false } {
   const s = sessions.get(id)
-  if (!s) return false
+  if (!s) return { ok: false }
   s.view = { yaw: 0, pitch: 0, x: 0, z: 0 }
   s.frameId = 0
   s.sequence = 0
@@ -107,6 +108,7 @@ export function resetSession(id: string): boolean {
   s.keys = []
   s.mouseDx = 0
   s.mouseDy = 0
+  s.lastControl = null
   s.status = s.socket ? 'streaming' : 'ready'
   if (s.socket && s.socket.readyState === 1) {
     try {
@@ -123,7 +125,7 @@ export function resetSession(id: string): boolean {
       /* */
     }
   }
-  return true
+  return { ok: true, epoch: s.epoch }
 }
 
 export function stopSession(id: string): boolean {
