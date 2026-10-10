@@ -86,7 +86,10 @@ export function RescueMissionPage() {
         setCollisionFlash(false)
         gateRef.current.reset()
         // Focus board after paint so physical WASD works without an extra click.
-        requestAnimationFrame(() => boardRef.current?.focus())
+        requestAnimationFrame(() => {
+          boardRef.current?.focus({ preventScroll: true })
+          setBoardFocused(true)
+        })
       })
       .catch((err) => {
         if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Failed to load map')
@@ -136,18 +139,22 @@ export function RescueMissionPage() {
     [pulseCollision],
   )
 
-  useEffect(() => {
-    const board = boardRef.current
+  const armedRef = useRef(false)
 
+  const focusBoard = useCallback(() => {
+    const el = boardRef.current
+    if (!el) return
+    // Three.js canvas can steal DOM focus; keep the board armed for discrete WASD.
+    if (document.activeElement !== el) el.focus({ preventScroll: true })
+    armedRef.current = true
+    setBoardFocused(true)
+  }, [])
+
+  useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (!isRescueMoveCode(e.code)) return
-      // Prevent page scroll whenever arrows/WASD hit while the board (or its descendants) own focus.
-      const active = document.activeElement
-      const focused =
-        board != null &&
-        (active === board || (active instanceof Node && board.contains(active)))
-      if (!focused) return
-
+      if (!armedRef.current) return
+      // Prevent page scroll for arrows/WASD while mission keyboard is armed.
       e.preventDefault()
 
       const current = missionRef.current
@@ -160,10 +167,15 @@ export function RescueMissionPage() {
 
     const onKeyUp = (e: KeyboardEvent) => {
       if (!isRescueMoveCode(e.code)) return
+      // Always clear hold state on release — even if focus briefly left the canvas.
       gateRef.current.onKeyUp(e.code)
     }
 
-    const onBlurWindow = () => gateRef.current.reset()
+    const onBlurWindow = () => {
+      gateRef.current.reset()
+      armedRef.current = false
+      setBoardFocused(false)
+    }
 
     window.addEventListener('keydown', onKeyDown, { capture: true })
     window.addEventListener('keyup', onKeyUp, { capture: true })
@@ -184,7 +196,7 @@ export function RescueMissionPage() {
     const fresh = rescueEnvAdapter.create(map)
     missionRef.current = fresh
     setMission(fresh)
-    boardRef.current?.focus()
+    focusBoard()
   }
 
   if (loadError) {
@@ -286,12 +298,23 @@ export function RescueMissionPage() {
             tabIndex={0}
             role="application"
             aria-label="Rescue mission board. Press WASD or arrow keys for one step each."
-            onFocus={() => setBoardFocused(true)}
-            onBlur={() => {
-              setBoardFocused(false)
-              gateRef.current.reset()
+            onFocus={() => {
+              armedRef.current = true
+              setBoardFocused(true)
             }}
-            onPointerDown={() => boardRef.current?.focus()}
+            onBlur={(e) => {
+              // Keep armed if focus moves into the WebGL canvas (still inside the board).
+              const next = e.relatedTarget
+              if (next instanceof Node && e.currentTarget.contains(next)) {
+                focusBoard()
+                return
+              }
+              // Disarm keyboard; do NOT clear held keys here — keyup / window blur owns that,
+              // so OS auto-repeat cannot sneak a second step after a canvas focus flicker.
+              armedRef.current = false
+              setBoardFocused(false)
+            }}
+            onPointerDownCapture={focusBoard}
             className={`relative h-[min(70vh,640px)] min-h-[360px] rounded-2xl outline-none ring-offset-2 ring-offset-void focus-visible:ring-2 focus-visible:ring-hazard/70 ${
               boardFocused ? 'ring-1 ring-hazard/30' : ''
             }`}
@@ -327,7 +350,7 @@ export function RescueMissionPage() {
               <button
                 type="button"
                 className="absolute inset-x-0 bottom-4 z-10 mx-auto w-fit rounded-md border border-line bg-ink/85 px-3 py-1.5 text-xs text-soft backdrop-blur"
-                onClick={() => boardRef.current?.focus()}
+                onClick={focusBoard}
               >
                 Click board for keyboard · one step per keypress
               </button>

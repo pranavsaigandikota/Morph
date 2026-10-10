@@ -15,7 +15,8 @@
     "typecheck": "tsc -b --pretty false",
     "test:stream60": "node scripts/session60s.mjs",
     "test:mock-protocol": "node scripts/verify-mock-protocol.mjs",
-    "test:rescue": "tsx scripts/verify-rescue-mission.mjs"
+    "test:rescue": "tsx scripts/verify-rescue-mission.mjs",
+    "test:rescue-keys": "node scripts/verify-rescue-discrete-keys.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
@@ -43,6 +44,7 @@
     "cors": "^2.8.6",
     "express": "^5.3.0",
     "oxlint": "^1.81.0",
+    "playwright": "^1.64.0",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
     "typescript": "~6.0.2",
