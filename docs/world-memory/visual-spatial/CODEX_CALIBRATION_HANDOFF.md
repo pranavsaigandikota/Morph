@@ -111,6 +111,9 @@ All are additive. Each must update API_CONTRACT.md and RESULTS.md with tested st
 | **K10** | Observation store and capture (Phase B, MEMORY_DATA_MODEL) | Remembered views beyond the 32-checkpoint quota | Soft (turn trigger) | P2 |
 | **K9** | `ControlSource` seam and `CalibrationController` behind `WORLDSHIFT_CALIBRATION=off`; FakeBackend tests T1/T2 (synthetic) | Phase A | **Enable: yes** | P2 (build) / after A0 (enable) |
 | **K11** | Analysis worker and embeddings (Phase E groundwork) | Phase E | Partly | P3 |
+| **K13** | `/health.capabilities {memory_api, checkpoint_restore, calibration_backend, observations, obstacles}` (rev. 3) | `/health` is identical on 8000 and 8002 except for `model`, so the frontend must string-match the model today | No | P1 |
+| **K12** | Review metadata on checkpoints `{reviewed_by, reviewed_at, reason}` (rev. 3) | Auditable anchor approval/rejection | No | P2 |
+| **K14** | Obstacle report alignment: wire `models` nested `{depth:{id,revision},detector:{…}}`, `latency_ms` excluding load plus `load_ms` (rev. 3; LIVE_CALIBRATION_AND_MEMORY_CONTRACT §2.6) | DTO mismatch with the offline analyzer | No | P3 (obstacles remain PROPOSED) |
 | **K1** | Optional: a Codex-tested, minimal patch to the frozen `useWorldStream.ts` that forwards non-frame JSON (`navigation_update`, `checkpoint_*`, `recovery_*`) to a callback, with no change to envelope, credit or ACK behaviour | Lets the frontend stop polling | No | P3 (polling is sufficient for the MVP) |
 
 ## 5. Hand-back to Cursor

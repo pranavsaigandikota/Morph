@@ -141,7 +141,15 @@ This lets C1–C5 be tested in Cursor Cloud without a GPU. Do not add PROPOSED r
 - Obstacle legend "Walkable suggestion" → "Possible open path (unverified)". The internal enum can stay.
 - Never show "°" headings without "est." nearby.
 
-### C9. Calibration UI shell on MOCK (priority 3; not wired)
+### C9-LIVE. Guided manual calibration (revision 3: buildable now on 8002)
+
+**Supersedes the "not wired" note in C9 for `guided_manual` mode.** The player turns with existing
+controls, and captures use the IMPLEMENTED `POST /world/checkpoints/save`. There is no A0 dependency.
+Exact types, labels, state machine and error handling are in
+[LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md](LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md) §2B and §4.1.
+Automated turning remains BLOCKED(A0, K9).
+
+### C9. Calibration UI shell on MOCK (priority 3; not wired). Done in `535f02e` as `/calibrate`
 
 `src/components/worldMemory/CalibrationPanel.tsx`, rendered only when `VITE_CALIBRATION_UI=mock`:
 
@@ -159,7 +167,7 @@ This lets C1–C5 be tested in Cursor Cloud without a GPU. Do not add PROPOSED r
 
 | Item | Waiting on |
 |---|---|
-| Live calibration (start/cancel/progress) | Codex Phase A, after A0 |
+| *Automated* calibration (backend turning, start/cancel/progress routes) | Codex Phase A, after A0 (guided manual calibration is **not** blocked; see C9-LIVE) |
 | Observation gallery beyond the 32 checkpoints | Codex Phase B endpoints |
 | Revisit links, localization hypothesis chip | Codex Phase E plus measured precision (T6) |
 | Live obstacle overlay | Obstacle analysis activation (PROPOSED) |

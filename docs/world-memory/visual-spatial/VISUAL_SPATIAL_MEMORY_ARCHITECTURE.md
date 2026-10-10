@@ -19,6 +19,7 @@ Companion documents in this folder:
 | [BACKEND_API_GAP_ANALYSIS.md](BACKEND_API_GAP_ANALYSIS.md) | Implemented API vs frontend DTOs: mismatches and gaps (revision 2) |
 | [CURSOR_IMPLEMENTATION_HANDOFF.md](CURSOR_IMPLEMENTATION_HANDOFF.md) | What Cursor can build now (revision 2) |
 | [CODEX_CALIBRATION_HANDOFF.md](CODEX_CALIBRATION_HANDOFF.md) | A0 protocol and A0-dependent backend work (revision 2) |
+| [LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md](LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md) | **Authoritative LIVE v1 contract**: answers Cursor's eight API questions; field-level TS, JSON, state machines, compatibility matrix (revision 3) |
 
 Revision 2 (2026-10-10) reviewed `feature/worldshift-visual-memory-ui` @ `0bf4f9b` and corrected
 statements that the branch did not exist. Integration sequencing is in
