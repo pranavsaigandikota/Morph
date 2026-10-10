@@ -166,8 +166,14 @@ export function WorldViewer({
       >
         {/* Prominent native 16:9 canvas — no stretch beyond aspect-ratio box. */}
         <div
-          className="relative mx-auto w-full max-w-[min(100%,1280px)] px-2 sm:px-4"
-          style={{ aspectRatio: '16 / 9', maxHeight: embedded ? 'min(70vh, 720px)' : '100%' }}
+          className="relative mx-auto w-full px-2 sm:px-4"
+          style={{
+            aspectRatio: '16 / 9',
+            // Sharp 1:1: never draw the 1280x720 frame larger than 1280x720 DEVICE pixels. On 125-150%
+            // Windows scaling a 1280 CSS px canvas is stretched and looks blurry.
+            maxWidth: `min(100%, ${Math.round(1280 / (window.devicePixelRatio || 1))}px)`,
+            maxHeight: embedded ? `min(70vh, ${Math.round(720 / (window.devicePixelRatio || 1))}px)` : '100%',
+          }}
         >
           <canvas
             ref={canvasElRef}
@@ -175,8 +181,8 @@ export function WorldViewer({
             style={{
               imageRendering: 'auto',
               aspectRatio: '16 / 9',
-              maxWidth: CLEAR_VIEW.width,
-              maxHeight: CLEAR_VIEW.height,
+              maxWidth: Math.min(CLEAR_VIEW.width, Math.round(1280 / (window.devicePixelRatio || 1))),
+              maxHeight: Math.min(CLEAR_VIEW.height, Math.round(720 / (window.devicePixelRatio || 1))),
               width: '100%',
               height: '100%',
               objectFit: 'contain',

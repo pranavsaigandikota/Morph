@@ -18,6 +18,8 @@ import {
 } from '../lib/stabilityMode'
 import { streamUrl } from '../services/engineConfig'
 import { worldApi } from '../services/worldApi'
+import { getWorldCapabilities } from '../services/worldCapabilities'
+import { liveApi } from '../services/worldMemory/liveApi'
 import {
   KEYCAPS,
   MOUSE_BTN,
@@ -76,6 +78,11 @@ const CONTROL_MS = 50
 const METRICS_MS = 500
 /** Pause generation when WASD/mouse stop — slows standing-still drift. */
 const IDLE_HOLD_MS = 550
+/** Held look keys → mouse units per 50 ms tick. Held-look experiment: 8–28/tick stays clear for short holds. */
+const KEY_LOOK_YAW_PER_TICK = 20
+const KEY_LOOK_PITCH_PER_TICK = 12
+const MAX_LOOK_PER_TICK = 28
+const LOOK_KEYS: Record<string, 'I' | 'J' | 'K' | 'L'> = { KeyI: 'I', KeyJ: 'J', KeyK: 'K', KeyL: 'L' }
 
 interface QueuedJpeg {
   bytes: Uint8Array
@@ -139,6 +146,18 @@ export function useWorldStream() {
   const smoothLookRef = useRef({ dx: 0, dy: 0 })
   const cumulativeAbsYawRef = useRef(0)
   const lastSentMouseRef = useRef({ dx: 0, dy: 0 })
+  /** I/J/K/L currently held (keyboard look). */
+  const lookKeysRef = useRef(new Set<string>())
+  /** Backend freezes frames while idle (World Memory API v1.2) — skip client pause/resume round-trips. */
+  const serverIdleHoldRef = useRef(false)
+  /** Backend supports clear-view anchors: refresh cleans up the current view instead of jumping to the seed. */
+  const anchorsRef = useRef(false)
+  useEffect(() => {
+    void getWorldCapabilities().then((c) => {
+      serverIdleHoldRef.current = !!c?.idle_hold
+      anchorsRef.current = !!c?.anchors
+    })
+  }, [])
   const lastInputAtRef = useRef(performance.now())
   const idleHoldingRef = useRef(false)
   const userPausedRef = useRef(false)
@@ -223,6 +242,8 @@ export function useWorldStream() {
   }, [setIdleHolding, setPhase])
 
   const maybeIdleHold = useCallback(async () => {
+    // The server already holds the view still while idle; a client pause would only add resume latency.
+    if (serverIdleHoldRef.current) return
     // Idle hold is part of Stability Mode only — off ≈ closer to baseline Waypoint.
     if (!stabilityModeRef.current) return
     if (userPausedRef.current || idleHoldingRef.current) return
@@ -469,7 +490,13 @@ export function useWorldStream() {
         lastSentMouse: { dx: 0, dy: 0 },
       }))
       try {
-        await worldApi.action(sessionIdRef.current, 'reset')
+        if (anchorsRef.current) {
+          // Clean up the CURRENT view (raw capture + AI enhancement) and continue from it, instead of
+          // jumping back to the start seed. The raw frame is kept as evidence.
+          await liveApi.captureAnchor(sessionIdRef.current, { restoreHere: true, label: `Refresh here (${reason})` })
+        } else {
+          await worldApi.action(sessionIdRef.current, 'reset')
+        }
         // Backend retains paused state across reset; resume so gameplay continues.
         if (phaseRef.current === 'paused') {
           await worldApi.action(sessionIdRef.current, 'resume')
@@ -508,13 +535,20 @@ export function useWorldStream() {
       return
     }
 
-    const mouse_dx = paused ? 0 : look.mouse_dx
-    const mouse_dy = paused ? 0 : look.mouse_dy
+    // Keyboard look: J/L turn, I looks up, K looks down. Fixed per-tick values (repeatable), capped.
+    const lk = lookKeysRef.current
+    const keyDx = ((lk.has('L') ? 1 : 0) - (lk.has('J') ? 1 : 0)) * KEY_LOOK_YAW_PER_TICK
+    const keyDy = ((lk.has('K') ? 1 : 0) - (lk.has('I') ? 1 : 0)) * KEY_LOOK_PITCH_PER_TICK
+    const capLook = (v: number) => Math.max(-MAX_LOOK_PER_TICK, Math.min(MAX_LOOK_PER_TICK, v))
+    const mouse_dx = paused ? 0 : keyDx ? capLook(look.mouse_dx + keyDx) : look.mouse_dx
+    const mouse_dy = paused ? 0 : keyDy ? capLook(look.mouse_dy + keyDy) : look.mouse_dy
     lastSentMouseRef.current = { dx: mouse_dx, dy: mouse_dy }
 
     let keys = paused
       ? ([] as string[])
-      : [...keysRef.current].filter((k) => /^[WASD]$/.test(k)).map((k) => k.toLowerCase())
+      : [...keysRef.current].filter((k) => /^([WASD]|SHIFT)$/.test(k)).map((k) => k.toLowerCase())
+    // Shift = sprint, only meaningful while walking.
+    if (!keys.some((k) => /^[wasd]$/.test(k))) keys = keys.filter((k) => k !== 'shift')
 
     if (!paused && stabilityModeRef.current) {
       const moving = keys.some((k) => /^[wasd]$/.test(k))
@@ -854,6 +888,18 @@ export function useWorldStream() {
     await restoreScene('manual')
   }, [restoreScene])
 
+  /** Explicit return to the original start seed (the old Refresh behaviour). */
+  const resetToStart = useCallback(async () => {
+    if (!sessionIdRef.current) return
+    const saved = anchorsRef.current
+    anchorsRef.current = false
+    try {
+      await restoreScene('manual')
+    } finally {
+      anchorsRef.current = saved
+    }
+  }, [restoreScene])
+
   const setStabilityMode = useCallback((on: boolean) => {
     stabilityModeRef.current = on
     setState((s) => ({ ...s, stabilityMode: on }))
@@ -929,6 +975,16 @@ export function useWorldStream() {
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (!playing()) return
+      const target = e.target as HTMLElement | null
+      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return
+      const lookKey = LOOK_KEYS[e.code]
+      if (lookKey) {
+        lookKeysRef.current.add(lookKey)
+        noteUserInput()
+        void resumeFromIdleHold()
+        e.preventDefault()
+        return
+      }
       const k = KEYCAPS[e.code]
       if (!k) return
       if (!e.repeat) keyHeldRef.current.set(k, (keyHeldRef.current.get(k) || 0) + 1)
@@ -939,6 +995,11 @@ export function useWorldStream() {
       e.preventDefault()
     }
     const onKeyUp = (e: KeyboardEvent) => {
+      const lookKey = LOOK_KEYS[e.code]
+      if (lookKey) {
+        lookKeysRef.current.delete(lookKey)
+        return
+      }
       const k = KEYCAPS[e.code]
       if (!k) return
       const n = (keyHeldRef.current.get(k) || 0) - 1
@@ -992,6 +1053,7 @@ export function useWorldStream() {
     }
     const onLockError=()=>setState(s=>({...s,error:'Pointer lock rejected by this browser. Hold left mouse and drag on the video to look.'}))
     const onBlur = () => {
+      lookKeysRef.current.clear()
       keysRef.current.clear()
       keyHeldRef.current.clear()
     }
@@ -1048,6 +1110,7 @@ export function useWorldStream() {
     start,
     pause,
     reset,
+    resetToStart,
     disconnect,
     reconnect,
     requestPointerLock,

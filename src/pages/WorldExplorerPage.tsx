@@ -144,6 +144,7 @@ export function WorldExplorerPage() {
         onRequestLock={stream.requestPointerLock}
         onPause={stream.pause}
         onReset={() => void stream.reset()}
+        onResetToStart={() => void stream.resetToStart()}
         onDisconnect={() => void stream.disconnect()}
         onReconnect={() => stream.reconnect()}
         lookRisk={stream.lookRisk}

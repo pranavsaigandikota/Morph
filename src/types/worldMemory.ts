@@ -32,6 +32,12 @@ export interface EstimatedPose {
   uncertainty?: number
   epoch: number
   updatedAtMs: number
+  /** LIVE only: segment identity; trail breaks when it changes. */
+  segmentId?: string
+  /** LIVE only: backend heuristic confidence (not a probability). */
+  navConfidence?: number
+  /** LIVE only: how this segment began. */
+  anchorKind?: 'world_start' | 'reset_to_seed' | 'checkpoint_restore'
 }
 
 export interface TrailPoint {
@@ -42,10 +48,11 @@ export interface TrailPoint {
   epoch: number
   /** False when continuity across a restore is unknown. */
   continuous: boolean
+  segmentId?: string
 }
 
 /** Provenance kind for recovery policy. */
-export type CheckpointKind = 'sdxl_starter' | 'waypoint_frame' | 'restored' | 'unknown'
+export type CheckpointKind = 'sdxl_starter' | 'waypoint_frame' | 'restored' | 'clear_view_anchor' | 'unknown'
 
 export interface Checkpoint {
   id: string
@@ -79,6 +86,10 @@ export interface Checkpoint {
    * Missing / null ⇒ unsupported or disabled — do not fabricate in LIVE.
    */
   obstacleAnalysis?: ObstacleAnalysis | null
+  /** LIVE only (World Memory API v1.2). */
+  captureReason?: 'initial_seed' | 'manual' | 'periodic' | 'calibration' | 'anchor'
+  approved?: boolean
+  reviewed?: boolean
 }
 
 /** Aligns with Codex OBSTACLE_SCHEMA_PROPOSAL — not an active API. */
@@ -180,6 +191,8 @@ export interface WorldMemoryClient {
   saveView(): Promise<Checkpoint | null>
   selectCheckpoint(id: string | null): void
   restoreCheckpoint(id: string): Promise<void>
+  /** LIVE only: capture current view, enhance it, save as an approved anchor; optionally continue from it. */
+  captureAnchor?(opts: { restoreHere: boolean }): Promise<Checkpoint | null>
   centerOnPlayerRequested(): boolean
   consumeCenterRequest(): void
 }

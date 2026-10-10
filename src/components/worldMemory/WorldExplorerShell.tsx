@@ -9,6 +9,7 @@ import { RestoreOverlay } from './RestoreOverlay'
 import { MemoryGallery, type GalleryFilter } from './MemoryGallery'
 import { HuggingFaceAttribution } from '../brand/HuggingFaceAttribution'
 import { getMockWorldMemoryClient } from '../../services/worldMemory/mockWorldMemoryClient'
+import { MAP_SCALE } from '../../services/worldMemory/liveWorldMemoryClient'
 import { loadCalibrationSession } from '../../services/calibration/mockCalibration'
 import type { ObstacleObservation } from '../../types/worldMemory'
 import type { CalibrationCapture } from '../../types/calibration'
@@ -29,6 +30,8 @@ interface Props {
   onRequestLock: () => void
   onPause: () => void
   onReset: () => void
+  /** Explicit return to the original start seed. */
+  onResetToStart?: () => void
   onDisconnect: () => void
   onReconnect: () => void
   lookRisk?: 'ok' | 'elevated' | 'high'
@@ -74,7 +77,7 @@ export function WorldExplorerShell(props: Props) {
     setCalibrationCaptures(cal?.captures ?? [])
     return () => memory.detach()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.sessionId, props.worldName, props.promptSummary])
+  }, [props.sessionId, props.worldName, props.promptSummary, memory.source])
 
   useEffect(() => {
     if (memory.source !== 'mock') return
@@ -148,11 +151,68 @@ export function WorldExplorerShell(props: Props) {
     memory.session.restore.phase !== 'complete' &&
     memory.session.restore.phase !== 'failed'
 
+  const live = memory.source === 'live'
+  const [lastRestoredAnchor, setLastRestoredAnchor] = useState<string | null>(null)
+
   const onRefreshWorld = () => {
+    if (live && memory.captureAnchor) {
+      // Clean up the current view in place (enhanced) — no jump back to the start.
+      void memory.captureAnchor(true).then((cp) => cp && setLastRestoredAnchor(cp.id))
+      return
+    }
     setRefreshFlash(true)
     props.onReset()
     window.setTimeout(() => setRefreshFlash(false), 2200)
   }
+
+  // Saved clear views you can return to: player-captured anchors and the start seed (approved).
+  const anchors = useMemo(
+    () =>
+      memory.session.checkpoints.filter(
+        (c) => c.pose && c.restorable && (c.kind === 'clear_view_anchor' || c.kind === 'sdxl_starter'),
+      ),
+    [memory.session.checkpoints],
+  )
+  // Estimated match: within ~1.2 units (≈1 s walking) and ±35° heading. The map is an estimate, so this is
+  // a suggestion the player confirms with Space, never an automatic jump.
+  const nearAnchor = useMemo(() => {
+    if (!live) return null
+    const p = memory.session.pose
+    type Near = { id: string; d: number; dh: number; name: string }
+    const candidates: Near[] = anchors
+      .map((a) => ({
+        id: a.id,
+        name: a.name,
+        d: Math.hypot(a.pose!.x - p.x, a.pose!.y - p.y) / MAP_SCALE,
+        dh: Math.abs(((a.pose!.headingDeg - p.headingDeg + 540) % 360) - 180),
+      }))
+      .filter((c) => c.d <= 1.2 && c.dh <= 35)
+      .sort((x, y) => x.d - y.d)
+    const best: Near | null = candidates[0] ?? null
+    if (best && best.id === lastRestoredAnchor && best.d < 0.6) return null
+    return best
+  }, [anchors, live, memory.session.pose, lastRestoredAnchor])
+
+  useEffect(() => {
+    if (!live) return
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null
+      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return
+      if (e.repeat) return
+      if (e.code === 'Space' && nearAnchor) {
+        e.preventDefault()
+        setLastRestoredAnchor(nearAnchor.id)
+        void memory.restoreCheckpoint(nearAnchor.id)
+      } else if (e.code === 'KeyC' && memory.captureAnchor) {
+        void memory.captureAnchor(false)
+      } else if (e.code === 'KeyR') {
+        onRefreshWorld()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live, nearAnchor, memory.captureAnchor])
 
   return (
     <div className="relative flex h-[calc(100vh-3.5rem)] flex-col bg-void">
@@ -210,6 +270,40 @@ export function WorldExplorerShell(props: Props) {
             activeSeed={props.activeSeed}
             onSwitchWorld={props.onSwitchWorld}
           />
+          {live && (
+            <div className="mx-auto mt-2 flex max-w-[1280px] flex-wrap items-center justify-between gap-2 px-3 text-xs text-muted">
+              <span>
+                WASD move · Shift sprint · I/J/K/L look (up/left/down/right) · C capture clear view · R refresh
+                here · Space go to saved view
+              </span>
+              <span className="flex gap-2">
+                {memory.captureAnchor && (
+                  <button
+                    type="button"
+                    className="rounded-md border border-line bg-elevated px-2.5 py-1 font-semibold text-soft hover:text-bright"
+                    onClick={() => void memory.captureAnchor!(false)}
+                  >
+                    Capture clear view (C)
+                  </button>
+                )}
+                {props.onResetToStart && (
+                  <button
+                    type="button"
+                    className="rounded-md border border-line bg-elevated px-2.5 py-1 font-semibold text-soft hover:text-bright"
+                    onClick={props.onResetToStart}
+                  >
+                    Reset to start
+                  </button>
+                )}
+              </span>
+            </div>
+          )}
+          {nearAnchor && !restoring && (
+            <div className="pointer-events-none absolute inset-x-0 top-4 z-40 mx-auto w-fit rounded-lg border border-signal/60 bg-panel/90 px-4 py-2 text-sm text-bright shadow-lg">
+              Saved clear view here (“{nearAnchor.name}”, est. {nearAnchor.d.toFixed(1)} units away) — press{' '}
+              <kbd className="rounded border border-line px-1">Space</kbd> to switch to it
+            </div>
+          )}
           <RestoreOverlay
             job={
               refreshFlash && !memory.session.restore
@@ -294,7 +388,8 @@ export function WorldExplorerShell(props: Props) {
                     setSelectedObstacle(obs)
                     memory.selectCheckpoint(obs.source_checkpoint_id)
                   }}
-                  calibrationCaptures={calibrationCaptures}
+                  calibrationCaptures={live ? [] : calibrationCaptures}
+                  nearAnchorId={nearAnchor?.id ?? null}
                 />
               </div>
               <aside className="rounded-xl border border-line bg-panel/70 p-3 text-xs text-soft">

@@ -25,6 +25,8 @@ interface Props {
   onSelectObstacle: (obs: ObstacleObservation) => void
   /** MOCK calibration bearings plotted as estimated rays — not physical. */
   calibrationCaptures?: CalibrationCapture[]
+  /** LIVE: saved clear view the player is estimated to be at (Space to switch). */
+  nearAnchorId?: string | null
 }
 
 export function ExplorationMap({
@@ -41,6 +43,7 @@ export function ExplorationMap({
   selectedObstacleId,
   onSelectObstacle,
   calibrationCaptures = [],
+  nearAnchorId = null,
 }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null)
   const [view, setView] = useState({ x: -180, y: -120, w: 360, h: 240 })
@@ -155,11 +158,30 @@ export function ExplorationMap({
           />
         )}
 
+        {/* Saved clear views: heading cone shows which way the saved image faces (estimated). */}
+        {checkpoints
+          .filter((cp) => cp.pose && (cp.kind === 'clear_view_anchor' || cp.kind === 'sdxl_starter') && cp.restorable)
+          .map((cp) => (
+            <g key={`cone-${cp.id}`} transform={`translate(${cp.pose!.x},${cp.pose!.y}) rotate(${cp.pose!.headingDeg})`}>
+              <path
+                d="M0,0 L-11,-26 A28,28 0 0,1 11,-26 Z"
+                fill={cp.id === nearAnchorId ? '#2ee6d6' : '#7c6cff'}
+                fillOpacity={cp.id === nearAnchorId ? 0.45 : 0.22}
+                stroke={cp.id === nearAnchorId ? '#2ee6d6' : 'none'}
+                strokeWidth="1"
+              />
+            </g>
+          ))}
+
         {checkpoints.map((cp) => {
-          const px = cp.pose?.x ?? 0
-          const py = cp.pose?.y ?? 0
+          // Never invent a position: checkpoints without an estimated pose are listed in the gallery only.
+          if (!cp.pose) return null
+          if (cp.captureReason === 'periodic' && cp.id !== selectedId) return null
+          const px = cp.pose.x
+          const py = cp.pose.y
           const selected = cp.id === selectedId
-          const unsuitable = cp.recoverySuitable === false
+          const unsuitable = cp.recoverySuitable === false && cp.kind !== 'waypoint_frame'
+          const isAnchor = cp.kind === 'clear_view_anchor'
           return (
             <g
               key={cp.id}
@@ -176,7 +198,9 @@ export function ExplorationMap({
                 fill={
                   unsuitable
                     ? '#ef4444'
-                    : cp.index === 0
+                    : isAnchor
+                      ? '#7c6cff'
+                      : cp.index === 0
                       ? '#f5a623'
                       : selected
                         ? '#2ee6d6'
@@ -204,7 +228,7 @@ export function ExplorationMap({
                 fontSize="8"
                 style={{ pointerEvents: 'none' }}
               >
-                {cp.index === 0 ? 'Start' : unsuitable ? '✗' : cp.index}
+                {cp.index === 0 ? 'Start' : isAnchor ? 'Clear view' : unsuitable ? '✗' : cp.index}
               </text>
             </g>
           )
@@ -213,7 +237,7 @@ export function ExplorationMap({
         {/* Player + uncertainty ring */}
         <g transform={`translate(${pose.x},${pose.y})`}>
           <circle
-            r={10 + (pose.uncertainty ?? 0.3) * 18}
+            r={pose.navConfidence != null ? 10 + (1 - pose.navConfidence) * 18 : 10 + (pose.uncertainty ?? 0.3) * 18}
             fill="#2ee6d6"
             fillOpacity="0.08"
             stroke="#2ee6d6"
@@ -233,8 +257,10 @@ export function ExplorationMap({
         {showObstacles ? ' · AI obstacles' : ''}
       </div>
       <div className="pointer-events-none absolute bottom-3 left-3 font-mono text-[10px] text-muted">
-        est ({pose.x.toFixed(0)}, {pose.y.toFixed(0)}) · heading {pose.headingDeg.toFixed(0)}° ·
-        unc {((pose.uncertainty ?? 0) * 100).toFixed(0)}% · epoch {pose.epoch}
+        est. position · heading ≈{pose.headingDeg.toFixed(0)}° (estimated, assumes 90° FOV) ·{' '}
+        {pose.navConfidence != null
+          ? `confidence ${pose.navConfidence >= 0.66 ? 'high' : pose.navConfidence >= 0.33 ? 'medium' : 'low'} (heuristic)`
+          : `unc ${((pose.uncertainty ?? 0) * 100).toFixed(0)}% (MOCK)`}
       </div>
     </div>
   )
