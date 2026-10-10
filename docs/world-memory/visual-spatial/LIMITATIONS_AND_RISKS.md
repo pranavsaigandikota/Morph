@@ -81,7 +81,7 @@ must handle them.
 | R18 | The frontend defaults to port 8000, which has no memory routes; a live demo silently stays on MOCK or 404s | Medium | Medium | `ENGINE_TARGET=http://127.0.0.1:8002`; live client shows "Memory unavailable" on 404 | Cursor |
 | R19 | Frontend anchor policy (`waypoint_frame` never restorable) vs backend review-gated restore leaves the gallery's restore buttons mostly disabled | High | Low | Product decision, documented. Default `approved && policy` | Product owner |
 | R20 | A0 finds rate-dependent or scene-dependent turn gain, so no single units-per-degree value exists | **Occurred (rev. 4):** A0 NO-GO, 21 trials, 3 scenes | Medium | Automated/fixed-angle calibration BLOCKED(A0 NO-GO); guided manual calibration with soft labels approved; no degree values displayed | Codex / Claude |
-| R21 | A0 NO-GO evidence is not published in the repository, so the decision is not independently auditable | Current | Low–Medium | Codex commits the trial report on the backend branch; link it in DOCUMENTATION_SOURCES | Codex |
+| R21 | ~~A0 NO-GO evidence is not published~~ **Resolved (rev. 5):** report pushed on `experiment/native720-turn-gain-a0@d7c7435`; image evidence stays in local outputs | Resolved | Low–Medium | Codex commits the trial report on the backend branch; link it in DOCUMENTATION_SOURCES | Codex |
 | R22 | `:8000` is mistaken for a 360p product fallback | Medium | Medium | `:8000` is archived, regression-only; product acceptance on `:8002` (LIVE contract §8) | All |
 
 ## 5. Claims we must not make

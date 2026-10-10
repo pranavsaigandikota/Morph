@@ -617,3 +617,30 @@ regressions in the archive, not product blockers for native 720p.
 contract**, `docs/visual-spatial-memory:docs/world-memory/visual-spatial/LIVE_CALIBRATION_AND_MEMORY_CONTRACT.md`.
 The backend wire contract it builds on is cited by source and commit, never by the bare path
 `API_CONTRACT.md` (two different files share that path). See [DOCUMENTATION_SOURCES.md](DOCUMENTATION_SOURCES.md).
+
+## 9. Revision 5: backend v1.1 IMPLEMENTED (supersedes PROPOSED tags for these fields)
+
+Backend owner changed: Claude now owns the backend (Codex is no longer active). The fields below are
+**IMPLEMENTED** on `claude/live-memory-backend` @ `bc52c65` (based on native720 `d7c7435`) and **GPU
+smoke-tested 19/19** (backend `docs/world-memory/RESULTS.md`, "v1.1 GPU smoke"). Run it with
+`experiments/Start-LiveMemoryBackend.ps1` (port 8002; origins include Cursor dev 4821).
+
+| Item (earlier ID) | Now | Wire |
+|---|---|---|
+| `/health.capabilities` (K13) | **IMPLEMENTED** | `{memory_api, checkpoint_restore, calibration_capture, light_navigation, calibration_backend:false, observations:false, obstacles:false, enhancement:false}` + `contract:"world-memory-v1.1"` |
+| `capture_reason` (K5) | **IMPLEMENTED** | `'initial_seed'|'manual'|'periodic'|'calibration'` on every checkpoint |
+| Calibration tag | **IMPLEMENTED** | Save body `capture_reason:'calibration'` + `calibration:{calibration_id:/^[a-z0-9]{6,32}$/, kind:'capture'|'return_check', soft_label}`. Closed soft-label vocabulary, no angle fields (422 otherwise). **Replaces the label-string convention** in §1 Q1 (keep a readable `label` anyway) |
+| Review metadata (K12) | **IMPLEMENTED** | Review body optional `reviewer`, `reason`; checkpoint `review:{reviewed_at, reviewer, reason}` |
+| Segment anchor (K4) | **IMPLEMENTED** | Navigation `anchor_kind:'world_start'|'reset_to_seed'|'checkpoint_restore'`, `restored_from_checkpoint_id` |
+| `nav_model` (K6) | **IMPLEMENTED** | `{version:1, yaw_rad_per_unit:0.002, units_per_second:1, nominal_fps:60, source:'nominal_constant', turn_gain:'not_established', a0_report}` |
+| Light navigation read (K2) | **IMPLEMENTED** | `GET /world/navigation?session_id=S&trajectory_since=N` → `{…, navigation, trajectory_offset, trajectory_total, trajectory, recovery_status, nav_model}` |
+| Nav event rate (K2) | **IMPLEMENTED** | `WORLDSHIFT_NAV_EVENT_HZ` 1–5 (launcher: 2); trajectory stays 1 Hz |
+| Event epoch invariant (K3) | **IMPLEMENTED + tested** | unit test and GPU smoke (0 stale events of 18) |
+| Contract path (K8) | **Resolved on backend branch** | renamed to `docs/world-memory/WORLD_MEMORY_API_V1.md` with a v1.1 section |
+
+Still **PROPOSED**: sigma uncertainty (K7), observations, obstacles, enhancement, server-side
+calibration session/review. Still **BLOCKED(A0 NO-GO)**: automated or fixed-angle turning, angular rays.
+Phase A0 report is now published: `experiment/native720-turn-gain-a0@d7c7435:experiments/a0/PHASE_A0_TURN_GAIN_REPORT.md`.
+Its key caution: across magnitudes 0.5–32 the inferred image pan stayed ~−9 px (non-monotonic), and
+larger inputs did not clearly reveal side views. Guided manual calibration therefore needs a human check
+that players can visibly turn with normal look controls (in a normally rendering browser).
