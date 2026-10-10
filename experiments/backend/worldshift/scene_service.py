@@ -31,6 +31,9 @@ class GenerateScene(Strict):
     perspective: Literal["first_person"] = "first_person"
     style: str | None = Field(default=None, min_length=1, max_length=80)
     quality: Literal['high'] = 'high'
+    # Optional explicit size from the HQ contact-sheet client. Native 1280x720 is the only supported target.
+    width: Literal[1280] = 1280
+    height: Literal[720] = 720
 
     @field_validator("prompt", "style")
     @classmethod
