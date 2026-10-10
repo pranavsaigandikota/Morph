@@ -22,8 +22,11 @@
 
 - Rescue Mission / Showdown / Replays UI (static package + browser sim)
 - Visual polish on Landing / Mission / Showdown
+- Explorer **help copy** and telemetry **labels** (e.g. Presentation Skips) — not wire protocol
 - `docs/codex/` handoff + validation docs
 - `src/services/rescueEnvAdapter.ts` / `browserRescueSim.ts` (until Grok RescueGame lands)
+
+Still **do not** change control message shapes, envelope parsing, scene POST bodies, or health probes.
 
 ## Integration order when Codex patch arrives
 

@@ -186,23 +186,20 @@ export function WorldViewer({
               </div>
               <ul className="space-y-1 text-soft">
                 <li>
-                  <kbd className="text-bright">W A S D</kbd> / arrows — move
+                  <kbd className="text-bright">W A S D</kbd> — move
                 </li>
                 <li>
-                  <kbd className="text-bright">Mouse</kbd> — look (pointer lock or drag)
+                  <kbd className="text-bright">Mouse</kbd> — look (pointer lock or drag-look)
                 </li>
                 <li>
-                  <kbd className="text-bright">Space</kbd> jump · <kbd className="text-bright">Shift</kbd>{' '}
-                  sprint · wheel scroll
-                </li>
-                <li>
-                  <kbd className="text-bright">Esc</kbd> release lock · <kbd className="text-bright">F</kbd>{' '}
-                  fullscreen · <kbd className="text-bright">H</kbd> help
+                  <kbd className="text-bright">Esc</kbd> release lock ·{' '}
+                  <kbd className="text-bright">F</kbd> fullscreen ·{' '}
+                  <kbd className="text-bright">H</kbd> help
                 </li>
               </ul>
               <p className="mt-3 text-xs text-muted">
-                First-person Waypoint stream only. Geometry in video is not a reliable physics map —
-                use Rescue Lab for that.
+                Only controls verified with the Waypoint backend are listed. First-person stream —
+                use Rescue Mission for grid navigation.
               </p>
             </div>
           </div>

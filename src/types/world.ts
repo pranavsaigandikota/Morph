@@ -31,6 +31,16 @@ export interface WorldMetrics {
   /** Frames actually painted to the browser. */
   displayed_fps: number
   latency_ms: number
+  /**
+   * Client intentionally skipped stale presentation-queue frames (not server loss).
+   * Prefer this label in the UI over “Dropped”.
+   */
+  presentation_skips: number
+  /** Invalid JPEG / envelope decode failures on the client. */
+  decode_errors: number
+  /** True server-side drops when the backend reports them; otherwise null. */
+  server_drops: number | null
+  /** @deprecated alias of presentation_skips — keep for older overlays */
   dropped_frames: number
   gpu_memory_mb: number | null
   connection_status: 'connected' | 'connecting' | 'reconnecting' | 'disconnected' | 'error'

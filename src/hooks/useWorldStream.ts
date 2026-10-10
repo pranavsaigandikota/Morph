@@ -99,7 +99,10 @@ export function useWorldStream() {
   const dispCountRef = useRef(0)
   const dispWindowStartRef = useRef(performance.now())
   const dispFpsRef = useRef(0)
-  const droppedRef = useRef(0)
+  /** Intentional client presentation-queue skips (stale frames). */
+  const presentationSkipsRef = useRef(0)
+  /** Client JPEG / envelope decode failures. */
+  const decodeErrorsRef = useRef(0)
   const genMsEwmaRef = useRef<number | null>(null)
   const latEwmaRef = useRef<number | null>(null)
 
@@ -144,7 +147,10 @@ export function useWorldStream() {
         generated_fps: Math.round(genFpsRef.current * 10) / 10,
         displayed_fps: Math.round(dispFpsRef.current * 10) / 10,
         latency_ms: latEwmaRef.current != null ? Math.round(latEwmaRef.current) : 0,
-        dropped_frames: droppedRef.current,
+        presentation_skips: presentationSkipsRef.current,
+        decode_errors: decodeErrorsRef.current,
+        server_drops: null, // populate when Codex/backend reports true drops
+        dropped_frames: presentationSkipsRef.current,
         gpu_memory_mb: null, // labeled unavailable in UI unless backend supplies it
         connection_status:
           phaseRef.current === 'reconnecting'
@@ -175,7 +181,7 @@ export function useWorldStream() {
     // Prefer newest queued frame; discard stale intermediates for responsiveness.
     while (queueRef.current.length > 1) {
       queueRef.current.shift()
-      droppedRef.current += 1
+      presentationSkipsRef.current += 1
     }
     const next = queueRef.current.shift()
     if (!next) return
@@ -206,7 +212,7 @@ export function useWorldStream() {
       drawingRef.current = false
     }
     img.onerror = () => {
-      droppedRef.current += 1
+      decodeErrorsRef.current += 1
       URL.revokeObjectURL(url)
       drawingRef.current = false
     }
@@ -254,7 +260,7 @@ export function useWorldStream() {
       for (let i = 0; i < jpegs.length; i++) {
         const bytes = jpegs[i]!
         if (!isJpeg(bytes)) {
-          droppedRef.current += 1
+          decodeErrorsRef.current += 1
           continue
         }
         queueRef.current.push({
@@ -268,10 +274,10 @@ export function useWorldStream() {
         })
       }
 
-      // Bound presentation queue — drop oldest stale frames (does NOT affect generated_fps).
+      // Bound presentation queue — skip oldest stale frames (does NOT affect generated_fps).
       while (queueRef.current.length > MAX_PRESENTATION_QUEUE) {
         queueRef.current.shift()
-        droppedRef.current += 1
+        presentationSkipsRef.current += 1
       }
     },
     [],
@@ -384,7 +390,7 @@ export function useWorldStream() {
           if (phaseRef.current === 'connecting') setPhase('streaming')
         } catch (err) {
           console.warn('[world] bad envelope', err)
-          droppedRef.current += 1
+          decodeErrorsRef.current += 1
         }
       }
 
@@ -430,7 +436,8 @@ export function useWorldStream() {
         metrics: null,
       }))
       queueRef.current = []
-      droppedRef.current = 0
+      presentationSkipsRef.current = 0
+      decodeErrorsRef.current = 0
       genCountRef.current = 0
       dispCountRef.current = 0
       genWindowStartRef.current = performance.now()
@@ -494,7 +501,8 @@ export function useWorldStream() {
     if (wsRef.current && wsRef.current.readyState < 2) wsRef.current.close()
     wsRef.current = null
     queueRef.current = []
-    droppedRef.current = 0
+    presentationSkipsRef.current = 0
+    decodeErrorsRef.current = 0
     keysRef.current.clear()
     keyHeldRef.current.clear()
     mouseRef.current = { dx: 0, dy: 0, scroll: 0 }
@@ -524,7 +532,8 @@ export function useWorldStream() {
       seedRef.current = seed
       setActiveSeed(seed)
       queueRef.current = []
-      droppedRef.current = 0
+      presentationSkipsRef.current = 0
+      decodeErrorsRef.current = 0
       genCountRef.current = 0
       dispCountRef.current = 0
       genWindowStartRef.current = performance.now()

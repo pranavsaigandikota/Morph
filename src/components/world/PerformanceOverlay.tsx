@@ -21,7 +21,7 @@ export function PerformanceOverlay({ metrics, phase, mock, engineName }: Props) 
   const connected = status === 'connected' || phase === 'streaming' || phase === 'paused'
 
   return (
-    <aside className="pointer-events-none absolute left-3 top-3 z-20 w-[240px] rounded-lg border border-line bg-ink/80 p-3 shadow-xl backdrop-blur-md">
+    <aside className="pointer-events-none absolute left-3 top-3 z-20 w-[248px] rounded-lg border border-line bg-ink/80 p-3 shadow-xl backdrop-blur-md">
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="font-display text-xs font-bold tracking-wide text-soft">Telemetry</span>
         {mock ? (
@@ -36,14 +36,8 @@ export function PerformanceOverlay({ metrics, phase, mock, engineName }: Props) 
       </div>
       <div className="space-y-0.5">
         <Row label="Status" value={String(status)} warn={!connected && status !== 'connecting'} />
-        <Row
-          label="Gen FPS"
-          value={metrics ? metrics.generated_fps.toFixed(1) : '—'}
-        />
-        <Row
-          label="Disp FPS"
-          value={metrics ? metrics.displayed_fps.toFixed(1) : '—'}
-        />
+        <Row label="Gen FPS" value={metrics ? metrics.generated_fps.toFixed(1) : '—'} />
+        <Row label="Disp FPS" value={metrics ? metrics.displayed_fps.toFixed(1) : '—'} />
         <Row
           label="Latency"
           value={metrics ? `${Math.round(metrics.latency_ms)} ms` : '—'}
@@ -55,7 +49,26 @@ export function PerformanceOverlay({ metrics, phase, mock, engineName }: Props) 
             metrics?.gen_ms_ewma != null ? `${Math.round(metrics.gen_ms_ewma)} ms` : '—'
           }
         />
-        <Row label="Dropped" value={metrics ? String(metrics.dropped_frames) : '—'} />
+        <Row
+          label="Pres. Skips"
+          value={
+            metrics
+              ? String(metrics.presentation_skips ?? metrics.dropped_frames ?? 0)
+              : '—'
+          }
+        />
+        <Row
+          label="Decode Err"
+          value={metrics ? String(metrics.decode_errors ?? 0) : '—'}
+          warn={!!metrics && (metrics.decode_errors ?? 0) > 0}
+        />
+        <Row
+          label="Srv Drops"
+          value={
+            metrics?.server_drops != null ? String(metrics.server_drops) : 'unavailable'
+          }
+          warn={!!metrics && metrics.server_drops != null && metrics.server_drops > 0}
+        />
         <Row
           label="GPU Mem"
           value={
@@ -65,9 +78,10 @@ export function PerformanceOverlay({ metrics, phase, mock, engineName }: Props) 
           }
           warn={metrics?.gpu_memory_mb == null}
         />
-        <p className="pt-0.5 text-[10px] text-muted">
-          Gen = wire JPEGs · Disp = canvas draws
-          {metrics?.gpu_memory_mb == null ? ' · GPU not supplied by backend' : ''}
+        <p className="pt-0.5 text-[10px] leading-snug text-muted">
+          Gen = wire JPEGs · Disp = canvas · Pres. Skips = intentional client queue skips (not
+          server loss)
+          {metrics?.server_drops == null ? ' · Srv Drops not reported by backend' : ''}
         </p>
         {engineName && <Row label="Engine" value={engineName} />}
       </div>

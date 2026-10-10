@@ -77,7 +77,9 @@ One WebSocket **binary** message per `gen_frame` batch:
 |--------|--------|
 | **Generated FPS** | Count of JPEG sub-frames received from envelopes (independent of presentation drops) |
 | **Displayed FPS** | Frames painted to the `<img>` / canvas |
-| **Dropped** | Stale presentation-queue discards + invalid JPEG |
+| **Pres. Skips** | Intentional client presentation-queue skips (stale frames) |
+| **Decode Err** | Invalid JPEG / envelope decode failures |
+| **Srv Drops** | True server-side drops when the backend reports them |
 | **Latency** | EWMA of `now - client_ts` when echoed |
 
 Presentation queue is capped (`MAX_PRESENTATION_QUEUE = 3`); dropping never reduces reported generated FPS.
