@@ -1,0 +1,10 @@
+<!doctype html><meta charset="utf-8"><title>WorldShift human scheduling test</title>
+<style>body{font:16px system-ui;background:#10151b;color:white;margin:24px}button,select,input{font:inherit;margin:6px;padding:8px}canvas{width:min(900px,100%)}pre{white-space:pre-wrap}a{color:#9ddcff}</style>
+<h1>30-second browser scheduling diagnosis</h1>
+<p>No Waypoint connection. Open this URL yourself in a normal Brave window, keep it visible and do not switch tabs during each run.</p>
+<select id="mode"><option value="raf">1. rAF only (no image work)</option><option value="decode">2. JPEG decode only</option><option value="draw">3. Predecoded canvas drawing only</option></select>
+<button id="start">Measure 30 seconds</button><button id="download">Download result JSON</button>
+<p>JPEG source: a genuine saved native720 Waypoint frame; reused only for a decoding microbenchmark. It is not live generation.</p>
+<canvas id="micro" width="1280" height="720"></canvas><pre id="result">Ready</pre>
+<p>Then measure the actual Explorer: <a href="/world?seed=9bda60c5d71a411680f71969c487684d&schedulingProbe=1&manualCapture=1">Open instrumented Explorer</a>. Click its normal Start/Connect control, then the diagnostic panel's Measure button.</p>
+<script type="module" src="/manual-diagnostics.js"></script>

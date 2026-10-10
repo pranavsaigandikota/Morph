@@ -1,0 +1,132 @@
+{
+  "mode": "explorer",
+  "url": "http://127.0.0.1:4835/world?seed=9bda60c5d71a411680f71969c487684d&schedulingProbe=1&manualCapture=1",
+  "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+  "duration_ms": 30000,
+  "visibility": [
+    {
+      "elapsed_ms": 28012.70000000298,
+      "state": "visible",
+      "focus": true
+    },
+    {
+      "elapsed_ms": 29015.20000000298,
+      "state": "visible",
+      "focus": true
+    },
+    {
+      "elapsed_ms": 30003.60000000149,
+      "state": "visible",
+      "focus": true
+    }
+  ],
+  "long_tasks": [],
+  "errors": [],
+  "initial_telemetry": {
+    "received": 376,
+    "displayed": 12,
+    "session_id": "19651e6a6c4f4e39afd25feed8b4e5c7",
+    "epoch": 2,
+    "server": {
+      "generated_fps": 29.208919428218437,
+      "active_generated_fps": 29.404939034513816,
+      "generated_frames": 364,
+      "elapsed_seconds": 12.461946800001897,
+      "batch_latency_ms": 136.03156923076872,
+      "batch_latency_p50_ms": 138.5316000014427,
+      "batch_latency_p95_ms": 143.99090000370052,
+      "inference_p50_ms": 103.35909999907017,
+      "inference_p95_ms": 108.21030000597239,
+      "dropped_frames": 0,
+      "acknowledged_frames_connected_clients": 364,
+      "last_generated_at_ms": 52494579.61709999,
+      "status": "running",
+      "model_load_count": 1,
+      "vram_mb": 4476,
+      "allocated_mb": 3457.35693359375,
+      "peak_reserved_mb": 8894,
+      "peak_allocated_mb": 7086.888671875
+    }
+  },
+  "power_saver": "Not observable through this page; record Brave settings manually",
+  "automatic_control": false,
+  "actual_elapsed_ms": 30003.80000000447,
+  "raf_callback_rate": 1.1665189076048628,
+  "raf_summary": {
+    "count": 34,
+    "p50": 1016.5999999999985,
+    "p95": 1016.7000000000007,
+    "max": 1016.7000000000044
+  },
+  "decode_summary": {
+    "count": 31,
+    "p50": 1.8999999985098839,
+    "p95": 5.200000002980232,
+    "max": 10.600000001490116
+  },
+  "draw_summary": {
+    "count": 31,
+    "p50": 0,
+    "p95": 0.10000000149011612,
+    "max": 0.4000000059604645
+  },
+  "final_telemetry": {
+    "received": 1196,
+    "displayed": 44,
+    "session_id": "19651e6a6c4f4e39afd25feed8b4e5c7",
+    "epoch": 2,
+    "server": {
+      "generated_fps": 27.78826549306425,
+      "active_generated_fps": 27.90931969690503,
+      "generated_frames": 1180,
+      "elapsed_seconds": 42.46396739999909,
+      "batch_latency_ms": 143.32130067805184,
+      "batch_latency_p50_ms": 145.622000003641,
+      "batch_latency_p95_ms": 149.00029999989783,
+      "inference_p50_ms": 111.37520000338554,
+      "inference_p95_ms": 113.07610000669956,
+      "dropped_frames": 0,
+      "acknowledged_frames_connected_clients": 1180,
+      "last_generated_at_ms": 52524521.0485,
+      "status": "running",
+      "model_load_count": 1,
+      "vram_mb": 4476,
+      "allocated_mb": 3457.35693359375,
+      "peak_reserved_mb": 8894,
+      "peak_allocated_mb": 7086.888671875
+    }
+  },
+  "same_session": true,
+  "same_epoch": true,
+  "received_fps": 27.329871549599645,
+  "canvas_fps": 1.0665315726673033,
+  "presentation_skips": 788,
+  "decode_errors": 0,
+  "protocol_errors": 0,
+  "server": {
+    "generated_fps": 27.78826549306425,
+    "active_generated_fps": 27.90931969690503,
+    "generated_frames": 1180,
+    "elapsed_seconds": 42.46396739999909,
+    "batch_latency_ms": 143.32130067805184,
+    "batch_latency_p50_ms": 145.622000003641,
+    "batch_latency_p95_ms": 149.00029999989783,
+    "inference_p50_ms": 111.37520000338554,
+    "inference_p95_ms": 113.07610000669956,
+    "dropped_frames": 0,
+    "acknowledged_frames_connected_clients": 1180,
+    "last_generated_at_ms": 52524521.0485,
+    "status": "running",
+    "model_load_count": 1,
+    "vram_mb": 4476,
+    "allocated_mb": 3457.35693359375,
+    "peak_reserved_mb": 8894,
+    "peak_allocated_mb": 7086.888671875
+  },
+  "limitations": [
+    "JS drawImage duration is submission time, not GPU compositor time",
+    "Explorer image src-to-load includes dispatch/loading and decode; it is not pure decoder CPU time",
+    "Standalone createImageBitmap uses a cached JPEG; it is a microbenchmark, not streaming throughput",
+    "No GPU frame or acknowledgment protocol modifications"
+  ]
+}

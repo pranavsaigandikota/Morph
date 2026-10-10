@@ -1,0 +1,1702 @@
+[
+  {
+    "id": "native720-latest-original-fixed-1791663486988",
+    "seconds": 60.0465,
+    "generated_fps": 29.086884837683893,
+    "received_fps": 29.127426244660388,
+    "canvas_fps": 0.9825718401572114,
+    "received": 1749,
+    "displayed": 59,
+    "skips": 1687,
+    "age_p50": 80.2,
+    "age_p95": 131.11,
+    "decode_p50": 5.95,
+    "decode_p95": 19.62,
+    "control_canvas_p50": 253.6,
+    "control_canvas_p95": 315.16,
+    "ack_p50": 1.8,
+    "ack_p95": 16.3,
+    "raf_p95": 1016.7,
+    "drops": 0,
+    "gaps": 0,
+    "decode_errors": 0,
+    "protocol_errors": 0,
+    "stale": 0,
+    "errors": [],
+    "reserved_mb": 4476,
+    "peak_reserved_mb": 8894,
+    "acks": 1752,
+    "generated": 1752,
+    "visibility": [
+      {
+        "t": 0.00010000000149011611,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 1.0002999999970197,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 2.0007999999970196,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 3.02889999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 4.02229999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 5.00660000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 6.02360000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 7.01520000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 8.0155,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 9.05910000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 10.05910000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 11.0385,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 12.04820000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 13.01029999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 14.04210000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 15.0505,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 16.0305,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 17.049,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 18.05820000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 19.02410000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 20.01379999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 21.05720000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 22.0545,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 23.01779999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 24.05029999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 25.01229999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 26.01370000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 27.04879999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 28.0255,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 29.059600000001492,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 30.04210000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 31.00020000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 32.04310000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 33.06010000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 34.00639999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 35.05029999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 36.0425,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 37.03639999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 38.00220000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 39.05060000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 40.02939999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 41.035,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 42.025,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 43.05610000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 44.012,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 45.03710000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 46.03620000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 47.01439999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 48.03779999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 49.04110000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 50.04489999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 51.02660000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 52.05079999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 53.05710000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 54.05329999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 55.02770000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 56.04670000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 57.01770000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 58.01029999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 59.02760000000149,
+        "state": "visible",
+        "focus": true
+      }
+    ],
+    "transitions": [
+      {
+        "cycle": 1,
+        "reason": "fixed-15s",
+        "segment_moving_frames": 436,
+        "segment_rotation": 25.999999999999943,
+        "mode": "original",
+        "checkpoint_id": "0e2c8ae234da4be5913a43e729f76645",
+        "source_kind": "original_sdxl_seed",
+        "t": 15.11139999999851,
+        "start": 751539.3999999985,
+        "first_frame_ms": 303.1000000014901,
+        "first_draw_ms": 1277.8999999985099,
+        "epoch": 6,
+        "request_ms": 207.20000000298023,
+        "result": {
+          "session_id": "f7b08ee317fc4aeb89fbb70d02a8e3b5",
+          "world_id": "a20d250ba7a64fd094af0c38afd7bdc4",
+          "status": "running",
+          "epoch": 6,
+          "checkpoint_id": "0e2c8ae234da4be5913a43e729f76645",
+          "recovery_ms": 179.0095999967889
+        }
+      },
+      {
+        "cycle": 2,
+        "reason": "fixed-15s",
+        "segment_moving_frames": 432,
+        "segment_rotation": 29.499999999999943,
+        "mode": "original",
+        "checkpoint_id": "0e2c8ae234da4be5913a43e729f76645",
+        "source_kind": "original_sdxl_seed",
+        "t": 30.326,
+        "start": 766754,
+        "first_frame_ms": 305.1000000014901,
+        "first_draw_ms": 1293.7999999970198,
+        "epoch": 7,
+        "request_ms": 209.39999999850988,
+        "result": {
+          "session_id": "f7b08ee317fc4aeb89fbb70d02a8e3b5",
+          "world_id": "a20d250ba7a64fd094af0c38afd7bdc4",
+          "status": "running",
+          "epoch": 7,
+          "checkpoint_id": "0e2c8ae234da4be5913a43e729f76645",
+          "recovery_ms": 181.55269999988377
+        }
+      },
+      {
+        "cycle": 3,
+        "reason": "fixed-15s",
+        "segment_moving_frames": 432,
+        "segment_rotation": 40.49999999999996,
+        "mode": "original",
+        "checkpoint_id": "0e2c8ae234da4be5913a43e729f76645",
+        "source_kind": "original_sdxl_seed",
+        "t": 45.55779999999702,
+        "start": 781985.799999997,
+        "first_frame_ms": 358,
+        "first_draw_ms": 1226.3000000044703,
+        "epoch": 8,
+        "request_ms": 236.70000000298023,
+        "result": {
+          "session_id": "f7b08ee317fc4aeb89fbb70d02a8e3b5",
+          "world_id": "a20d250ba7a64fd094af0c38afd7bdc4",
+          "status": "running",
+          "epoch": 8,
+          "checkpoint_id": "0e2c8ae234da4be5913a43e729f76645",
+          "recovery_ms": 190.91630000184523
+        }
+      }
+    ]
+  },
+  {
+    "id": "native720-paced-fresh-fixed-1791663608778",
+    "seconds": 60.05779999999702,
+    "generated_fps": 29.095996781761006,
+    "received_fps": 29.121945858824112,
+    "canvas_fps": 0.93243508753239,
+    "received": 1749,
+    "displayed": 56,
+    "skips": 1680,
+    "age_p50": 78.3,
+    "age_p95": 142.92,
+    "decode_p50": 5.9,
+    "decode_p95": 18.88,
+    "control_canvas_p50": 242.95,
+    "control_canvas_p95": 309.38,
+    "ack_p50": 2.0,
+    "ack_p95": 17.44,
+    "raf_p95": 1016.7,
+    "drops": 0,
+    "gaps": 0,
+    "decode_errors": 0,
+    "protocol_errors": 0,
+    "stale": 0,
+    "errors": [],
+    "reserved_mb": 4476,
+    "peak_reserved_mb": 8894,
+    "acks": 1764,
+    "generated": 1764,
+    "visibility": [
+      {
+        "t": 0,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 1.0138999999985099,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 2.053,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 3.01,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 4.00789999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 5.0485,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 6.04259999999404,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 7.01069999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 8.01469999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 9.048599999994039,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 10.01479999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 11.00169999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 12.00489999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 13.05929999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 14.02869999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 15.01679999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 16.02129999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 17.02279999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 18.03369999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 19.033,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 20.03869999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 21.04139999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 22.018599999994038,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 23.01079999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 24.02419999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 25.05319999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 26.03579999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 27.02059999999404,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 28.00079999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 29.04729999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 30.02439999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 31.05689999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 32.0065,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 33.03739999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 34.045,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 35.037,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 36.00809999999404,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 37.03109999999404,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 38.01479999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 39.03529999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 40.03319999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 41.01219999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 42.05589999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 43,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 44.027,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 45.01309999999404,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 46.03619999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 47.0325,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 48.02689999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 49.04109999999404,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 50.03179999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 51.02969999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 52.02229999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 53.03479999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 54.01239999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 55.03059999999404,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 56.049,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 57.04279999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 58.02329999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 59.04889999999851,
+        "state": "visible",
+        "focus": true
+      }
+    ],
+    "transitions": [
+      {
+        "cycle": 1,
+        "reason": "fixed-15s",
+        "segment_moving_frames": 428,
+        "segment_rotation": 25.999999999999943,
+        "mode": "fresh",
+        "checkpoint_id": "f8669450e892439fa9fc1a6e57ea9288",
+        "source_kind": "fresh_sdxl_seed",
+        "t": 15.07689999999851,
+        "start": 873408.1000000015,
+        "first_frame_ms": 257.79999999701977,
+        "first_draw_ms": 1087.5,
+        "epoch": 14,
+        "request_ms": 145.19999999552965,
+        "result": {
+          "session_id": "5e915c6fe44044f99e7d194020c4eee3",
+          "world_id": "1c3cf0c54afb4000a35615f3ea046a7a",
+          "status": "running",
+          "epoch": 14,
+          "checkpoint_id": "f8669450e892439fa9fc1a6e57ea9288",
+          "recovery_ms": 118.82300000434043
+        }
+      },
+      {
+        "cycle": 2,
+        "reason": "fixed-15s",
+        "segment_moving_frames": 436,
+        "segment_rotation": 28.499999999999943,
+        "mode": "fresh",
+        "checkpoint_id": "7bb76d524ab046e78cf116663dea6b46",
+        "source_kind": "fresh_sdxl_seed",
+        "t": 30.27629999999702,
+        "start": 888607.5,
+        "first_frame_ms": 308.6000000014901,
+        "first_draw_ms": 1097.2999999970198,
+        "epoch": 15,
+        "request_ms": 189.10000000149012,
+        "result": {
+          "session_id": "5e915c6fe44044f99e7d194020c4eee3",
+          "world_id": "1c3cf0c54afb4000a35615f3ea046a7a",
+          "status": "running",
+          "epoch": 15,
+          "checkpoint_id": "7bb76d524ab046e78cf116663dea6b46",
+          "recovery_ms": 159.11849999974947
+        }
+      },
+      {
+        "cycle": 3,
+        "reason": "fixed-15s",
+        "segment_moving_frames": 432,
+        "segment_rotation": 40.99999999999996,
+        "mode": "fresh",
+        "checkpoint_id": "89bd0e25dea04afc8d2b54301efdad45",
+        "source_kind": "fresh_sdxl_seed",
+        "t": 45.46919999999553,
+        "start": 903800.3999999985,
+        "first_frame_ms": 366.8999999985099,
+        "first_draw_ms": 1042.3000000044703,
+        "epoch": 16,
+        "request_ms": 231.10000000149012,
+        "result": {
+          "session_id": "5e915c6fe44044f99e7d194020c4eee3",
+          "world_id": "1c3cf0c54afb4000a35615f3ea046a7a",
+          "status": "running",
+          "epoch": 16,
+          "checkpoint_id": "89bd0e25dea04afc8d2b54301efdad45",
+          "recovery_ms": 188.35939999553375
+        }
+      }
+    ]
+  },
+  {
+    "id": "native720-paced-fresh-risk-1791663669663",
+    "seconds": 60.02090000000596,
+    "generated_fps": 30.421487175201733,
+    "received_fps": 30.472718669660374,
+    "canvas_fps": 0.9829909248277541,
+    "received": 1829,
+    "displayed": 59,
+    "skips": 1741,
+    "age_p50": 76.15,
+    "age_p95": 135.44,
+    "decode_p50": 5.25,
+    "decode_p95": 19.31,
+    "control_canvas_p50": 238.2,
+    "control_canvas_p95": 309.88,
+    "ack_p50": 1.9,
+    "ack_p95": 17.12,
+    "raf_p95": 1016.71,
+    "drops": 0,
+    "gaps": 0,
+    "decode_errors": 0,
+    "protocol_errors": 0,
+    "stale": 0,
+    "errors": [],
+    "reserved_mb": 4476,
+    "peak_reserved_mb": 8894,
+    "acks": 1840,
+    "generated": 1840,
+    "visibility": [
+      {
+        "t": 0,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 1.0316000000014902,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 2.05710000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 3.0083000000044704,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 4.02140000000596,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 5.01360000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 6.06020000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 7.01020000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 8.00260000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 9.01660000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 10.02880000000447,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 11.002400000005961,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 12.031300000004471,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 13.02370000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 14.02010000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 15.05620000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 16.05240000000596,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 17.0045,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 18.03090000000596,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 19.0005,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 20.0585,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 21.028,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 22.01810000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 23.01330000000447,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 24.024800000004472,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 25.05170000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 26.00220000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 27.00760000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 28.02170000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 29.03210000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 30.04830000000447,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 31.01460000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 32.01030000000447,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 33.22060000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 34.00960000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 35.01660000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 36.04040000000596,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 37.0505,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 38.03360000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 39.05870000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 40.00510000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 41.03370000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 42.01680000000447,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 43.03130000000447,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 44.03440000000596,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 45.0315,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 46.03980000000447,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 47.04930000000447,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 48.01330000000447,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 49.02480000000447,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 50.0105,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 51.011,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 52.03420000000298,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 53.06160000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 54.00490000000596,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 55.0205,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 56.00630000000447,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 57.02380000000447,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 58.04860000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 59.02470000000298,
+        "state": "visible",
+        "focus": true
+      }
+    ],
+    "transitions": [
+      {
+        "cycle": 1,
+        "reason": "moving-frame-budget",
+        "segment_moving_frames": 232,
+        "segment_rotation": 20,
+        "mode": "fresh",
+        "checkpoint_id": "9881893365c64759888caf9b6343d1a9",
+        "source_kind": "fresh_sdxl_seed",
+        "t": 8.02070000000298,
+        "start": 927076.5,
+        "first_frame_ms": 384.8999999985099,
+        "first_draw_ms": 1098.6000000014901,
+        "epoch": 18,
+        "request_ms": 249.70000000298023,
+        "result": {
+          "session_id": "d09d9a379c5b49ccae6e49abfa0a007b",
+          "world_id": "a04e068eb56f432db4ac2af2c19d8ec1",
+          "status": "running",
+          "epoch": 18,
+          "checkpoint_id": "9881893365c64759888caf9b6343d1a9",
+          "recovery_ms": 191.91299999511102
+        }
+      },
+      {
+        "cycle": 2,
+        "reason": "moving-frame-budget",
+        "segment_moving_frames": 240,
+        "segment_rotation": 6.0000000000000036,
+        "mode": "fresh",
+        "checkpoint_id": "ffad3e3f89bc46c2a979a7827e5b94c5",
+        "source_kind": "fresh_sdxl_seed",
+        "t": 16.32770000000298,
+        "start": 935383.5,
+        "first_frame_ms": 348,
+        "first_draw_ms": 921.7000000029802,
+        "epoch": 19,
+        "request_ms": 242.89999999850988,
+        "result": {
+          "session_id": "d09d9a379c5b49ccae6e49abfa0a007b",
+          "world_id": "a04e068eb56f432db4ac2af2c19d8ec1",
+          "status": "running",
+          "epoch": 19,
+          "checkpoint_id": "ffad3e3f89bc46c2a979a7827e5b94c5",
+          "recovery_ms": 186.49049999658018
+        }
+      },
+      {
+        "cycle": 3,
+        "reason": "moving-frame-budget",
+        "segment_moving_frames": 240,
+        "segment_rotation": 25.999999999999943,
+        "mode": "fresh",
+        "checkpoint_id": "c85bab65961b4e46921d1c1584fdded1",
+        "source_kind": "fresh_sdxl_seed",
+        "t": 24.63110000000149,
+        "start": 943686.8999999985,
+        "first_frame_ms": 331.5,
+        "first_draw_ms": 670.8999999985099,
+        "epoch": 20,
+        "request_ms": 239.30000000447035,
+        "result": {
+          "session_id": "d09d9a379c5b49ccae6e49abfa0a007b",
+          "world_id": "a04e068eb56f432db4ac2af2c19d8ec1",
+          "status": "running",
+          "epoch": 20,
+          "checkpoint_id": "c85bab65961b4e46921d1c1584fdded1",
+          "recovery_ms": 183.77740000141785
+        }
+      },
+      {
+        "cycle": 4,
+        "reason": "moving-frame-budget",
+        "segment_moving_frames": 240,
+        "segment_rotation": 19.5,
+        "mode": "fresh",
+        "checkpoint_id": "9881893365c64759888caf9b6343d1a9",
+        "source_kind": "fresh_sdxl_seed",
+        "t": 32.91590000000596,
+        "start": 951971.700000003,
+        "first_frame_ms": 353,
+        "first_draw_ms": 507.5,
+        "epoch": 21,
+        "request_ms": 240.29999999701977,
+        "result": {
+          "session_id": "d09d9a379c5b49ccae6e49abfa0a007b",
+          "world_id": "a04e068eb56f432db4ac2af2c19d8ec1",
+          "status": "running",
+          "epoch": 21,
+          "checkpoint_id": "9881893365c64759888caf9b6343d1a9",
+          "recovery_ms": 187.02560000383528
+        }
+      },
+      {
+        "cycle": 5,
+        "reason": "moving-frame-budget",
+        "segment_moving_frames": 240,
+        "segment_rotation": 6.0000000000000036,
+        "mode": "fresh",
+        "checkpoint_id": "ffad3e3f89bc46c2a979a7827e5b94c5",
+        "source_kind": "fresh_sdxl_seed",
+        "t": 41.159,
+        "start": 960214.799999997,
+        "first_frame_ms": 279.1000000014901,
+        "first_draw_ms": 361.70000000298023,
+        "epoch": 22,
+        "request_ms": 160.40000000596046,
+        "result": {
+          "session_id": "d09d9a379c5b49ccae6e49abfa0a007b",
+          "world_id": "a04e068eb56f432db4ac2af2c19d8ec1",
+          "status": "running",
+          "epoch": 22,
+          "checkpoint_id": "ffad3e3f89bc46c2a979a7827e5b94c5",
+          "recovery_ms": 134.98950000212062
+        }
+      },
+      {
+        "cycle": 6,
+        "reason": "moving-frame-budget",
+        "segment_moving_frames": 240,
+        "segment_rotation": 25.999999999999943,
+        "mode": "fresh",
+        "checkpoint_id": "c85bab65961b4e46921d1c1584fdded1",
+        "source_kind": "fresh_sdxl_seed",
+        "t": 49.3295,
+        "start": 968385.299999997,
+        "first_frame_ms": 289.5,
+        "first_draw_ms": 307.30000000447035,
+        "epoch": 23,
+        "request_ms": 159.20000000298023,
+        "result": {
+          "session_id": "d09d9a379c5b49ccae6e49abfa0a007b",
+          "world_id": "a04e068eb56f432db4ac2af2c19d8ec1",
+          "status": "running",
+          "epoch": 23,
+          "checkpoint_id": "c85bab65961b4e46921d1c1584fdded1",
+          "recovery_ms": 134.39089999883436
+        }
+      },
+      {
+        "cycle": 7,
+        "reason": "moving-frame-budget",
+        "segment_moving_frames": 240,
+        "segment_rotation": 20,
+        "mode": "fresh",
+        "checkpoint_id": "9881893365c64759888caf9b6343d1a9",
+        "source_kind": "fresh_sdxl_seed",
+        "t": 57.50640000000596,
+        "start": 976562.200000003,
+        "first_frame_ms": 286.09999999403954,
+        "first_draw_ms": 1016.2999999970198,
+        "epoch": 24,
+        "request_ms": 187.89999999850988,
+        "result": {
+          "session_id": "d09d9a379c5b49ccae6e49abfa0a007b",
+          "world_id": "a04e068eb56f432db4ac2af2c19d8ec1",
+          "status": "running",
+          "epoch": 24,
+          "checkpoint_id": "9881893365c64759888caf9b6343d1a9",
+          "recovery_ms": 159.74520000600023
+        }
+      }
+    ]
+  },
+  {
+    "id": "native720-paced-original-fixed-1791663547729",
+    "seconds": 60.01069999999553,
+    "generated_fps": 29.09884839628733,
+    "received_fps": 29.078147730323593,
+    "canvas_fps": 0.9831580034894509,
+    "received": 1745,
+    "displayed": 59,
+    "skips": 1674,
+    "age_p50": 85.65,
+    "age_p95": 147.51,
+    "decode_p50": 6.25,
+    "decode_p95": 28.05,
+    "control_canvas_p50": 249.2,
+    "control_canvas_p95": 338.75,
+    "ack_p50": 2.1,
+    "ack_p95": 18.94,
+    "raf_p95": 1016.8,
+    "drops": 0,
+    "gaps": 0,
+    "decode_errors": 0,
+    "protocol_errors": 0,
+    "stale": 0,
+    "errors": [],
+    "reserved_mb": 4476,
+    "peak_reserved_mb": 8894,
+    "acks": 1768,
+    "generated": 1768,
+    "visibility": [
+      {
+        "t": 0,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 1.0248999999985098,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 2.0606999999955296,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 3.0312999999970196,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 4.00460000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 5.01869999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 6.05660000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 7.01810000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 8.03819999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 9.00210000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 10.005,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 11.03760000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 12.06010000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 13.02219999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 14.023899999998509,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 15.05810000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 16.02,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 17.00769999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 18.00510000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 19.01789999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 20.03029999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 21.05660000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 22.03610000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 23.01010000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 24.02379999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 25.03079999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 26.02460000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 27.05639999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 28.02560000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 29.00489999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 30.01789999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 31.042,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 32.01060000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 33.04460000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 34.00869999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 35.018,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 36.01619999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 37.0195,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 38.03979999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 39.0015,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 40.044,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 41.03239999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 42.02919999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 43.03919999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 44.01519999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 45.02839999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 46.042,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 47.0035,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 48.04369999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 49.01369999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 50.02,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 51.03629999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 52.04460000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 53.01129999999702,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 54.014,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 55.02539999999851,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 56.00219999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 57.00519999999553,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 58.05160000000149,
+        "state": "visible",
+        "focus": true
+      },
+      {
+        "t": 59.05129999999702,
+        "state": "visible",
+        "focus": true
+      }
+    ],
+    "transitions": [
+      {
+        "cycle": 1,
+        "reason": "fixed-15s",
+        "segment_moving_frames": 428,
+        "segment_rotation": 25.999999999999943,
+        "mode": "original",
+        "checkpoint_id": "a46008f22437457d8fee7ce47348ff58",
+        "source_kind": "original_sdxl_seed",
+        "t": 15.148,
+        "start": 812563.6000000015,
+        "first_frame_ms": 340.29999999701977,
+        "first_draw_ms": 1089.3999999985099,
+        "epoch": 10,
+        "request_ms": 224.69999999552965,
+        "result": {
+          "session_id": "41f7a99b275a4b0db9561a467b71e496",
+          "world_id": "ea977aed4757424a854e92bd2f02184b",
+          "status": "running",
+          "epoch": 10,
+          "checkpoint_id": "a46008f22437457d8fee7ce47348ff58",
+          "recovery_ms": 190.74160000309348
+        }
+      },
+      {
+        "cycle": 2,
+        "reason": "fixed-15s",
+        "segment_moving_frames": 432,
+        "segment_rotation": 29.499999999999943,
+        "mode": "original",
+        "checkpoint_id": "a46008f22437457d8fee7ce47348ff58",
+        "source_kind": "original_sdxl_seed",
+        "t": 30.3975,
+        "start": 827813.1000000015,
+        "first_frame_ms": 326.6000000014901,
+        "first_draw_ms": 1117,
+        "epoch": 11,
+        "request_ms": 229.89999999850988,
+        "result": {
+          "session_id": "41f7a99b275a4b0db9561a467b71e496",
+          "world_id": "ea977aed4757424a854e92bd2f02184b",
+          "status": "running",
+          "epoch": 11,
+          "checkpoint_id": "a46008f22437457d8fee7ce47348ff58",
+          "recovery_ms": 188.3906000002753
+        }
+      },
+      {
+        "cycle": 3,
+        "reason": "fixed-15s",
+        "segment_moving_frames": 432,
+        "segment_rotation": 39.49999999999997,
+        "mode": "original",
+        "checkpoint_id": "a46008f22437457d8fee7ce47348ff58",
+        "source_kind": "original_sdxl_seed",
+        "t": 45.64569999999553,
+        "start": 843061.299999997,
+        "first_frame_ms": 337.70000000298023,
+        "first_draw_ms": 1058.5,
+        "epoch": 12,
+        "request_ms": 216.90000000596046,
+        "result": {
+          "session_id": "41f7a99b275a4b0db9561a467b71e496",
+          "world_id": "ea977aed4757424a854e92bd2f02184b",
+          "status": "running",
+          "epoch": 12,
+          "checkpoint_id": "a46008f22437457d8fee7ce47348ff58",
+          "recovery_ms": 186.34670000028564
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,312 @@
+{
+  "model": "Overworld/Waypoint-1.5-1B",
+  "quant": "fp8w8a8",
+  "model_load_count": 1,
+  "model_load_seconds": 2.1584970999974757,
+  "architecture_commit": "d52fdc2e91450aa92b7e1b45733d2f4e29c5fc5e",
+  "controls": "exact Backend.generate([], (m,0)) per batch; 10 turn +4 zero; reset each magnitude",
+  "api_changes": false,
+  "source_scenes": [
+    {
+      "scene_id": "9bda60c5d71a411680f71969c487684d",
+      "kind": "generated",
+      "prompt": "A photorealistic first-person view walking along a wide street in a Florida neighborhood after a hurricane, damaged houses, fallen trees, wet asphalt, realistic debris, natural daylight, believable architectural details, clear walking space directly ahead.",
+      "effective_prompt": "First-person eye-level view, A photorealistic first-person view walking along a wide street in a Florida neighborhood after a hurricane, damaged houses, fallen trees, wet asphalt, realistic debris, natural daylight, believable architectural details, clear walking space directly ahead.",
+      "style": null,
+      "seed": 20261011,
+      "perspective": "first_person",
+      "model": "stabilityai/stable-diffusion-xl-base-1.0",
+      "revision": "462165984030d82259a11f4367a4eed129e94a7b",
+      "steps": 30,
+      "guidance_scale": 5.0,
+      "model_width": 1280,
+      "model_height": 720,
+      "width": 1280,
+      "height": 720,
+      "created_at": "2026-10-10T18:59:17.056133+00:00",
+      "image_sha256": "8b4d373fb652ca1c8fb81f0791c81916ced00caff76907743ca9d46ba2ee02f3",
+      "total_seconds": 9.730841299999156,
+      "generation_seconds": 9.522365099997842,
+      "image_process_peak_allocated_mb": 8685.66650390625,
+      "image_process_peak_reserved_mb": 9078.0,
+      "image_url": "/scenes/9bda60c5d71a411680f71969c487684d/image",
+      "world_start_request": {
+        "scene_id": "9bda60c5d71a411680f71969c487684d",
+        "seed_image_path": "C:\\Users\\filma\\Documents\\Codex\\2026-10-10\\wo\\work\\native720-quality\\experiments\\backend\\saved_scenes\\9bda60c5d71a411680f71969c487684d\\seed.png",
+        "prompt": "A photorealistic first-person view walking along a wide street in a Florida neighborhood after a hurricane, damaged houses, fallen trees, wet asphalt, realistic debris, natural daylight, believable architectural details, clear walking space directly ahead."
+      }
+    },
+    {
+      "scene_id": "a28daf2205e1449f8810f30e3a7b9909",
+      "kind": "generated",
+      "prompt": "A photorealistic first-person eye-level view along a modern downtown city street, clear sidewalks, realistic brick and glass buildings, road markings, parked cars, natural daylight, believable architecture and perspective, clear walking space directly ahead.",
+      "effective_prompt": "First-person eye-level view, A photorealistic first-person eye-level view along a modern downtown city street, clear sidewalks, realistic brick and glass buildings, road markings, parked cars, natural daylight, believable architecture and perspective, clear walking space directly ahead.",
+      "style": null,
+      "seed": 20261020,
+      "perspective": "first_person",
+      "model": "stabilityai/stable-diffusion-xl-base-1.0",
+      "revision": "462165984030d82259a11f4367a4eed129e94a7b",
+      "steps": 30,
+      "guidance_scale": 5.0,
+      "model_width": 1280,
+      "model_height": 720,
+      "width": 1280,
+      "height": 720,
+      "created_at": "2026-10-10T20:22:26.640759+00:00",
+      "image_sha256": "2776732ec71194f7b2bfc676a09521918d04116ad30b3b9ee76937c6b7ee40e0",
+      "total_seconds": 14.525696899996547,
+      "generation_seconds": 10.686390999995638,
+      "image_process_peak_allocated_mb": 8684.30810546875,
+      "image_process_peak_reserved_mb": 9458.0,
+      "image_url": "/scenes/a28daf2205e1449f8810f30e3a7b9909/image",
+      "world_start_request": {
+        "scene_id": "a28daf2205e1449f8810f30e3a7b9909",
+        "seed_image_path": "C:\\Users\\filma\\Documents\\Codex\\2026-10-10\\wo\\work\\native720-quality\\experiments\\backend\\saved_scenes\\a28daf2205e1449f8810f30e3a7b9909\\seed.png",
+        "prompt": "A photorealistic first-person eye-level view along a modern downtown city street, clear sidewalks, realistic brick and glass buildings, road markings, parked cars, natural daylight, believable architecture and perspective, clear walking space directly ahead."
+      }
+    },
+    {
+      "scene_id": "5c13cff531cb4bd18f66dd4f57d5f6c0",
+      "kind": "generated",
+      "prompt": "A photorealistic first-person eye-level view inside an underwater research laboratory, straight clear corridor, large observation windows showing fish and blue ocean, recognizable structural beams, realistic floor panels, believable lighting and architecture, clear walking space directly ahead.",
+      "effective_prompt": "First-person eye-level view, A photorealistic first-person eye-level view inside an underwater research laboratory, straight clear corridor, large observation windows showing fish and blue ocean, recognizable structural beams, realistic floor panels, believable lighting and architecture, clear walking space directly ahead.",
+      "style": null,
+      "seed": 20261021,
+      "perspective": "first_person",
+      "model": "stabilityai/stable-diffusion-xl-base-1.0",
+      "revision": "462165984030d82259a11f4367a4eed129e94a7b",
+      "steps": 30,
+      "guidance_scale": 5.0,
+      "model_width": 1280,
+      "model_height": 720,
+      "width": 1280,
+      "height": 720,
+      "created_at": "2026-10-10T20:22:42.157561+00:00",
+      "image_sha256": "376b5d3164131690b7ae7157ad8c2d404421ad5e51c07b7ddcf20931726882d3",
+      "total_seconds": 9.31187659999705,
+      "generation_seconds": 8.912415999999212,
+      "image_process_peak_allocated_mb": 8684.30810546875,
+      "image_process_peak_reserved_mb": 9458.0,
+      "image_url": "/scenes/5c13cff531cb4bd18f66dd4f57d5f6c0/image",
+      "world_start_request": {
+        "scene_id": "5c13cff531cb4bd18f66dd4f57d5f6c0",
+        "seed_image_path": "C:\\Users\\filma\\Documents\\Codex\\2026-10-10\\wo\\work\\native720-quality\\experiments\\backend\\saved_scenes\\5c13cff531cb4bd18f66dd4f57d5f6c0\\seed.png",
+        "prompt": "A photorealistic first-person eye-level view inside an underwater research laboratory, straight clear corridor, large observation windows showing fish and blue ocean, recognizable structural beams, realistic floor panels, believable lighting and architecture, clear walking space directly ahead."
+      }
+    }
+  ],
+  "runs": [
+    {
+      "scene": 1,
+      "scene_id": "9bda60c5d71a411680f71969c487684d",
+      "magnitude": 0.5,
+      "folder": "scene-1-m0.5",
+      "init_ms": 9356.391399996937,
+      "generated_frames": 56,
+      "active_generated_fps": 2.363410538992368,
+      "rows": 14
+    },
+    {
+      "scene": 1,
+      "scene_id": "9bda60c5d71a411680f71969c487684d",
+      "magnitude": 1,
+      "folder": "scene-1-m1",
+      "init_ms": 57.85390000528423,
+      "generated_frames": 56,
+      "active_generated_fps": 35.74854093296106,
+      "rows": 14
+    },
+    {
+      "scene": 1,
+      "scene_id": "9bda60c5d71a411680f71969c487684d",
+      "magnitude": 2,
+      "folder": "scene-1-m2",
+      "init_ms": 59.481399999640416,
+      "generated_frames": 56,
+      "active_generated_fps": 35.75302804143504,
+      "rows": 14
+    },
+    {
+      "scene": 1,
+      "scene_id": "9bda60c5d71a411680f71969c487684d",
+      "magnitude": 4,
+      "folder": "scene-1-m4",
+      "init_ms": 58.61070000537438,
+      "generated_frames": 56,
+      "active_generated_fps": 35.59115575018148,
+      "rows": 14
+    },
+    {
+      "scene": 1,
+      "scene_id": "9bda60c5d71a411680f71969c487684d",
+      "magnitude": 8,
+      "folder": "scene-1-m8",
+      "init_ms": 60.175600003276486,
+      "generated_frames": 56,
+      "active_generated_fps": 35.5715910031642,
+      "rows": 14
+    },
+    {
+      "scene": 1,
+      "scene_id": "9bda60c5d71a411680f71969c487684d",
+      "magnitude": 16,
+      "folder": "scene-1-m16",
+      "init_ms": 62.25129999802448,
+      "generated_frames": 56,
+      "active_generated_fps": 35.41495257249703,
+      "rows": 14
+    },
+    {
+      "scene": 1,
+      "scene_id": "9bda60c5d71a411680f71969c487684d",
+      "magnitude": 32,
+      "folder": "scene-1-m32",
+      "init_ms": 58.49360000138404,
+      "generated_frames": 56,
+      "active_generated_fps": 35.59892974338891,
+      "rows": 14
+    },
+    {
+      "scene": 2,
+      "scene_id": "a28daf2205e1449f8810f30e3a7b9909",
+      "magnitude": 0.5,
+      "folder": "scene-2-m0.5",
+      "init_ms": 62.23370000225259,
+      "generated_frames": 56,
+      "active_generated_fps": 35.20588400974554,
+      "rows": 14
+    },
+    {
+      "scene": 2,
+      "scene_id": "a28daf2205e1449f8810f30e3a7b9909",
+      "magnitude": 1,
+      "folder": "scene-2-m1",
+      "init_ms": 62.06059999385616,
+      "generated_frames": 56,
+      "active_generated_fps": 35.411091790831485,
+      "rows": 14
+    },
+    {
+      "scene": 2,
+      "scene_id": "a28daf2205e1449f8810f30e3a7b9909",
+      "magnitude": 2,
+      "folder": "scene-2-m2",
+      "init_ms": 59.186400001635775,
+      "generated_frames": 56,
+      "active_generated_fps": 35.485281180316925,
+      "rows": 14
+    },
+    {
+      "scene": 2,
+      "scene_id": "a28daf2205e1449f8810f30e3a7b9909",
+      "magnitude": 4,
+      "folder": "scene-2-m4",
+      "init_ms": 58.27619999763556,
+      "generated_frames": 56,
+      "active_generated_fps": 35.49202145708912,
+      "rows": 14
+    },
+    {
+      "scene": 2,
+      "scene_id": "a28daf2205e1449f8810f30e3a7b9909",
+      "magnitude": 8,
+      "folder": "scene-2-m8",
+      "init_ms": 63.0784999957541,
+      "generated_frames": 56,
+      "active_generated_fps": 35.44428974156061,
+      "rows": 14
+    },
+    {
+      "scene": 2,
+      "scene_id": "a28daf2205e1449f8810f30e3a7b9909",
+      "magnitude": 16,
+      "folder": "scene-2-m16",
+      "init_ms": 62.216099999204744,
+      "generated_frames": 56,
+      "active_generated_fps": 35.343552585190324,
+      "rows": 14
+    },
+    {
+      "scene": 2,
+      "scene_id": "a28daf2205e1449f8810f30e3a7b9909",
+      "magnitude": 32,
+      "folder": "scene-2-m32",
+      "init_ms": 57.76180000248132,
+      "generated_frames": 56,
+      "active_generated_fps": 35.37455909666838,
+      "rows": 14
+    },
+    {
+      "scene": 3,
+      "scene_id": "5c13cff531cb4bd18f66dd4f57d5f6c0",
+      "magnitude": 0.5,
+      "folder": "scene-3-m0.5",
+      "init_ms": 62.49470000329893,
+      "generated_frames": 56,
+      "active_generated_fps": 35.50375163728083,
+      "rows": 14
+    },
+    {
+      "scene": 3,
+      "scene_id": "5c13cff531cb4bd18f66dd4f57d5f6c0",
+      "magnitude": 1,
+      "folder": "scene-3-m1",
+      "init_ms": 59.11670000205049,
+      "generated_frames": 56,
+      "active_generated_fps": 35.36501782094472,
+      "rows": 14
+    },
+    {
+      "scene": 3,
+      "scene_id": "5c13cff531cb4bd18f66dd4f57d5f6c0",
+      "magnitude": 2,
+      "folder": "scene-3-m2",
+      "init_ms": 57.56679999467451,
+      "generated_frames": 56,
+      "active_generated_fps": 35.275323902940805,
+      "rows": 14
+    },
+    {
+      "scene": 3,
+      "scene_id": "5c13cff531cb4bd18f66dd4f57d5f6c0",
+      "magnitude": 4,
+      "folder": "scene-3-m4",
+      "init_ms": 57.432399997196626,
+      "generated_frames": 56,
+      "active_generated_fps": 35.44521179830672,
+      "rows": 14
+    },
+    {
+      "scene": 3,
+      "scene_id": "5c13cff531cb4bd18f66dd4f57d5f6c0",
+      "magnitude": 8,
+      "folder": "scene-3-m8",
+      "init_ms": 59.31570000393549,
+      "generated_frames": 56,
+      "active_generated_fps": 35.41386188361615,
+      "rows": 14
+    },
+    {
+      "scene": 3,
+      "scene_id": "5c13cff531cb4bd18f66dd4f57d5f6c0",
+      "magnitude": 16,
+      "folder": "scene-3-m16",
+      "init_ms": 63.324299997475464,
+      "generated_frames": 56,
+      "active_generated_fps": 35.17686708904215,
+      "rows": 14
+    },
+    {
+      "scene": 3,
+      "scene_id": "5c13cff531cb4bd18f66dd4f57d5f6c0",
+      "magnitude": 32,
+      "folder": "scene-3-m32",
+      "init_ms": 62.244600005215034,
+      "generated_frames": 56,
+      "active_generated_fps": 35.184503136348795,
+      "rows": 14
+    }
+  ],
+  "human_review": "pending",
+  "errors": []
+}

@@ -1,0 +1,55 @@
+{
+  "mode": "raf",
+  "url": "http://127.0.0.1:4835/scheduling-test.html",
+  "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36",
+  "duration_ms": 30000,
+  "visibility": [
+    {
+      "elapsed_ms": 28013.60000000149,
+      "state": "visible",
+      "focus": true
+    },
+    {
+      "elapsed_ms": 29004.60000000149,
+      "state": "visible",
+      "focus": true
+    },
+    {
+      "elapsed_ms": 30010.29999999702,
+      "state": "visible",
+      "focus": true
+    }
+  ],
+  "long_tasks": [],
+  "errors": [],
+  "initial_telemetry": null,
+  "power_saver": "Not observable through this page; record Brave settings manually",
+  "automatic_control": false,
+  "actual_elapsed_ms": 30010.60000000149,
+  "raf_callback_rate": 8.430354608038074,
+  "raf_summary": {
+    "count": 252,
+    "p50": 16.699999999999818,
+    "p95": 1016.5999999999985,
+    "max": 1016.7000000000007
+  },
+  "decode_summary": {
+    "count": 0,
+    "p50": null,
+    "p95": null,
+    "max": null
+  },
+  "draw_summary": {
+    "count": 0,
+    "p50": null,
+    "p95": null,
+    "max": null
+  },
+  "final_telemetry": null,
+  "limitations": [
+    "JS drawImage duration is submission time, not GPU compositor time",
+    "Explorer image src-to-load includes dispatch/loading and decode; it is not pure decoder CPU time",
+    "Standalone createImageBitmap uses a cached JPEG; it is a microbenchmark, not streaming throughput",
+    "No GPU frame or acknowledgment protocol modifications"
+  ]
+}
