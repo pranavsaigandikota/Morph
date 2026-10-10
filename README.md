@@ -40,6 +40,10 @@ UI: **http://127.0.0.1:4821**
 | `npm run build` | Production build |
 | `npm run test:mock-protocol` | Phase-2 mock checks |
 | `npm run test:stream60` | 60s harness |
+| `npm run test:hq-starters` | HQ approval / recovery policy checks |
+| `npm run test:world-memory` | World memory MOCK + unsuitable anchors |
+
+HQ contact sheet (Windows GPU, experimental HIGH API): `.\scripts\Generate-HqStarterContactSheet.ps1` — see [docs/world-memory/HQ_STARTER_APPROVAL.md](docs/world-memory/HQ_STARTER_APPROVAL.md). Early Waypoint frames are **not** recovery anchors.
 
 ## Notes
 
