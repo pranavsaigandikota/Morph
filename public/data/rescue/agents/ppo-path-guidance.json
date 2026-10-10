@@ -1,0 +1,10 @@
+{
+  "id": "ppo-path-guidance",
+  "name": "PPO + Path Guidance",
+  "kind": "ppo",
+  "description": "Verified guided PPO policy with access to shortest-path information. Recorded evaluation only — not live inference in this UI.",
+  "version": "1.0.0",
+  "checkpoint": "ppo_path_guidance_verified.pt",
+  "created_at": "2026-10-10T00:00:00.000Z",
+  "guidance": "shortest_path"
+}

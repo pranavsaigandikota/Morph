@@ -55,6 +55,8 @@ export interface StaticTrajectory {
 
 export interface StaticEvalAgentBlock {
   agent_id: string
+  display_name?: string
+  note?: string
   episodes: Array<{
     episode: number
     reward: number
@@ -65,6 +67,8 @@ export interface StaticEvalAgentBlock {
   }>
   metrics: {
     success_rate: number
+    /** Optional second scenario / dual-rate (verified showdown) */
+    success_rate_b?: number
     mean_reward: number
     mean_steps: number
     mean_latency_ms: number

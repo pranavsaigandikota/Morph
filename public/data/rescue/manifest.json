@@ -26,6 +26,11 @@
       "name": "PPO Rescue v1"
     },
     {
+      "id": "ppo-path-guidance",
+      "path": "agents/ppo-path-guidance.json",
+      "name": "PPO + Path Guidance"
+    },
+    {
       "id": "random-walker",
       "path": "agents/random-walker.json",
       "name": "Random Walker"
@@ -75,9 +80,14 @@
   ],
   "evaluations": [
     {
+      "id": "eval_verified_showdown",
+      "path": "evaluations/eval_verified_showdown.json",
+      "title": "AI Showdown — verified rates"
+    },
+    {
       "id": "eval_facility_night",
       "path": "evaluations/eval_facility_night.json",
-      "title": "Facility night evaluation"
+      "title": "Facility night evaluation (legacy package)"
     }
   ],
   "training_history": [
@@ -91,7 +101,7 @@
   "comparisons": [
     {
       "id": "cmp_facility_methods",
-      "title": "Random vs A* vs PPO (recorded)",
+      "title": "Random vs A* vs PPO + Path Guidance (recorded)",
       "trajectory_ids": [
         "traj_random_south",
         "traj_astar_south",

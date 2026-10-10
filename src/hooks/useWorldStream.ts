@@ -547,11 +547,10 @@ export function useWorldStream() {
     }
     const onMouseMove = (e: MouseEvent) => {
       if (phaseRef.current !== 'streaming') return
-      if (document.pointerLockElement == null && !e.buttons) {
-        // Allow look without lock only when pointer is over stage with movement accumulation
-        // during active streaming after click — still require lock for continuous look.
-      }
-      if (document.pointerLockElement == null) return
+      // Pointer lock preferred; fall back to drag-look (primary button held) when lock fails.
+      const locked = document.pointerLockElement != null
+      const dragging = e.buttons === 1
+      if (!locked && !dragging) return
       mouseRef.current.dx += e.movementX
       mouseRef.current.dy += e.movementY
     }

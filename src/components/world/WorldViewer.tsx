@@ -143,7 +143,7 @@ export function WorldViewer({
         {!pointerLocked && live && hasFrame && (
           <div className="pointer-events-none absolute inset-x-0 bottom-24 z-10 flex justify-center">
             <p className="rounded-md border border-line bg-ink/80 px-3 py-1.5 text-sm text-soft backdrop-blur">
-              Click to capture mouse · press H for help · F fullscreen
+              Click for pointer lock · or drag to look · H help · F fullscreen
             </p>
           </div>
         )}
@@ -175,7 +175,7 @@ export function WorldViewer({
                   <kbd className="text-bright">W A S D</kbd> / arrows — move
                 </li>
                 <li>
-                  <kbd className="text-bright">Mouse</kbd> — look (pointer lock)
+                  <kbd className="text-bright">Mouse</kbd> — look (pointer lock or drag)
                 </li>
                 <li>
                   <kbd className="text-bright">Space</kbd> jump · <kbd className="text-bright">Shift</kbd>{' '}

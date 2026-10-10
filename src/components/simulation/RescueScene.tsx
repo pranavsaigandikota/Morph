@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, Grid, Text } from '@react-three/drei'
+import { OrbitControls, Grid, Text, Line } from '@react-three/drei'
 import { useMemo } from 'react'
 import type { AgentPose, BuildingMap, HazardType } from '../../types/simulation'
 
@@ -14,6 +14,14 @@ interface Props {
   map: BuildingMap
   agent: AgentPose
   showLabels?: boolean
+  /** Player trail */
+  path?: Array<{ x: number; y: number }>
+  /** Comparison trail (e.g. A*) */
+  comparePath?: Array<{ x: number; y: number }>
+  pathColor?: string
+  compareColor?: string
+  /** Lock orbit for playable missions */
+  interactiveCamera?: boolean
 }
 
 function Walls({ map }: { map: BuildingMap }) {
@@ -104,18 +112,43 @@ function Floor({ map }: { map: BuildingMap }) {
   )
 }
 
-export function RescueScene({ map, agent }: Props) {
+function PathTrail({
+  points,
+  color,
+  y = 0.12,
+}: {
+  points: Array<{ x: number; y: number }>
+  color: string
+  y?: number
+}) {
+  const pts = useMemo(
+    () => points.map((p) => [p.x + 0.5, y, p.y + 0.5] as [number, number, number]),
+    [points, y],
+  )
+  if (pts.length < 2) return null
+  return <Line points={pts} color={color} lineWidth={2.5} transparent opacity={0.9} />
+}
+
+export function RescueScene({
+  map,
+  agent,
+  path,
+  comparePath,
+  pathColor = '#2ee6d6',
+  compareColor = '#f5a623',
+  interactiveCamera = true,
+}: Props) {
   const camX = map.width / 2
   const camZ = map.height / 2 + 8
 
   return (
-    <div className="h-full w-full overflow-hidden rounded-lg border border-line bg-ink">
+    <div className="h-full w-full overflow-hidden rounded-2xl border border-line bg-ink">
       <Canvas
         shadows
         camera={{ position: [camX, 14, camZ], fov: 45, near: 0.1, far: 200 }}
         gl={{ antialias: true }}
       >
-        <color attach="background" args={['#0a0e12']} />
+        <color attach="background" args={['#0a0e14']} />
         <ambientLight intensity={0.45} />
         <directionalLight
           castShadow
@@ -128,6 +161,8 @@ export function RescueScene({ map, agent }: Props) {
         <Walls map={map} />
         <Hazards map={map} />
         <Exits map={map} />
+        {comparePath && <PathTrail points={comparePath} color={compareColor} y={0.1} />}
+        {path && <PathTrail points={path} color={pathColor} y={0.16} />}
         <AgentMarker agent={agent} />
         <Grid
           position={[map.width / 2, 0.01, map.height / 2]}
@@ -141,12 +176,14 @@ export function RescueScene({ map, agent }: Props) {
           fadeDistance={40}
           infiniteGrid={false}
         />
-        <OrbitControls
-          target={[map.width / 2, 0, map.height / 2]}
-          maxPolarAngle={Math.PI / 2.1}
-          minDistance={6}
-          maxDistance={40}
-        />
+        {interactiveCamera && (
+          <OrbitControls
+            target={[map.width / 2, 0, map.height / 2]}
+            maxPolarAngle={Math.PI / 2.1}
+            minDistance={6}
+            maxDistance={40}
+          />
+        )}
       </Canvas>
     </div>
   )

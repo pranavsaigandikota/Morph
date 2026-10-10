@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   CartesianGrid,
   Line,
@@ -27,6 +28,7 @@ const tooltipStyle = {
   fontSize: 12,
 }
 
+/** Recorded trajectory replays + charts (static package). Playable mission is /mission. */
 export function SimulationLabPage() {
   const [bundle, setBundle] = useState<RescueStaticBundle | null>(null)
   const [loading, setLoading] = useState(true)
@@ -50,8 +52,15 @@ export function SimulationLabPage() {
 
   const evalBlock = useMemo(() => {
     if (!bundle || !agentId) return null
-    const ev = Object.values(bundle.evaluations)[0]
-    return ev?.agents.find((a) => a.agent_id === agentId) ?? null
+    for (const ev of Object.values(bundle.evaluations)) {
+      const hit = ev.agents.find((a) => a.agent_id === agentId)
+      if (hit && hit.episodes.length > 0) return hit
+    }
+    for (const ev of Object.values(bundle.evaluations)) {
+      const hit = ev.agents.find((a) => a.agent_id === agentId)
+      if (hit) return hit
+    }
+    return null
   }, [bundle, agentId])
 
   const training = useMemo(() => {
@@ -139,29 +148,34 @@ export function SimulationLabPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+    <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-signal">
-            Rescue Simulation Lab
+            Trajectory Replays
           </p>
           <h1 className="mt-1 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
-            Recorded evaluation replay
+            Random · PPO · A* recorded paths
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-soft">
-            Loads maps, trajectories, charts, and training history from{' '}
-            <code className="text-signal">public/data/rescue/</code> via{' '}
-            <code className="text-signal">fetch()</code>. No Grok simulator, PPO service, Python, or
-            FastAPI required.
+            Playback controls, speed, and path trails from{' '}
+            <code className="text-signal">public/data/rescue/</code>. For a playable mission use{' '}
+            <Link className="font-semibold text-hazard hover:underline" to="/mission">
+              Mission
+            </Link>
+            . Verified rates live on{' '}
+            <Link className="font-semibold text-aurora hover:underline" to="/agents">
+              AI Showdown
+            </Link>
+            .
           </p>
         </div>
         <MapLegend />
       </div>
 
-      <div className="mb-4 rounded-lg border border-hazard/40 bg-hazard/10 px-4 py-3 text-sm text-bright">
-        <strong className="text-hazard">Recorded evaluation mode</strong> — you are scrubbing
-        offline trajectories and metrics shipped in the static data package. This is{' '}
-        <em>not</em> live agent training or online PPO inference.
+      <div className="mb-4 rounded-xl border border-hazard/40 bg-hazard/10 px-4 py-3 text-sm text-bright">
+        <strong className="text-hazard">Recorded evaluation mode</strong> — offline trajectories only.
+        Not live PPO inference. Guided PPO has shortest-path access (see Showdown).
         {isLiveSimEnabled() && (
           <span className="mt-1 block text-xs text-muted">
             Optional live API adapter is configured (<code>VITE_LIVE_SIM_URL</code>) but this page
