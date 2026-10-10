@@ -1,5 +1,6 @@
 """All methods run on one persistent GPU thread. Never return device buffers."""
 import io
+import os
 import time
 from pathlib import Path
 
@@ -10,7 +11,9 @@ from world_engine import CtrlInput, WorldEngine
 
 from .protocol import BUTTONS
 
-MODEL = "Overworld/Waypoint-1.5-1B"
+MODEL = os.environ.get('WORLDSHIFT_EXPERIMENT_MODEL', 'Overworld/Waypoint-1.5-1B')
+if MODEL not in ('Overworld/Waypoint-1.5-1B', 'Overworld/Waypoint-1.5-1B-360P'):
+    raise ValueError('Only verified Waypoint profiles supported')
 
 
 class Backend:

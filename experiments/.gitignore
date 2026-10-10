@@ -3,7 +3,9 @@ backend/models/
 backend/results/
 backend/saved_scenes/
 backend/world_memory/
+backend/recovery_evaluation/
 tests/__pycache__/
+__pycache__/
 backend/worldshift/__pycache__/
 *.log
 *.pid
