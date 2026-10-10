@@ -1,13 +1,15 @@
 /**
- * Small-frame presentation helpers for native Waypoint 640×360 JPEGs.
- * Prefer a clear, modest display over a blurry fullscreen stretch.
- * Filters cannot invent lost generative detail.
+ * Native Waypoint presentation — product is 1280×720 only.
+ * See docs/PRODUCT_NATIVE_720P.md. No 360p selector, fallback, or demo mode.
+ * Mild filters cannot invent generative detail.
  */
 
-export const NATIVE_FRAME_W = 640
-export const NATIVE_FRAME_H = 360
-/** Prefer up to 1.5× native — still readable, less muddy than full-bleed. */
-export const PREFERRED_DISPLAY_SCALE = 1.5
+/** Product-native Waypoint frame size (experimental 720p backend target). */
+export const NATIVE_FRAME_W = 1280
+export const NATIVE_FRAME_H = 720
+
+/** Prefer 1× native pixels; CSS may shrink responsively, not stretch muddy 360p. */
+export const PREFERRED_DISPLAY_SCALE = 1
 
 export function preferredDisplaySize(
   scale: number = PREFERRED_DISPLAY_SCALE,
@@ -18,8 +20,13 @@ export function preferredDisplaySize(
   }
 }
 
+/** True when reported frame matches product native 720p. */
+export function isProductNativeResolution(width: number, height: number): boolean {
+  return width >= NATIVE_FRAME_W && height >= NATIVE_FRAME_H
+}
+
 /**
- * Draw a JPEG frame for clarity at small size.
+ * Draw a JPEG frame for clarity at native / near-native size.
  * Mild contrast/saturation only — does not fix model drift.
  */
 export function drawClearFrame(
@@ -34,8 +41,8 @@ export function drawClearFrame(
   }
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
-  // Light clarity only — avoid aggressive sharpening / halos on 360p.
-  ctx.filter = 'contrast(1.04) saturate(1.02)'
+  // Light clarity only — avoid aggressive sharpening / halos.
+  ctx.filter = 'contrast(1.03) saturate(1.02)'
   ctx.drawImage(img, 0, 0, width, height)
   ctx.filter = 'none'
 }

@@ -1,6 +1,9 @@
 import clsx from 'clsx'
 import { useCallback, useEffect, useState, type RefObject } from 'react'
 import { preferredDisplaySize } from '../../lib/framePresent'
+
+/** Product viewport: native 1280×720 @ 1× (responsive shrink allowed). */
+const CLEAR_VIEW = preferredDisplaySize(1)
 import {
   DEFAULT_LOOK_SENSITIVITY,
   LOOK_SENS_MAX,
@@ -13,8 +16,6 @@ import {
 } from '../../lib/stabilityMode'
 import type { WorldFrameMeta, WorldMetrics } from '../../types/world'
 import { PerformanceOverlay } from './PerformanceOverlay'
-
-const CLEAR_VIEW = preferredDisplaySize(1.5)
 
 export interface SwitchableWorld {
   id: string
@@ -139,7 +140,7 @@ export function WorldViewer({
         fullscreen
           ? 'h-screen'
           : embedded
-            ? 'h-[min(58vh,560px)]'
+            ? 'h-[min(72vh,720px)]'
             : 'h-[calc(100vh-3.5rem)]',
       )}
     >
@@ -150,7 +151,7 @@ export function WorldViewer({
           if (live && !pointerLocked) onRequestLock()
         }}
       >
-        {/* Small clear viewport — native 640×360 at ≤1.5×; not a muddy full-bleed stretch. */}
+        {/* Product native 1280×720 @ 1× — responsive shrink only; no 360p mode. */}
         <canvas
           ref={canvasElRef}
           className="rounded-sm shadow-[0_0_0_1px_rgba(255,255,255,0.06)]"
@@ -177,7 +178,9 @@ export function WorldViewer({
                       ? 'Reconnecting to Waypoint…'
                       : 'Connecting to Waypoint engine…'}
                   </p>
-                  <p className="mt-1 text-sm text-muted">WS /stream · binary JPEG envelopes</p>
+                  <p className="mt-1 text-sm text-muted">
+                    WS /world/stream · product native 1280×720
+                  </p>
                 </>
               )}
             </div>
@@ -189,6 +192,8 @@ export function WorldViewer({
           phase={phase}
           mock={mock}
           engineName={engineName}
+          frameWidth={meta?.width}
+          frameHeight={meta?.height}
         />
 
         {mock && hasFrame && (

@@ -2,6 +2,8 @@
 
 **Priority:** semantically sensible visuals. Buildings must look like buildings; roads like roads; vegetation like vegetation. Sharp blobs are not acceptable.
 
+Product Waypoint resolution is **native 1280×720 only** ([PRODUCT_NATIVE_720P.md](../PRODUCT_NATIVE_720P.md)). HQ starters match that size; there is no 360p product path.
+
 ## Policy
 
 | Rule | Status |

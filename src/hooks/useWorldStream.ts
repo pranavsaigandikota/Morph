@@ -94,8 +94,9 @@ export function useWorldStream() {
     mock: false,
     pointerLocked: false,
     engineName: null,
-    width: 640,
-    height: 360,
+    // Product defaults — live dims come from frame metadata (no 360p product mode).
+    width: 1280,
+    height: 720,
     gpuMemoryMb: null,
     gpuMemoryAvailable: false,
     lookRisk: 'ok',
@@ -120,7 +121,7 @@ export function useWorldStream() {
   const reconnectAttemptRef = useRef(0)
   const mockRef = useRef(false)
   const engineNameRef = useRef<string | null>(null)
-  const dimsRef = useRef({ w: 640, h: 360, tc: 4 })
+  const dimsRef = useRef({ w: 1280, h: 720, tc: 4 })
   const drawingRef = useRef(false)
   const seqRef = useRef(0)
   const requestGenerationRef = useRef(0)
@@ -596,6 +597,11 @@ export function useWorldStream() {
             // Prefer type:"frame" (Codex). Accept legacy frame_meta for older mocks.
             if (msg.type === 'frame' || msg.type === 'frame_meta') {
               wireRef.current = JSON.parse(ev.data)
+              const fw = Number((msg as { width?: number }).width)
+              const fh = Number((msg as { height?: number }).height)
+              if (Number.isFinite(fw) && Number.isFinite(fh) && fw > 0 && fh > 0) {
+                dimsRef.current = { ...dimsRef.current, w: fw, h: fh }
+              }
               // Reset advances epoch on subsequent frames; adopt it here (frame
               // path returns early and must not skip epoch handling).
               if (msg.epoch != null && msg.epoch !== epochRef.current) {
@@ -628,8 +634,8 @@ export function useWorldStream() {
                 type: 'hello' as const,
                 session_id: sessionId,
                 engine,
-                width: msg.width ?? dimsRef.current.w ?? 640,
-                height: msg.height ?? dimsRef.current.h ?? 360,
+                width: msg.width ?? dimsRef.current.w ?? 1280,
+                height: msg.height ?? dimsRef.current.h ?? 720,
                 temporal_compression: msg.temporal_compression ?? 4,
                 seed: msg.seed,
                 mock:

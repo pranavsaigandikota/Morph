@@ -9,7 +9,7 @@ First-person **Waypoint** worlds (Codex GPU) + interactive **Rescue Missions** +
 | Route | Purpose |
 |-------|---------|
 | `/create` | Create Anything — HQ SDXL contact sheet (approve before Waypoint) + Turbo secondary |
-| `/world` | World Explorer — Phase-2 `/stream` |
+| `/world` | World Explorer — product native **1280×720** Waypoint |
 | `/mission` | Playable rescue on verified facility map |
 | `/simulation` | Recorded Random / PPO / A* replays |
 | `/agents` | AI Showdown verified rates |
@@ -47,7 +47,9 @@ HQ contact sheet (Windows GPU, experimental HIGH API): `.\scripts\Generate-HqSta
 
 ## Notes
 
+- **Product resolution:** native **1280×720 only** — no 360p selector, fallback, or demo mode. See [docs/PRODUCT_NATIVE_720P.md](docs/PRODUCT_NATIVE_720P.md). Stream-adapter rewrites wait for Codex’s validated 720p contract.
 - Rescue Missions & Showdown work from `public/data/rescue/` without a GPU.
 - Guided PPO metrics assume shortest-path access — labeled on Showdown.
 - Robots do **not** navigate Waypoint video.
 - Third-person Waypoint postponed.
+- Older Git releases that assumed 360p are retained for recovery only, not as product features.

@@ -1,3 +1,8 @@
+import {
+  NATIVE_FRAME_H,
+  NATIVE_FRAME_W,
+  isProductNativeResolution,
+} from '../../lib/framePresent'
 import type { WorldMetrics } from '../../types/world'
 
 interface Props {
@@ -5,6 +10,9 @@ interface Props {
   phase: string
   mock: boolean
   engineName?: string | null
+  /** Live frame dimensions from stream metadata (status only — no resolution picker). */
+  frameWidth?: number | null
+  frameHeight?: number | null
 }
 
 function Row({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
@@ -16,9 +24,20 @@ function Row({ label, value, warn }: { label: string; value: string; warn?: bool
   )
 }
 
-export function PerformanceOverlay({ metrics, phase, mock, engineName }: Props) {
+export function PerformanceOverlay({
+  metrics,
+  phase,
+  mock,
+  engineName,
+  frameWidth,
+  frameHeight,
+}: Props) {
   const status = metrics?.connection_status ?? phase
   const connected = status === 'connected' || phase === 'streaming' || phase === 'paused'
+  const w = frameWidth ?? null
+  const h = frameHeight ?? null
+  const nativeOk =
+    w != null && h != null ? isProductNativeResolution(w, h) : null
 
   return (
     <aside className="pointer-events-none absolute left-3 top-3 z-20 w-[248px] rounded-lg border border-line bg-ink/80 p-3 shadow-xl backdrop-blur-md">
@@ -36,6 +55,21 @@ export function PerformanceOverlay({ metrics, phase, mock, engineName }: Props) 
       </div>
       <div className="space-y-0.5">
         <Row label="Status" value={String(status)} warn={!connected && status !== 'connecting'} />
+        <Row
+          label="Native"
+          value={
+            w != null && h != null
+              ? `${w}×${h}`
+              : `${NATIVE_FRAME_W}×${NATIVE_FRAME_H} target`
+          }
+          warn={nativeOk === false}
+        />
+        {nativeOk === false && (
+          <p className="pb-0.5 text-[10px] leading-snug text-hazard">
+            Below product native {NATIVE_FRAME_W}×{NATIVE_FRAME_H} — not a 360p mode; awaiting
+            Codex validated 720p contract.
+          </p>
+        )}
         <Row label="Gen FPS" value={metrics ? metrics.generated_fps.toFixed(1) : '—'} />
         <Row label="Disp FPS" value={metrics ? metrics.displayed_fps.toFixed(1) : '—'} />
         <Row

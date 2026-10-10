@@ -7,6 +7,11 @@ import {
   isRecoveryAnchorAllowed,
   candidateToGeneratedScene,
 } from '../src/services/hqStarterCandidates.ts'
+import {
+  NATIVE_FRAME_H,
+  NATIVE_FRAME_W,
+  isProductNativeResolution,
+} from '../src/lib/framePresent.ts'
 
 let failed = 0
 function check(name, fn) {
@@ -24,6 +29,13 @@ check('HQ target is 1280x720 ~30 high', () => {
   assert.equal(HQ_TARGET.height, 720)
   assert.equal(HQ_TARGET.steps, 30)
   assert.equal(HQ_TARGET.quality, 'high')
+})
+
+check('product native presentation is 1280x720 only', () => {
+  assert.equal(NATIVE_FRAME_W, 1280)
+  assert.equal(NATIVE_FRAME_H, 720)
+  assert.equal(isProductNativeResolution(1280, 720), true)
+  assert.equal(isProductNativeResolution(640, 360), false)
 })
 
 check('default seeds are deterministic multi-seed sheet', () => {

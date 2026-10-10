@@ -7,9 +7,11 @@ import {
   type ViewState,
 } from './frameGenerator.ts'
 
-const WIDTH = 640
-const HEIGHT = 360
-const TARGET_FPS = 18
+/** Product-native mock frames (docs/PRODUCT_NATIVE_720P.md). No 360p demo mode. */
+const WIDTH = 1280
+const HEIGHT = 720
+/** Slightly lower FPS in cloud mock — 720p JPEG encode is heavier than 360p. */
+const TARGET_FPS = 12
 
 export interface WorldSession {
   id: string

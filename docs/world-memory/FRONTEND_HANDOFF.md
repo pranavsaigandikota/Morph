@@ -21,6 +21,7 @@
 | AI-Inferred Obstacles map overlay | MOCK, Codex-shaped DTO, toggle **off by default**; LIVE not wired |
 | Schema reconcile | See `SCHEMA_COMPATIBILITY_REPORT.md` |
 | HQ approval / comparison docs | `HQ_STARTER_APPROVAL.md`, `STARTER_COMPARISON_STATUS.md` |
+| Product native resolution | **1280×720 only** — see `docs/PRODUCT_NATIVE_720P.md`; no 360p mode |
 
 ## Honest labels
 

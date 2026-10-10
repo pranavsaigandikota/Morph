@@ -18,7 +18,7 @@
    **Fix:** Default sensitivity `0.35`, soft per-tick clamp `±48`, pitch scale `0.65`, mild EMA (`α=0.35`) that does not re-apply the same raw delta.
 
 4. **Presentation scale (minor)**  
-   Stretching 640×360 fullscreen can look “muddier.” Cap CSS enlargement; mild contrast filter is cosmetic only.
+   Product is **native 1280×720** (see `PRODUCT_NATIVE_720P.md`). Prefer 1× native with responsive shrink; do not revive a 360p “small clear” product mode.
 
 ## Stability Mode (default ON)
 
@@ -27,7 +27,7 @@ Waypoint cannot keep a freely explored first-person video coherent forever. **St
 - Slower look (`maxPerTick` 20) and half-rate WASD into the model (`every 2nd` 20 Hz tick)  
 - Idle hold (~550 ms after input stops) — **only while Stability is on**  
 - **Informed auto-restore** via existing `POST /world/reset` on the **same** `session_id` (never `/world/start`)  
-- Small clear 640×360 @ ≤1.5× presentation  
+- Native 1280×720 presentation @ 1× (responsive shrink)  
 
 ### Precise auto-restore triggers (`src/lib/stabilityMode.ts`)
 
@@ -75,7 +75,7 @@ So: Stability OFF removes auto-restore/idle/half-rate walk, but this branch is *
 | Idle hold | none | Pause generation ~550 ms after input stops |
 | Restore Scene | “Reset” | Labeled; clears look risk; resumes if paused |
 | Look risk banner | none | Advisory + manual Restore (never silent auto-reset) |
-| Presentation | fullscreen stretch | **Small clear 640×360 @ ≤1.5×** + contrast (not full-bleed) |
+| Presentation | fullscreen stretch | **Native 1280×720 @ 1×** + mild contrast (responsive shrink; no 360p mode) |
 
 **Does not modify:** RescueGame, PPO data, SDXL contract, `display_ack` semantics, inference weights, or wire protocol shape.
 
