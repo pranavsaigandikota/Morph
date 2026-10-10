@@ -20,7 +20,8 @@
     "test:look": "tsx scripts/verify-look-control.mjs",
     "test:stability": "tsx scripts/verify-stability-mode.mjs",
     "test:world-memory": "tsx scripts/verify-world-memory.mjs",
-    "test:hq-starters": "tsx scripts/verify-hq-starters.mjs"
+    "test:hq-starters": "tsx scripts/verify-hq-starters.mjs",
+    "test:calibration-ui": "tsx scripts/verify-calibration-ui.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

@@ -1,9 +1,6 @@
 import clsx from 'clsx'
 import { useCallback, useEffect, useState, type RefObject } from 'react'
 import { preferredDisplaySize } from '../../lib/framePresent'
-
-/** Product viewport: native 1280×720 @ 1× (responsive shrink allowed). */
-const CLEAR_VIEW = preferredDisplaySize(1)
 import {
   DEFAULT_LOOK_SENSITIVITY,
   LOOK_SENS_MAX,
@@ -16,6 +13,9 @@ import {
 } from '../../lib/stabilityMode'
 import type { WorldFrameMeta, WorldMetrics } from '../../types/world'
 import { PerformanceOverlay } from './PerformanceOverlay'
+
+/** Product viewport: native 1280×720 @ 1× (responsive shrink for 1366×768 / 1920×1080). */
+const CLEAR_VIEW = preferredDisplaySize(1)
 
 export interface SwitchableWorld {
   id: string
@@ -133,6 +133,19 @@ export function WorldViewer({
     return () => window.removeEventListener('keydown', onKey)
   }, [toggleFullscreen])
 
+  const phaseChip =
+    phase === 'streaming'
+      ? { label: 'Streaming', cls: 'border-ok/40 bg-ok/15 text-ok' }
+      : phase === 'paused'
+        ? { label: idleHolding ? 'Idle hold' : 'Paused', cls: 'border-hazard/40 bg-hazard/15 text-hazard' }
+        : phase === 'connecting' || phase === 'starting' || phase === 'reconnecting'
+          ? { label: phase === 'reconnecting' ? 'Reconnecting' : 'Loading', cls: 'border-signal/40 bg-signal/10 text-signal' }
+          : phase === 'disconnected' || phase === 'idle'
+            ? { label: 'Disconnected', cls: 'border-line bg-elevated text-muted' }
+            : phase === 'error'
+              ? { label: 'Error', cls: 'border-danger/40 bg-danger/15 text-danger' }
+              : { label: phase, cls: 'border-line bg-elevated text-soft' }
+
   return (
     <div
       className={clsx(
@@ -140,30 +153,38 @@ export function WorldViewer({
         fullscreen
           ? 'h-screen'
           : embedded
-            ? 'h-[min(72vh,720px)]'
+            ? 'min-h-[min(78vh,820px)]'
             : 'h-[calc(100vh-3.5rem)]',
       )}
     >
       <div
         ref={stageRef}
-        className="relative flex min-h-0 flex-1 cursor-crosshair items-center justify-center overflow-hidden bg-ink"
+        className="relative flex min-h-0 flex-1 cursor-crosshair items-center justify-center overflow-hidden bg-[radial-gradient(ellipse_at_center,#0d1520_0%,#05070a_70%)]"
         onClick={() => {
           if (live && !pointerLocked) onRequestLock()
         }}
       >
-        {/* Product native 1280×720 @ 1× — responsive shrink only; no 360p mode. */}
-        <canvas
-          ref={canvasElRef}
-          className="rounded-sm shadow-[0_0_0_1px_rgba(255,255,255,0.06)]"
-          style={{
-            imageRendering: 'auto',
-            width: `min(100%, ${CLEAR_VIEW.width}px)`,
-            height: 'auto',
-            aspectRatio: '16 / 9',
-            maxWidth: CLEAR_VIEW.width,
-            maxHeight: CLEAR_VIEW.height,
-          }}
-        />
+        {/* Prominent native 16:9 canvas — no stretch beyond aspect-ratio box. */}
+        <div
+          className="relative mx-auto w-full max-w-[min(100%,1280px)] px-2 sm:px-4"
+          style={{ aspectRatio: '16 / 9', maxHeight: embedded ? 'min(70vh, 720px)' : '100%' }}
+        >
+          <canvas
+            ref={canvasElRef}
+            className="h-full w-full rounded-sm object-contain shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_20px_60px_rgba(0,0,0,0.45)]"
+            style={{
+              imageRendering: 'auto',
+              aspectRatio: '16 / 9',
+              maxWidth: CLEAR_VIEW.width,
+              maxHeight: CLEAR_VIEW.height,
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              margin: '0 auto',
+              display: 'block',
+            }}
+          />
+        </div>
 
         {!hasFrame && (
           <div className="pointer-events-none absolute inset-0 grid place-items-center">
@@ -179,9 +200,15 @@ export function WorldViewer({
                       : 'Connecting to Waypoint engine…'}
                   </p>
                   <p className="mt-1 text-sm text-muted">
-                    WS /world/stream · product native 1280×720
+                    Native 1280×720 · real frames only — never silent MOCK substitution
                   </p>
                 </>
+              )}
+              {(phase === 'disconnected' || phase === 'idle') && (
+                <p className="font-display text-lg text-muted">Disconnected from Waypoint</p>
+              )}
+              {phase === 'error' && (
+                <p className="font-display text-lg text-danger">Stream error — see banner</p>
               )}
             </div>
           </div>
@@ -194,16 +221,40 @@ export function WorldViewer({
           engineName={engineName}
           frameWidth={meta?.width}
           frameHeight={meta?.height}
+          defaultOpen={false}
         />
 
-        {mock && hasFrame && (
-          <div className="pointer-events-none absolute right-3 top-3 z-20 rounded bg-mock px-2 py-1 text-[11px] font-bold uppercase tracking-widest text-void">
-            Mock Stream
-          </div>
-        )}
-        {!mock && hasFrame && (
-          <div className="pointer-events-none absolute right-3 top-3 z-20 rounded bg-ok px-2 py-1 text-[11px] font-bold uppercase tracking-widest text-void">
-            Waypoint Live
+        <div className="pointer-events-none absolute right-3 top-3 z-20 flex flex-col items-end gap-1.5">
+          <span
+            className={clsx(
+              'rounded border px-2 py-1 text-[11px] font-bold uppercase tracking-widest',
+              phaseChip.cls,
+            )}
+          >
+            {phaseChip.label}
+          </span>
+          {mock && hasFrame && (
+            <span className="rounded bg-mock px-2 py-1 text-[11px] font-bold uppercase tracking-widest text-void">
+              Mock Stream
+            </span>
+          )}
+          {!mock && hasFrame && (
+            <span className="rounded bg-ok px-2 py-1 text-[11px] font-bold uppercase tracking-widest text-void">
+              Waypoint Live
+            </span>
+          )}
+        </div>
+
+        {/* Unobtrusive WASD / look hint */}
+        {live && hasFrame && (
+          <div className="pointer-events-none absolute bottom-20 left-3 z-10 hidden sm:block">
+            <div className="rounded-md border border-line/80 bg-ink/70 px-2 py-1.5 font-mono text-[10px] text-muted backdrop-blur">
+              <span className="text-soft">W A S D</span> move ·{' '}
+              <span className="text-soft">mouse</span> look
+              {lastSentMouse
+                ? ` · Δ ${lastSentMouse.dx.toFixed(0)},${lastSentMouse.dy.toFixed(0)}`
+                : ''}
+            </div>
           </div>
         )}
 
@@ -240,8 +291,8 @@ export function WorldViewer({
                   : 'Large camera turn — prefer slow look'}
               </p>
               <p className="mt-1 text-xs text-soft">
-                Turn on Stability Mode for automatic seed restore with a notice, or click Restore
-                Scene now.
+                Turn on Stability Mode for automatic seed restore with a notice, or click Refresh
+                World now (existing /world/reset).
               </p>
               <button
                 type="button"
@@ -251,7 +302,7 @@ export function WorldViewer({
                   onReset()
                 }}
               >
-                Restore Scene
+                Refresh World
               </button>
             </div>
           </div>
@@ -434,7 +485,7 @@ export function WorldViewer({
             {phase === 'paused' ? 'Resume' : 'Pause'}
           </ControlButton>
           <ControlButton onClick={onReset} disabled={!live && phase !== 'error'}>
-            Restore Scene
+            Refresh World
           </ControlButton>
           <ControlButton onClick={onReconnect} disabled={phase === 'idle'}>
             Reconnect

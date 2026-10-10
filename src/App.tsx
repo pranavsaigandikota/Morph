@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './components/layout/AppShell'
 import { AgentDashboardPage } from './pages/AgentDashboardPage'
+import { CalibrationPage } from './pages/CalibrationPage'
 import { CreateWorldPage } from './pages/CreateWorldPage'
 import { LandingPage } from './pages/LandingPage'
 import { RescueMissionPage } from './pages/RescueMissionPage'
@@ -14,6 +15,7 @@ export default function App() {
         <Route element={<AppShell />}>
           <Route index element={<LandingPage />} />
           <Route path="create" element={<CreateWorldPage />} />
+          <Route path="calibrate" element={<CalibrationPage />} />
           <Route path="world" element={<WorldExplorerPage />} />
           <Route path="mission" element={<RescueMissionPage />} />
           <Route path="simulation" element={<SimulationLabPage />} />

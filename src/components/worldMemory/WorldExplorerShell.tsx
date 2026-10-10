@@ -4,11 +4,14 @@ import type { WorldFrameMeta, WorldMetrics } from '../../types/world'
 import { useWorldMemory } from '../../hooks/useWorldMemory'
 import { WorldHeader } from './WorldHeader'
 import { ExplorationMap } from './ExplorationMap'
-import { CheckpointGallery } from './CheckpointGallery'
 import { CheckpointPreview } from './CheckpointPreview'
 import { RestoreOverlay } from './RestoreOverlay'
+import { MemoryGallery, type GalleryFilter } from './MemoryGallery'
+import { HuggingFaceAttribution } from '../brand/HuggingFaceAttribution'
 import { getMockWorldMemoryClient } from '../../services/worldMemory/mockWorldMemoryClient'
+import { loadCalibrationSession } from '../../services/calibration/mockCalibration'
 import type { ObstacleObservation } from '../../types/worldMemory'
+import type { CalibrationCapture } from '../../types/calibration'
 
 interface Props {
   worldName: string
@@ -46,8 +49,8 @@ interface Props {
 }
 
 /**
- * Polished Explorer layout: header → live video → map → remembered views.
- * Memory/nav data is MOCK until Codex publishes docs/world-memory/API_CONTRACT.md.
+ * Explorer layout: prominent 16:9 world → map → gallery.
+ * Memory/nav/calibration data is MOCK until Claude/Codex contracts land.
  */
 export function WorldExplorerShell(props: Props) {
   const memory = useWorldMemory()
@@ -56,6 +59,9 @@ export function WorldExplorerShell(props: Props) {
   const [selectedObstacle, setSelectedObstacle] = useState<ObstacleObservation | null>(null)
   const [saving, setSaving] = useState(false)
   const [centerTick, setCenterTick] = useState(false)
+  const [galleryFilter, setGalleryFilter] = useState<GalleryFilter>('all')
+  const [calibrationCaptures, setCalibrationCaptures] = useState<CalibrationCapture[]>([])
+  const [refreshFlash, setRefreshFlash] = useState(false)
 
   useEffect(() => {
     memory.attach({
@@ -64,19 +70,17 @@ export function WorldExplorerShell(props: Props) {
       promptSummary: props.promptSummary,
       epoch: props.streamEpochHint,
     })
+    const cal = loadCalibrationSession()
+    setCalibrationCaptures(cal?.captures ?? [])
     return () => memory.detach()
-    // Re-attach when world/session identity changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.sessionId, props.worldName, props.promptSummary])
 
-  // MOCK estimate driver from footer look telemetry + keyboard — not live Codex nav.
   useEffect(() => {
     if (memory.source !== 'mock') return
     if (props.phase !== 'streaming' && !(props.phase === 'paused' && props.idleHolding)) return
     const id = window.setInterval(() => {
       const keys: string[] = []
-      // Read live key state from a lightweight DOM-free poll via KeyboardEvent is hard;
-      // use lastSentMouse for heading and infer WASD from a private mock buffer.
       const mock = getMockWorldMemoryClient()
       const held = (window as unknown as { __wsKeys?: Set<string> }).__wsKeys
       if (held) keys.push(...held)
@@ -89,7 +93,6 @@ export function WorldExplorerShell(props: Props) {
     return () => window.clearInterval(id)
   }, [memory.source, props.phase, props.idleHolding, props.lastSentMouse])
 
-  // Mirror WASD into a window set without stealing focus from stream handlers.
   useEffect(() => {
     const w = window as unknown as { __wsKeys?: Set<string> }
     w.__wsKeys = w.__wsKeys ?? new Set()
@@ -135,6 +138,7 @@ export function WorldExplorerShell(props: Props) {
     props.mock ? 'stream MOCK' : 'Waypoint live',
     props.engineName ?? '',
     memory.source === 'mock' ? 'nav/memory MOCK' : 'nav live',
+    calibrationCaptures.length ? `cal ${calibrationCaptures.length} MOCK` : '',
   ]
     .filter(Boolean)
     .join(' · ')
@@ -143,6 +147,12 @@ export function WorldExplorerShell(props: Props) {
     !!memory.session.restore &&
     memory.session.restore.phase !== 'complete' &&
     memory.session.restore.phase !== 'failed'
+
+  const onRefreshWorld = () => {
+    setRefreshFlash(true)
+    props.onReset()
+    window.setTimeout(() => setRefreshFlash(false), 2200)
+  }
 
   return (
     <div className="relative flex h-[calc(100vh-3.5rem)] flex-col bg-void">
@@ -163,6 +173,8 @@ export function WorldExplorerShell(props: Props) {
         onRestoreSelected={() => {
           if (selected) void memory.restoreCheckpoint(selected.id)
         }}
+        onRefreshWorld={onRefreshWorld}
+        refreshDisabled={!props.hasFrame && props.phase !== 'streaming' && props.phase !== 'paused'}
       />
 
       <div className="relative min-h-0 flex-1 overflow-y-auto">
@@ -181,7 +193,7 @@ export function WorldExplorerShell(props: Props) {
             canvasElRef={props.canvasElRef}
             onRequestLock={props.onRequestLock}
             onPause={props.onPause}
-            onReset={props.onReset}
+            onReset={onRefreshWorld}
             onDisconnect={props.onDisconnect}
             onReconnect={props.onReconnect}
             lookRisk={props.lookRisk}
@@ -198,133 +210,144 @@ export function WorldExplorerShell(props: Props) {
             activeSeed={props.activeSeed}
             onSwitchWorld={props.onSwitchWorld}
           />
-          <RestoreOverlay job={memory.session.restore} checkpoint={selected} />
+          <RestoreOverlay
+            job={
+              refreshFlash && !memory.session.restore
+                ? {
+                    checkpointId: selected?.id ?? 'refresh',
+                    phase: 'reinitializing',
+                    message:
+                      'Refreshing from original seed via existing /world/reset — a new viewpoint may appear.',
+                    startedAtMs: performance.now(),
+                  }
+                : memory.session.restore
+            }
+            checkpoint={selected}
+            refreshMode={refreshFlash && !memory.session.restore}
+          />
         </div>
 
-        <section className="space-y-3 border-t border-line bg-void px-4 py-4">
-          <div className="flex flex-wrap items-end justify-between gap-2">
-            <div>
-              <h2 className="font-display text-base font-bold text-bright">Exploration map</h2>
-              <p className="text-xs text-muted">
-                Estimated trail in this session&apos;s frame — not geographic. Markers are remembered
-                views.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="rounded-md border border-line bg-elevated px-2.5 py-1 text-xs font-semibold text-soft hover:text-bright"
-                onClick={() => setShowTrail((v) => !v)}
-              >
-                {showTrail ? 'Hide trail' : 'Show trail'}
-              </button>
-              <label className="flex cursor-pointer items-center gap-1.5 rounded-md border border-line bg-elevated px-2.5 py-1 text-xs font-semibold text-soft hover:text-bright">
-                <input
-                  type="checkbox"
-                  checked={showObstacles}
-                  onChange={(e) => {
-                    setShowObstacles(e.target.checked)
-                    if (!e.target.checked) setSelectedObstacle(null)
+        <section className="space-y-3 border-t border-line bg-void px-3 py-4 sm:px-4 lg:px-6">
+          <div className="mx-auto max-w-[1400px] space-y-3">
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <h2 className="font-display text-base font-bold text-bright">Exploration map</h2>
+                <p className="text-xs text-muted">
+                  Estimated position, heading, calibration rays, checkpoints, and trail — not
+                  geographic / not physical meters.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="rounded-md border border-line bg-elevated px-2.5 py-1 text-xs font-semibold text-soft hover:text-bright"
+                  onClick={() => setShowTrail((v) => !v)}
+                >
+                  {showTrail ? 'Hide trail' : 'Show trail'}
+                </button>
+                <label className="flex cursor-pointer items-center gap-1.5 rounded-md border border-line bg-elevated px-2.5 py-1 text-xs font-semibold text-soft hover:text-bright">
+                  <input
+                    type="checkbox"
+                    checked={showObstacles}
+                    onChange={(e) => {
+                      setShowObstacles(e.target.checked)
+                      if (!e.target.checked) setSelectedObstacle(null)
+                    }}
+                    className="accent-[var(--color-signal,#5eead4)]"
+                  />
+                  AI-Inferred Obstacles
+                </label>
+                <button
+                  type="button"
+                  className="rounded-md border border-line bg-elevated px-2.5 py-1 text-xs font-semibold text-soft hover:text-bright"
+                  onClick={() => {
+                    memory.requestCenterOnPlayer()
+                    setCenterTick(true)
                   }}
-                  className="accent-[var(--color-signal,#5eead4)]"
+                >
+                  Center on player
+                </button>
+              </div>
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-[1fr_200px]">
+              <div className="h-[240px] sm:h-[280px] xl:h-[320px]">
+                <ExplorationMap
+                  pose={memory.session.pose}
+                  trail={memory.session.trail}
+                  checkpoints={memory.session.checkpoints}
+                  selectedId={memory.session.selectedCheckpointId}
+                  onSelect={(id) => {
+                    setSelectedObstacle(null)
+                    memory.selectCheckpoint(id)
+                  }}
+                  centerRequest={centerTick || memory.centerPending()}
+                  onCenterConsumed={() => {
+                    setCenterTick(false)
+                    memory.consumeCenterRequest()
+                  }}
+                  showTrail={showTrail}
+                  mock={memory.source === 'mock'}
+                  showObstacles={showObstacles}
+                  selectedObstacleId={selectedObstacle?.observation_id ?? null}
+                  onSelectObstacle={(obs) => {
+                    setSelectedObstacle(obs)
+                    memory.selectCheckpoint(obs.source_checkpoint_id)
+                  }}
+                  calibrationCaptures={calibrationCaptures}
                 />
-                AI-Inferred Obstacles
-              </label>
-              <button
-                type="button"
-                className="rounded-md border border-line bg-elevated px-2.5 py-1 text-xs font-semibold text-soft hover:text-bright"
-                onClick={() => {
-                  memory.requestCenterOnPlayer()
-                  setCenterTick(true)
-                }}
-              >
-                Center on player
-              </button>
-            </div>
-          </div>
-
-          <div className="grid gap-3 lg:grid-cols-[1fr_220px]">
-            <div className="h-[260px] sm:h-[300px]">
-              <ExplorationMap
-                pose={memory.session.pose}
-                trail={memory.session.trail}
-                checkpoints={memory.session.checkpoints}
-                selectedId={memory.session.selectedCheckpointId}
-                onSelect={(id) => {
-                  setSelectedObstacle(null)
-                  memory.selectCheckpoint(id)
-                }}
-                centerRequest={centerTick || memory.centerPending()}
-                onCenterConsumed={() => {
-                  setCenterTick(false)
-                  memory.consumeCenterRequest()
-                }}
-                showTrail={showTrail}
-                mock={memory.source === 'mock'}
-                showObstacles={showObstacles}
-                selectedObstacleId={selectedObstacle?.observation_id ?? null}
-                onSelectObstacle={(obs) => {
-                  setSelectedObstacle(obs)
-                  memory.selectCheckpoint(obs.source_checkpoint_id)
-                }}
-              />
-            </div>
-            <aside className="rounded-xl border border-line bg-panel/70 p-3 text-xs text-soft">
-              <p className="font-semibold text-bright">Legend</p>
-              <ul className="mt-2 space-y-1.5 text-muted">
-                <li>
-                  <span className="text-hazard">●</span> Start
-                </li>
-                <li>
-                  <span className="text-signal">●</span> Selected memory
-                </li>
-                <li>
-                  <span className="text-soft">●</span> Remembered view
-                </li>
-                <li>Arrow — estimated heading</li>
-                <li>Trail breaks after restore</li>
-                {showObstacles && (
-                  <>
-                    <li>
-                      <span className="text-danger">◌</span> Blocked suggestion
-                    </li>
-                    <li>
-                      <span className="text-hazard">◌</span> Hazard suggestion
-                    </li>
-                    <li>
-                      <span className="text-ok">◌</span> Walkable suggestion
-                    </li>
+              </div>
+              <aside className="rounded-xl border border-line bg-panel/70 p-3 text-xs text-soft">
+                <p className="font-semibold text-bright">Legend</p>
+                <ul className="mt-2 space-y-1.5 text-muted">
+                  <li>
+                    <span className="text-hazard">●</span> Start / seed
+                  </li>
+                  <li>
+                    <span className="text-signal">●</span> Selected checkpoint
+                  </li>
+                  <li>
+                    <span className="text-danger">●</span> Unsuitable recovery anchor
+                  </li>
+                  <li>
+                    <span className="text-aurora">╱</span> Calibration ray (est.)
+                  </li>
+                  <li>
+                    <span className="text-hazard">○</span> Trail break after restore
+                  </li>
+                  <li>Arrow — estimated heading</li>
+                  <li>Ring — pose uncertainty</li>
+                  {showObstacles && (
                     <li className="text-[10px]">
-                      Screen-plane sketch · depth = image rank · not meters / not collision
+                      Obstacles: screen-plane MOCK suggestions — not collision
                     </li>
-                  </>
-                )}
-              </ul>
-              <p className="mt-3 text-[10px] leading-relaxed text-muted">
-                Obstacle overlay follows Codex&apos;s proposed schema (MOCK data). Toggle stays off
-                by default; LIVE API not wired. Stream adapters unchanged.
-              </p>
-            </aside>
+                  )}
+                </ul>
+              </aside>
+            </div>
+
+            <CheckpointPreview
+              checkpoint={selected}
+              linkedObstacle={selectedObstacle}
+              enhancementSupported={memory.session.enhancementSupported}
+              onRestore={(id) => void memory.restoreCheckpoint(id)}
+              restoring={restoring}
+            />
+
+            <MemoryGallery
+              checkpoints={memory.session.checkpoints}
+              calibrationCaptures={calibrationCaptures}
+              selectedCheckpointId={memory.session.selectedCheckpointId}
+              onSelectCheckpoint={(id) => {
+                setSelectedObstacle(null)
+                memory.selectCheckpoint(id)
+              }}
+              filter={galleryFilter}
+              onFilterChange={setGalleryFilter}
+            />
+
+            <HuggingFaceAttribution compact />
           </div>
-
-          <CheckpointPreview
-            checkpoint={selected}
-            linkedObstacle={selectedObstacle}
-            enhancementSupported={memory.session.enhancementSupported}
-            onRestore={(id) => void memory.restoreCheckpoint(id)}
-            restoring={restoring}
-          />
-
-          <CheckpointGallery
-            checkpoints={memory.session.checkpoints}
-            selectedId={memory.session.selectedCheckpointId}
-            onSelect={(id) => {
-              setSelectedObstacle(null)
-              memory.selectCheckpoint(id)
-            }}
-            onRestore={(id) => void memory.restoreCheckpoint(id)}
-            restoring={restoring}
-          />
         </section>
       </div>
     </div>

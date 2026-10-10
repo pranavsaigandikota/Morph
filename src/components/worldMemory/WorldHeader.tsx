@@ -11,6 +11,9 @@ interface Props {
   onRestoreSelected: () => void
   canRestore: boolean
   saving: boolean
+  /** Existing session reset — not a new backend recovery API. */
+  onRefreshWorld?: () => void
+  refreshDisabled?: boolean
 }
 
 export function WorldHeader({
@@ -23,9 +26,11 @@ export function WorldHeader({
   onRestoreSelected,
   canRestore,
   saving,
+  onRefreshWorld,
+  refreshDisabled,
 }: Props) {
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-panel/90 px-4 py-3 backdrop-blur">
+    <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-panel/90 px-4 py-2.5 backdrop-blur">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="truncate font-display text-lg font-extrabold tracking-tight text-bright">
@@ -60,6 +65,17 @@ export function WorldHeader({
         >
           Restore viewpoint
         </button>
+        {onRefreshWorld && (
+          <button
+            type="button"
+            onClick={onRefreshWorld}
+            disabled={refreshDisabled}
+            className="rounded-md border border-hazard/40 bg-hazard/10 px-3 py-1.5 text-sm font-semibold text-hazard hover:bg-hazard/20 disabled:opacity-40"
+            title="Re-applies the original seed via existing /world/reset — a new viewpoint may appear"
+          >
+            Refresh World
+          </button>
+        )}
       </div>
     </header>
   )

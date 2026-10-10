@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { HuggingFaceAttribution } from '../components/brand/HuggingFaceAttribution'
 
 const MODES = [
   {
@@ -120,8 +121,13 @@ export function LandingPage() {
           style={{ animationDelay: '160ms' }}
         >
           Rescue Lab & AI Showdown run from static JSON without a GPU. World Explorer needs Codex
-          Waypoint on :8000. MOCK and LIVE stay clearly labeled.
+          Waypoint on :8000. Product visual target: native 1280×720. MOCK and LIVE stay clearly
+          labeled.
         </p>
+
+        <div className="animate-fade-up mt-10" style={{ animationDelay: '200ms' }}>
+          <HuggingFaceAttribution />
+        </div>
       </section>
     </div>
   )

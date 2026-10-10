@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { CalibrationCapture } from '../../types/calibration'
+import { DIRECTION_LABEL } from '../../types/calibration'
 import type {
   Checkpoint,
   EstimatedPose,
@@ -20,6 +22,8 @@ interface Props {
   showObstacles: boolean
   selectedObstacleId: string | null
   onSelectObstacle: (obs: ObstacleObservation) => void
+  /** MOCK calibration bearings plotted as estimated rays — not physical. */
+  calibrationCaptures?: CalibrationCapture[]
 }
 
 export function ExplorationMap({
@@ -35,6 +39,7 @@ export function ExplorationMap({
   showObstacles,
   selectedObstacleId,
   onSelectObstacle,
+  calibrationCaptures = [],
 }: Props) {
   const svgRef = useRef<SVGSVGElement | null>(null)
   const [view, setView] = useState({ x: -180, y: -120, w: 360, h: 240 })
@@ -105,6 +110,48 @@ export function ExplorationMap({
           <path d={pathD} fill="none" stroke="#2ee6d6" strokeOpacity="0.55" strokeWidth="2.2" />
         )}
 
+        {/* Epoch / restore segment breaks — trail discontinuous markers */}
+        {showTrail &&
+          trail
+            .filter((p) => !p.continuous)
+            .map((p, i) => (
+              <circle
+                key={`seg-${i}-${p.atMs}`}
+                cx={p.x}
+                cy={p.y}
+                r="3.5"
+                fill="none"
+                stroke="#f5a623"
+                strokeWidth="1.4"
+                opacity="0.85"
+              />
+            ))}
+
+        {/* Initial calibration observations (estimated rays from start) */}
+        {calibrationCaptures.map((c) => {
+          const rad = ((c.yawDeg - 90) * Math.PI) / 180
+          const len = 28
+          const x2 = Math.cos(rad) * len
+          const y2 = Math.sin(rad) * len
+          return (
+            <g key={c.id} opacity="0.75">
+              <line
+                x1={0}
+                y1={0}
+                x2={x2}
+                y2={y2}
+                stroke="#7c6cff"
+                strokeWidth="1.5"
+                strokeDasharray="3 2"
+              />
+              <circle cx={x2} cy={y2} r="3" fill="#7c6cff" />
+              <text x={x2 + 4} y={y2 - 3} fill="#9aabbe" fontSize="7">
+                {DIRECTION_LABEL[c.direction].slice(0, 1)}
+              </text>
+            </g>
+          )
+        })}
+
         {showObstacles && (
           <ObstacleOverlay
             checkpoints={checkpoints}
@@ -117,6 +164,7 @@ export function ExplorationMap({
           const px = cp.pose?.x ?? 0
           const py = cp.pose?.y ?? 0
           const selected = cp.id === selectedId
+          const unsuitable = cp.recoverySuitable === false
           return (
             <g
               key={cp.id}
@@ -130,10 +178,30 @@ export function ExplorationMap({
                 cx={px}
                 cy={py}
                 r={selected ? 7 : 5}
-                fill={cp.index === 0 ? '#f5a623' : selected ? '#2ee6d6' : '#9aabbe'}
+                fill={
+                  unsuitable
+                    ? '#ef4444'
+                    : cp.index === 0
+                      ? '#f5a623'
+                      : selected
+                        ? '#2ee6d6'
+                        : '#9aabbe'
+                }
                 stroke="#05070a"
                 strokeWidth="1.5"
+                opacity={unsuitable ? 0.65 : 1}
               />
+              {unsuitable && (
+                <circle
+                  cx={px}
+                  cy={py}
+                  r="9"
+                  fill="none"
+                  stroke="#ef4444"
+                  strokeWidth="1"
+                  strokeDasharray="2 2"
+                />
+              )}
               <text
                 x={px + 8}
                 y={py - 6}
@@ -141,25 +209,37 @@ export function ExplorationMap({
                 fontSize="8"
                 style={{ pointerEvents: 'none' }}
               >
-                {cp.index === 0 ? 'Start' : cp.index}
+                {cp.index === 0 ? 'Start' : unsuitable ? '✗' : cp.index}
               </text>
             </g>
           )
         })}
 
-        {/* Player */}
-        <g transform={`translate(${pose.x},${pose.y}) rotate(${pose.headingDeg})`}>
-          <circle r="6" fill="#eef3f8" stroke="#2ee6d6" strokeWidth="2" />
-          <polygon points="0,-14 5,-2 -5,-2" fill="#2ee6d6" />
+        {/* Player + uncertainty ring */}
+        <g transform={`translate(${pose.x},${pose.y})`}>
+          <circle
+            r={10 + (pose.uncertainty ?? 0.3) * 18}
+            fill="#2ee6d6"
+            fillOpacity="0.08"
+            stroke="#2ee6d6"
+            strokeOpacity="0.25"
+            strokeWidth="1"
+          />
+          <g transform={`rotate(${pose.headingDeg})`}>
+            <circle r="6" fill="#eef3f8" stroke="#2ee6d6" strokeWidth="2" />
+            <polygon points="0,-14 5,-2 -5,-2" fill="#2ee6d6" />
+          </g>
         </g>
       </svg>
 
       <div className="pointer-events-none absolute left-3 top-3 rounded-md border border-line bg-ink/85 px-2 py-1 text-[10px] uppercase tracking-wider text-muted backdrop-blur">
-        Approximate trail{mock ? ' · MOCK' : ''}
-        {showObstacles ? ' · AI obstacles (inferred)' : ''}
+        Estimated map · not physical{mock ? ' · MOCK' : ''}
+        {calibrationCaptures.length ? ' · cal rays' : ''}
+        {showObstacles ? ' · AI obstacles' : ''}
       </div>
       <div className="pointer-events-none absolute bottom-3 left-3 font-mono text-[10px] text-muted">
-        ({pose.x.toFixed(0)}, {pose.y.toFixed(0)}) · unc {((pose.uncertainty ?? 0) * 100).toFixed(0)}%
+        est ({pose.x.toFixed(0)}, {pose.y.toFixed(0)}) · heading {pose.headingDeg.toFixed(0)}° ·
+        unc {((pose.uncertainty ?? 0) * 100).toFixed(0)}% · epoch {pose.epoch}
       </div>
     </div>
   )

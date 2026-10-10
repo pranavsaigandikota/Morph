@@ -36,7 +36,7 @@ export function StarterContactSheet({
             onClick={() => onExploreApproved(approved)}
             className="rounded-xl border border-ok/40 bg-ok/15 px-4 py-2 text-sm font-bold text-ok"
           >
-            Enter world with approved starter
+            Calibrate & explore approved starter
           </button>
         )}
       </div>

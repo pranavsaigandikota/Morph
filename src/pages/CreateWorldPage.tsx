@@ -135,7 +135,7 @@ export function CreateWorldPage() {
     }
   }
 
-  const startExplore = (scene: GeneratedScene) => {
+  const startExplore = (scene: GeneratedScene, opts?: { skipCalibration?: boolean }) => {
     const q = new URLSearchParams()
     // Saved Codex scene IDs explore via /world/start scene_id (after Import-DemoPresets on Windows).
     if (scene.seed && !scene.mock) q.set('seed', scene.seed)
@@ -145,7 +145,12 @@ export function CreateWorldPage() {
     if (scene.mock) q.set('mock_seed', '1')
     if (scene.generationSeed != null) q.set('gen_seed', String(scene.generationSeed))
     if (scene.source) q.set('source', scene.source)
-    navigate(`/world?${q.toString()}`)
+    // Optional guided calibration shell (MOCK) before Explorer — skippable.
+    if (opts?.skipCalibration) {
+      navigate(`/world?${q.toString()}`)
+    } else {
+      navigate(`/calibrate?${q.toString()}`)
+    }
   }
 
   const onHqApproval = (id: string, approval: StarterApproval) => {
@@ -313,7 +318,14 @@ export function CreateWorldPage() {
                     onClick={() => startExplore(current)}
                     className="rounded-xl border border-ok/40 bg-ok/15 px-4 py-2.5 text-sm font-bold text-ok"
                   >
-                    Start Exploring
+                    Calibrate & Explore
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => startExplore(current, { skipCalibration: true })}
+                    className="rounded-xl border border-line px-4 py-2.5 text-sm font-semibold text-muted hover:text-bright"
+                  >
+                    Skip to Explore
                   </button>
                   <button
                     type="button"
