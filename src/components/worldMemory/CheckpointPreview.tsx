@@ -1,3 +1,4 @@
+import { RECOVERY_POLICY } from '../../services/hqStarterCandidates'
 import type { Checkpoint, ObstacleObservation } from '../../types/worldMemory'
 
 interface Props {
@@ -29,6 +30,9 @@ export function CheckpointPreview({
     checkpoint.obstacleAnalysis?.source_image_sha256 ??
     checkpoint.imageSha256
   const analysis = checkpoint.obstacleAnalysis
+  const unsuitable = checkpoint.recoverySuitable === false
+  const canRestore =
+    !!checkpoint.restorable && checkpoint.recoverySuitable !== false && !restoring
 
   return (
     <div className="rounded-xl border border-line bg-panel/80 p-3">
@@ -45,16 +49,31 @@ export function CheckpointPreview({
             raw SHA-256:{' '}
             {sha ? `${sha.slice(0, 12)}…${sha.slice(-8)}` : 'unavailable'}
           </p>
+          {checkpoint.kind && (
+            <p className="mt-0.5 text-[10px] uppercase tracking-wider text-muted">
+              {checkpoint.kind.replaceAll('_', ' ')}
+              {unsuitable ? ' · unsuitable recovery anchor' : ''}
+            </p>
+          )}
         </div>
         <button
           type="button"
-          disabled={!checkpoint.restorable || restoring}
+          disabled={!canRestore}
           onClick={() => onRestore(checkpoint.id)}
           className="shrink-0 rounded-md border border-signal/40 bg-signal/10 px-2.5 py-1 text-[11px] font-semibold text-signal disabled:opacity-40"
         >
           Restore viewpoint
         </button>
       </div>
+
+      {unsuitable && (
+        <p className="mb-2 rounded border border-danger/40 bg-danger/10 px-2 py-1.5 text-[11px] text-soft">
+          <span className="font-semibold text-danger">Rejected recovery anchor.</span>{' '}
+          {checkpoint.unsuitableReason ?? RECOVERY_POLICY.rejectReason} Prefer a new clean
+          theme-consistent HQ SDXL image via verified scene-start — do not claim physical
+          continuity.
+        </p>
+      )}
 
       {analysis && (
         <p className="mb-2 text-[10px] text-muted">

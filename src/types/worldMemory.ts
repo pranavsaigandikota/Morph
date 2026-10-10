@@ -44,6 +44,9 @@ export interface TrailPoint {
   continuous: boolean
 }
 
+/** Provenance kind for recovery policy. */
+export type CheckpointKind = 'sdxl_starter' | 'waypoint_frame' | 'restored' | 'unknown'
+
 export interface Checkpoint {
   id: string
   index: number
@@ -63,6 +66,14 @@ export interface Checkpoint {
   source: MemorySource
   /** true = user Save View; false = auto mock/backend capture */
   manual: boolean
+  /** How this still was produced — drives recovery-anchor policy. */
+  kind?: CheckpointKind
+  /**
+   * false = unsuitable as recovery anchor (e.g. early / blurry Waypoint frame).
+   * Default true only for approved SDXL starters / verified scene-start.
+   */
+  recoverySuitable?: boolean
+  unsuitableReason?: string | null
   /**
    * Codex proposal: docs/world-memory/OBSTACLE_SCHEMA_PROPOSAL.md
    * Missing / null ⇒ unsupported or disabled — do not fabricate in LIVE.

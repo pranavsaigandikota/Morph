@@ -57,11 +57,15 @@ export function CheckpointGallery({
                 <p className="text-[10px] uppercase tracking-wider text-muted">
                   {cp.source === 'mock' ? 'MOCK still' : 'Raw'}
                   {cp.manual ? ' · manual' : ' · auto'}
+                  {cp.recoverySuitable === false ? ' · unsuitable' : ''}
                 </p>
+                {cp.recoverySuitable === false && (
+                  <p className="text-[10px] font-semibold text-danger">Not a recovery anchor</p>
+                )}
                 {selected && (
                   <button
                     type="button"
-                    disabled={!cp.restorable || restoring}
+                    disabled={!cp.restorable || cp.recoverySuitable === false || restoring}
                     onClick={(e) => {
                       e.stopPropagation()
                       onRestore(cp.id)

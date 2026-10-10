@@ -153,7 +153,9 @@ export function WorldExplorerShell(props: Props) {
         source={memory.session.source}
         pose={memory.session.pose}
         saving={saving}
-        canRestore={!!selected?.restorable && !restoring}
+        canRestore={
+          !!selected?.restorable && selected.recoverySuitable !== false && !restoring
+        }
         onSaveView={() => {
           setSaving(true)
           void memory.saveView().finally(() => setSaving(false))

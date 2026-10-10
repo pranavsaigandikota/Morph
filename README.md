@@ -8,7 +8,7 @@ First-person **Waypoint** worlds (Codex GPU) + interactive **Rescue Missions** +
 
 | Route | Purpose |
 |-------|---------|
-| `/create` | Create Anything — freeform SDXL seeds |
+| `/create` | Create Anything — HQ SDXL contact sheet (approve before Waypoint) + Turbo secondary |
 | `/world` | World Explorer — Phase-2 `/stream` |
 | `/mission` | Playable rescue on verified facility map |
 | `/simulation` | Recorded Random / PPO / A* replays |

@@ -1,6 +1,17 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { StarterContactSheet } from '../components/create/StarterContactSheet'
 import { CODEX_PRESETS, type CodexPreset } from '../data/codexPresets'
+import {
+  candidateToGeneratedScene,
+  composeFirstPersonExplorePrompt,
+  generateHqContactSheet,
+  loadHqCandidates,
+  persistApprovedStarter,
+  persistHqCandidates,
+  type HqStarterCandidate,
+  type StarterApproval,
+} from '../services/hqStarterCandidates'
 import {
   WORLD_STYLES,
   generateScene,
@@ -30,6 +41,11 @@ export function CreateWorldPage() {
   const [current, setCurrent] = useState<GeneratedScene | null>(null)
   const [saved, setSaved] = useState<GeneratedScene[]>(() => loadSavedScenes())
   const [error, setError] = useState<string | null>(null)
+  const [hqCandidates, setHqCandidates] = useState<HqStarterCandidate[]>(() => loadHqCandidates())
+  const [hqErrors, setHqErrors] = useState<Array<{ seed: number; message: string }>>([])
+  const [hqStatus, setHqStatus] = useState(
+    'Generate several deterministic HQ seeds, approve one semantically coherent starter, then enter Waypoint.',
+  )
 
   const busy = progress.stage === 'submitting' || progress.stage === 'generating'
 
@@ -92,6 +108,33 @@ export function CreateWorldPage() {
     })
   }
 
+  const onGenerateHqSheet = async () => {
+    setError(null)
+    if (!prompt.trim()) {
+      setError('Enter the scene prompt/theme first')
+      return
+    }
+    setHqStatus('Requesting experimental HQ SDXL candidates…')
+    try {
+      const batch = await generateHqContactSheet(prompt, {
+        style,
+        onProgress: setProgress,
+      })
+      setHqCandidates(batch.candidates)
+      persistHqCandidates(batch.candidates)
+      setHqErrors(batch.errors)
+      setHqStatus(batch.message)
+      if (!batch.hqApiAvailable && batch.candidates.length === 0) {
+        setError(
+          'HQ API unavailable here. Use Windows Codex experimental HIGH path (see docs/world-memory/HQ_STARTER_APPROVAL.md). Verified Turbo ≤4 steps will not be relabeled as HQ.',
+        )
+      }
+    } catch (err) {
+      setProgress({ stage: 'error', percent: 0, message: '' })
+      setError(err instanceof Error ? err.message : 'HQ batch failed')
+    }
+  }
+
   const startExplore = (scene: GeneratedScene) => {
     const q = new URLSearchParams()
     // Saved Codex scene IDs explore via /world/start scene_id (after Import-DemoPresets on Windows).
@@ -100,7 +143,52 @@ export function CreateWorldPage() {
     q.set('prompt', scene.prompt)
     q.set('style', scene.style)
     if (scene.mock) q.set('mock_seed', '1')
+    if (scene.generationSeed != null) q.set('gen_seed', String(scene.generationSeed))
+    if (scene.source) q.set('source', scene.source)
     navigate(`/world?${q.toString()}`)
+  }
+
+  const onHqApproval = (id: string, approval: StarterApproval) => {
+    const next = hqCandidates.map((c) => {
+      if (approval === 'approved') {
+        if (c.id === id) return { ...c, approval: 'approved' as const }
+        // Only one approved starter at a time for Enter World.
+        if (c.approval === 'approved') return { ...c, approval: 'pending' as const }
+        return c
+      }
+      return c.id === id ? { ...c, approval } : c
+    })
+    setHqCandidates(next)
+    persistHqCandidates(next)
+    const approved = next.find((c) => c.id === id && approval === 'approved')
+    if (approved) {
+      persistApprovedStarter(approved)
+      commitScene(candidateToGeneratedScene(approved))
+      setHqStatus(
+        `Approved seed ${approved.generationSeed}` +
+          (approved.imageSha256 ? ` · SHA-256 ${approved.imageSha256.slice(0, 16)}…` : '') +
+          ' — safe to enter Waypoint. Preserve prompt/seed/settings for reproducibility.',
+      )
+    } else if (approval === 'rejected') {
+      setHqStatus(
+        'Candidate rejected — not a recovery anchor. Approve a semantically coherent starter first.',
+      )
+    }
+  }
+
+  const onExploreApproved = (c: HqStarterCandidate) => {
+    if (c.approval !== 'approved') {
+      setError('Approve one HQ candidate before entering Waypoint from the contact sheet.')
+      return
+    }
+    if (c.mock || c.quality === 'turbo') {
+      setError('Approved starter must be real HQ SDXL — not MOCK and not Turbo-class.')
+      return
+    }
+    const scene = candidateToGeneratedScene(c)
+    commitScene(scene)
+    persistApprovedStarter(c)
+    startExplore(scene)
   }
 
   const createAnother = () => {
@@ -178,25 +266,30 @@ export function CreateWorldPage() {
               />
             </label>
 
-            <label className="mt-4 flex cursor-not-allowed items-start gap-2 rounded-xl border border-line/70 bg-ink/40 px-3 py-2.5 opacity-70">
-              <input type="checkbox" disabled className="mt-0.5" />
-              <span>
-                <span className="text-sm font-semibold text-soft">High Quality generation</span>
-                <span className="mt-0.5 block text-xs text-muted">
-                  Unavailable until Codex publishes the world-memory / HQ create contract. Current
-                  Generate World keeps the verified SDXL path — not relabeled as HQ.
-                </span>
+            <p className="mt-4 rounded-xl border border-line bg-ink/50 px-3 py-2.5 text-xs text-muted">
+              Composition guide (appended for HQ sheet only):{' '}
+              <span className="text-soft">
+                {composeFirstPersonExplorePrompt(prompt || '…').slice(0, 160)}
+                …
               </span>
-            </label>
+            </p>
 
             <div className="mt-5 flex flex-wrap gap-2">
               <button
                 type="button"
                 disabled={busy || !prompt.trim()}
-                onClick={() => void onGenerate('live')}
+                onClick={() => void onGenerateHqSheet()}
                 className="animate-breathe rounded-xl bg-signal px-5 py-2.5 text-sm font-bold text-void transition hover:bg-signal/90 disabled:opacity-40"
               >
-                {busy ? 'Generating…' : 'Generate World'}
+                {busy ? 'Generating HQ…' : 'Generate HQ candidates'}
+              </button>
+              <button
+                type="button"
+                disabled={busy || !prompt.trim()}
+                onClick={() => void onGenerate('live')}
+                className="rounded-xl border border-line bg-elevated px-4 py-2.5 text-sm font-semibold hover:border-signal/40 disabled:opacity-40"
+              >
+                Turbo generate (verified ≤4 steps)
               </button>
               <button
                 type="button"
@@ -254,7 +347,7 @@ export function CreateWorldPage() {
                 <p className="mt-1 text-soft">{error}</p>
                 <p className="mt-2 text-xs text-muted">
                   This is not MOCK mode. Start Codex SDXL on :8000, or explicitly render a labeled
-                  mock preview.
+                  mock preview. MOCK images are never HQ approval candidates.
                 </p>
                 <button
                   type="button"
@@ -301,10 +394,20 @@ export function CreateWorldPage() {
           </div>
         </div>
 
+        <StarterContactSheet
+          candidates={hqCandidates}
+          errors={hqErrors}
+          statusMessage={hqStatus}
+          onApproval={onHqApproval}
+          onExploreApproved={onExploreApproved}
+        />
+
         {current && (
           <div className="animate-fade-up mt-8 overflow-hidden rounded-2xl border border-line bg-panel/90">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3">
-              <h2 className="font-display text-sm font-bold text-soft">Seed preview</h2>
+              <h2 className="font-display text-sm font-bold text-soft">
+                {current.source === 'sdxl-hq' ? 'Approved HQ starter' : 'Seed preview'}
+              </h2>
               <div className="flex items-center gap-2">
                 <span className="rounded-md border border-line px-2 py-0.5 text-[10px] uppercase tracking-wider text-muted">
                   {current.style}
@@ -312,6 +415,10 @@ export function CreateWorldPage() {
                 {current.mock ? (
                   <span className="rounded bg-mock/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-mock">
                     Mock — not AI-generated
+                  </span>
+                ) : current.source === 'sdxl-hq' ? (
+                  <span className="rounded bg-ok/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ok">
+                    Approved HQ SDXL
                   </span>
                 ) : (
                   <span className="rounded bg-ok/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ok">
@@ -334,7 +441,8 @@ export function CreateWorldPage() {
             <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
               <p className="max-w-3xl text-sm text-muted">{current.prompt}</p>
               <p className="font-mono text-[11px] text-muted">
-                seed: {current.seed ?? '—'} · {current.source ?? 'unknown'}
+                seed: {current.seed ?? '—'} · gen:{current.generationSeed ?? '—'} ·{' '}
+                {current.source ?? 'unknown'}
               </p>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { MockWorldMemoryClient } from '../src/services/worldMemory/mockWorldMemoryClient.ts'
 import { suggestionClassFromLabel } from '../src/services/worldMemory/mockObstacles.ts'
+import { RECOVERY_POLICY } from '../src/services/hqStarterCandidates.ts'
 
 let failed = 0
 function check(name, fn) {
@@ -22,9 +23,16 @@ c.attach({
   promptSummary: 'Neon alley',
   epoch: 1,
 })
-check('start checkpoint exists', () => {
-  assert.equal(c.getSession().checkpoints.length, 1)
-  assert.equal(c.getSession().checkpoints[0].index, 0)
+check('start + rejected early Waypoint checkpoint exist', () => {
+  const cps = c.getSession().checkpoints
+  assert.ok(cps.length >= 2)
+  assert.equal(cps[0].index, 0)
+  assert.equal(cps[0].kind, 'sdxl_starter')
+  assert.equal(cps[0].recoverySuitable, true)
+  const early = cps.find((x) => x.kind === 'waypoint_frame' && x.recoverySuitable === false)
+  assert.ok(early, 'early Waypoint reject fixture missing')
+  assert.equal(early.restorable, false)
+  assert.ok(String(early.unsuitableReason).includes('recovery anchor'))
 })
 
 c.noteControlHint({ keys: ['w'], mouseDx: 12, mouseDy: 0 })
@@ -83,6 +91,18 @@ check('start analysis disabled with empty observations', () => {
   assert.equal(start.obstacleAnalysis.status, 'disabled')
   assert.equal(start.obstacleAnalysis.observations.length, 0)
 })
+
+{
+  const early = c.getSession().checkpoints.find((x) => x.recoverySuitable === false)
+  await c.restoreCheckpoint(early.id)
+  check('restore from rejected early Waypoint fails', () => {
+    const job = c.getSession().restore
+    assert.equal(job.phase, 'failed')
+    assert.equal(job.error, 'unsuitable_recovery_anchor')
+    assert.ok(String(job.message).length > 10)
+    assert.equal(RECOVERY_POLICY.allowDegradedWaypointAnchors, false)
+  })
+}
 
 console.log('\n=== WORLD MEMORY MOCK SUMMARY ===')
 console.log(JSON.stringify({ failed, checkpoints: c.getSession().checkpoints.length }, null, 2))

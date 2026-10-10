@@ -14,11 +14,13 @@
 | Restore viewpoint UX + epoch break in trail | **MOCK** workflow |
 | Save View | **MOCK** capture |
 | Live Waypoint stream / WASD / drag-look / acks | Unchanged |
-| High Quality create mode | UI stub — disabled until Codex |
+| HQ SDXL contact sheet + human approval gate | Wired on `/create` — needs Windows experimental HIGH API for real PNGs |
+| Early Waypoint recovery anchors | **Rejected** in MOCK + UI (`recoverySuitable: false`) |
 | Live WorldMemoryClient | Not started (await contract) |
 | AI enhancement compare | MOCK candidates on some checkpoints |
 | AI-Inferred Obstacles map overlay | MOCK, Codex-shaped DTO, toggle **off by default**; LIVE not wired |
 | Schema reconcile | See `SCHEMA_COMPATIBILITY_REPORT.md` |
+| HQ approval / comparison docs | `HQ_STARTER_APPROVAL.md`, `STARTER_COMPARISON_STATUS.md` |
 
 ## Honest labels
 
@@ -36,8 +38,13 @@ Copy uses: “Approximate trail”, “Est. heading”, “Remembered views”, 
 
 ```powershell
 npm.cmd run test:world-memory
+npm.cmd run test:hq-starters
 npm.cmd run test:look
 npm.cmd run test:stability
 npm.cmd run test:rescue
 npm.cmd run build
+# HQ contact sheet (GPU):
+.\scripts\Generate-HqStarterContactSheet.ps1 -Prompt "<theme>" -Style cinematic
 ```
+
+See `HQ_STARTER_APPROVAL.md` — do not start Waypoint from unapproved or Turbo-relabeled seeds.

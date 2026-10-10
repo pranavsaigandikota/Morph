@@ -19,7 +19,8 @@
     "test:rescue-keys": "node scripts/verify-rescue-discrete-keys.mjs",
     "test:look": "tsx scripts/verify-look-control.mjs",
     "test:stability": "tsx scripts/verify-stability-mode.mjs",
-    "test:world-memory": "tsx scripts/verify-world-memory.mjs"
+    "test:world-memory": "tsx scripts/verify-world-memory.mjs",
+    "test:hq-starters": "tsx scripts/verify-hq-starters.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
