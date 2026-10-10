@@ -20,14 +20,31 @@ async function engineFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 /**
  * Probe the real model_loaded/status schema from /health.
+ * MOCK engines must set mock:true explicitly; missing mock ⇒ treated as LIVE.
  */
 export const worldApi = {
   async probe(): Promise<EngineStatus> {
     try {
-      const h = await engineFetch<{status:string;model_loaded:boolean;model:string;error?:string}>('/health')
-      return {ok:h.model_loaded && h.status !== 'error', mock:false, engine:'Waypoint FP8',
-        model:h.model, temporal_compression:4, message:h.error || h.status}
-    } catch(err) { return {ok:false,mock:false,message:String(err)} }
+      const h = await engineFetch<{
+        status: string
+        model_loaded: boolean
+        model: string
+        error?: string
+        mock?: boolean
+      }>('/health')
+      const isMock = h.mock === true
+      const ok = Boolean(h.model_loaded) && h.status !== 'error'
+      return {
+        ok,
+        mock: isMock,
+        engine: isMock ? 'MockWaypointEngine' : 'Waypoint FP8',
+        model: h.model,
+        temporal_compression: 4,
+        message: h.error || h.status,
+      }
+    } catch (err) {
+      return { ok: false, mock: false, message: String(err) }
+    }
   },
   async start(prompt:string, seed?:string|null): Promise<{session_id:string}> {
     let request:unknown = {scene_id:'facility',seed_image_path:null,prompt}

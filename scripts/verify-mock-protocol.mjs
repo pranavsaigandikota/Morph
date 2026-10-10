@@ -37,18 +37,31 @@ function check(name, ok, detail = '') {
 }
 
 async function main() {
-  // 1. Health
+  // 1. Health — Waypoint-compatible /health required for frontend probe()
   let healthOk = false
-  for (const path of ['/healthz', '/readyz', '/status']) {
-    try {
-      const r = await fetch(ENGINE + path)
-      if (r.ok) {
-        healthOk = true
-        check(`GET ${path}`, true, JSON.stringify(await r.json()).slice(0, 120))
-        break
+  try {
+    const r = await fetch(ENGINE + '/health')
+    const body = await r.json()
+    check('GET /health', r.ok, JSON.stringify(body).slice(0, 160))
+    check('health.model_loaded', body.model_loaded === true)
+    check('health.mock explicit', body.mock === true)
+    check('health.status not error', body.status !== 'error')
+    healthOk = r.ok && body.model_loaded === true && body.mock === true
+  } catch (e) {
+    check('GET /health', false, String(e))
+  }
+  if (!healthOk) {
+    for (const path of ['/healthz', '/readyz', '/status']) {
+      try {
+        const r = await fetch(ENGINE + path)
+        if (r.ok) {
+          check(`GET ${path}`, true, JSON.stringify(await r.json()).slice(0, 120))
+          healthOk = true
+          break
+        }
+      } catch {
+        /* */
       }
-    } catch {
-      /* */
     }
   }
   check('Engine reachable', healthOk, ENGINE)

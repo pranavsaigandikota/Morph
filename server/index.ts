@@ -53,9 +53,18 @@ app.get('/seeds', (_req, res) => {
   res.json({ seeds: ['facility_default'] })
 })
 
+/**
+ * Waypoint-compatible /health for frontend probe().
+ * Must expose model_loaded + status so MOCK Explorer can start;
+ * mock:true must stay explicit so LIVE is never implied.
+ */
 app.get('/health', (_req, res) => {
   res.json({
-    status: 'ok',
+    status: 'ready',
+    model_loaded: true,
+    model: 'MockWaypointEngine',
+    quant: null,
+    prompt_conditioning: false,
     mock: true,
     services: { world: 'ok', simulation: 'ok', agents: 'ok' },
   })
