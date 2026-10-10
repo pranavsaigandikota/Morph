@@ -24,14 +24,15 @@
 
 | Change | Before (6423304) | After |
 |---|---|---|
-| Look sensitivity default | `1.0` (UI 0.5–3) | `0.35` (UI 0.15–1.25) |
-| Per-tick mouse clamp | ±1000 | ±48 (protocol bound still enforced) |
+| Look sensitivity default | `1.0` (UI 0.5–3) | `0.22` (UI 0.1–0.75) |
+| Per-tick mouse clamp | ±1000 | ±28 (protocol bound still enforced) |
 | Buffer-skip behavior | Accumulate → dump | Consume/clear every tick |
-| Pitch | same as yaw | ×0.65 |
+| Pitch | same as yaw | ×0.55 |
 | Smoothing | none | mild EMA, no double-send of raw accum |
+| Idle hold | none | Pause generation ~550 ms after input stops |
 | Restore Scene | “Reset” | Labeled; clears look risk; resumes if paused |
 | Look risk banner | none | Advisory + manual Restore (never silent auto-reset) |
-| Presentation | raw draw | high-quality smoothing + light contrast |
+| Presentation | fullscreen stretch | **Small clear 640×360 @ ≤1.5×** + contrast (not full-bleed) |
 
 **Does not modify:** RescueGame, PPO data, SDXL contract, `display_ack` semantics, inference weights, or wire protocol shape.
 

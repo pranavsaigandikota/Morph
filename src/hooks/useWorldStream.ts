@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { drawClearFrame } from '../lib/framePresent'
 import {
   DEFAULT_LOOK_SENSITIVITY,
   accumulateMouseDelta,
@@ -45,6 +46,8 @@ interface WorldStreamState {
   /** Last mouse_dx / mouse_dy actually put on the wire (diagnostics). */
   lastSentMouse: { dx: number; dy: number }
   lookSensitivity: number
+  /** Generation paused because input went idle (not a manual Pause). */
+  idleHolding: boolean
 }
 
 /** Max JPEG sub-frames waiting to paint. Keep short — favor current over stale. */
@@ -53,6 +56,8 @@ const MAX_PRESENTATION_QUEUE = 3
 const PRESENT_FRAME_MS = 1000 / 20
 const CONTROL_MS = 50
 const METRICS_MS = 500
+/** Pause generation when WASD/mouse stop — slows standing-still drift. */
+const IDLE_HOLD_MS = 550
 
 interface QueuedJpeg {
   bytes: Uint8Array
@@ -78,6 +83,7 @@ export function useWorldStream() {
     lookRisk: 'ok',
     lastSentMouse: { dx: 0, dy: 0 },
     lookSensitivity: DEFAULT_LOOK_SENSITIVITY,
+    idleHolding: false,
   })
 
   const wsRef = useRef<WebSocket | null>(null)
@@ -111,6 +117,11 @@ export function useWorldStream() {
   const smoothLookRef = useRef({ dx: 0, dy: 0 })
   const cumulativeAbsYawRef = useRef(0)
   const lastSentMouseRef = useRef({ dx: 0, dy: 0 })
+  const lastInputAtRef = useRef(performance.now())
+  const idleHoldingRef = useRef(false)
+  const userPausedRef = useRef(false)
+  const idleTimerRef = useRef<number | null>(null)
+  const idleActionInFlightRef = useRef(false)
 
   const queueRef = useRef<QueuedJpeg[]>([])
   const lastPresentRef = useRef(0)
@@ -145,7 +156,63 @@ export function useWorldStream() {
       window.clearInterval(metricsTimerRef.current)
       metricsTimerRef.current = null
     }
+    if (idleTimerRef.current) {
+      window.clearInterval(idleTimerRef.current)
+      idleTimerRef.current = null
+    }
   }, [])
+
+  const setIdleHolding = useCallback((v: boolean) => {
+    idleHoldingRef.current = v
+    setState((s) => (s.idleHolding === v ? s : { ...s, idleHolding: v }))
+  }, [])
+
+  const noteUserInput = useCallback(() => {
+    lastInputAtRef.current = performance.now()
+  }, [])
+
+  const resumeFromIdleHold = useCallback(async () => {
+    if (!idleHoldingRef.current || userPausedRef.current) return
+    if (!sessionIdRef.current || idleActionInFlightRef.current) return
+    if (phaseRef.current !== 'paused') {
+      setIdleHolding(false)
+      return
+    }
+    idleActionInFlightRef.current = true
+    try {
+      await worldApi.action(sessionIdRef.current, 'resume')
+      setPhase('streaming')
+      setIdleHolding(false)
+    } catch (err) {
+      setState((s) => ({ ...s, error: String(err) }))
+    } finally {
+      idleActionInFlightRef.current = false
+    }
+  }, [setIdleHolding, setPhase])
+
+  const maybeIdleHold = useCallback(async () => {
+    if (userPausedRef.current || idleHoldingRef.current) return
+    if (phaseRef.current !== 'streaming' || !sessionIdRef.current) return
+    if (idleActionInFlightRef.current) return
+    const hasKeys = [...keysRef.current].some((k) => /^[WASD]$/.test(k))
+    const hasMouse =
+      Math.abs(mouseRef.current.dx) > 0.5 || Math.abs(mouseRef.current.dy) > 0.5
+    if (hasKeys || hasMouse) {
+      lastInputAtRef.current = performance.now()
+      return
+    }
+    if (performance.now() - lastInputAtRef.current < IDLE_HOLD_MS) return
+    idleActionInFlightRef.current = true
+    try {
+      await worldApi.action(sessionIdRef.current, 'pause')
+      setPhase('paused')
+      setIdleHolding(true)
+    } catch (err) {
+      setState((s) => ({ ...s, error: String(err) }))
+    } finally {
+      idleActionInFlightRef.current = false
+    }
+  }, [setIdleHolding, setPhase])
 
   const publishMetrics = useCallback(() => {
     const now = performance.now()
@@ -230,21 +297,15 @@ export function useWorldStream() {
     const url = URL.createObjectURL(blob)
     const img = new Image()
     img.onload = () => {
-      if(phaseRef.current!=='streaming' || next.header.epoch!==epochRef.current) {
-        URL.revokeObjectURL(url);drawingRef.current=false;return
+      if (phaseRef.current !== 'streaming' || next.header.epoch !== epochRef.current) {
+        URL.revokeObjectURL(url)
+        drawingRef.current = false
+        return
       }
       const ctx = canvas.getContext('2d')
       if (ctx) {
-        if (canvas.width !== img.width || canvas.height !== img.height) {
-          canvas.width = img.width
-          canvas.height = img.height
-        }
-        // Mild presentation only — does not recover generative geometry.
-        ctx.imageSmoothingEnabled = true
-        ctx.imageSmoothingQuality = 'high'
-        ctx.filter = 'contrast(1.05) saturate(1.02)'
-        ctx.drawImage(img, 0, 0)
-        ctx.filter = 'none'
+        // Prefer clear native resolution; CSS scales modestly in WorldViewer.
+        drawClearFrame(ctx, img, img.width, img.height)
         dispCountRef.current += 1
         proofRef.current.displayed++
         proofRef.current.draw_at.push(performance.now())
@@ -344,13 +405,13 @@ export function useWorldStream() {
 
     // Always consume accumulation each tick — even if the socket cannot send —
     // so a bufferedAmount skip cannot dump a huge look later (double-apply / dump bug).
-    const look = prepareLookDelta({
+    const       look = prepareLookDelta({
       accumulatedDx: mouseRef.current.dx,
       accumulatedDy: mouseRef.current.dy,
       sensitivity: mouseSensRef.current,
       prevSmoothDx: smoothLookRef.current.dx,
       prevSmoothDy: smoothLookRef.current.dy,
-      smoothAlpha: 0.35,
+      smoothAlpha: 0.4,
     })
     mouseRef.current = { dx: 0, dy: 0, scroll: 0 }
     smoothLookRef.current = { dx: look.smoothDx, dy: look.smoothDy }
@@ -400,14 +461,25 @@ export function useWorldStream() {
       wsRef.current = ws
 
       ws.onopen = () => {
-        if(wsRef.current!==ws) {ws.close();return}
+        if (wsRef.current !== ws) {
+          ws.close()
+          return
+        }
         reconnectAttemptRef.current = 0
+        userPausedRef.current = false
+        setIdleHolding(false)
+        noteUserInput()
         clearTimers()
         controlTimerRef.current = window.setInterval(sendControl, CONTROL_MS)
         metricsTimerRef.current = window.setInterval(() => {
           publishMetrics()
-          void worldApi.metrics(sessionId).then(m=>{if(m) serverMetricsRef.current=m})
+          void worldApi.metrics(sessionId).then((m) => {
+            if (m) serverMetricsRef.current = m
+          })
         }, METRICS_MS)
+        idleTimerRef.current = window.setInterval(() => {
+          void maybeIdleHold()
+        }, 200)
       }
 
       ws.onmessage = (ev) => {
@@ -518,7 +590,16 @@ export function useWorldStream() {
         }, delay)
       }
     },
-    [clearTimers, enqueueJpegs, publishMetrics, sendControl, setPhase],
+    [
+      clearTimers,
+      enqueueJpegs,
+      maybeIdleHold,
+      noteUserInput,
+      publishMetrics,
+      sendControl,
+      setIdleHolding,
+      setPhase,
+    ],
   )
 
   const start = useCallback(
@@ -573,11 +654,28 @@ export function useWorldStream() {
   )
 
   const pause = useCallback(async () => {
-    if(!sessionIdRef.current) return
-    const action=phaseRef.current==='paused'?'resume':'pause'
-    try { await worldApi.action(sessionIdRef.current,action);setPhase(action==='pause'?'paused':'streaming') }
-    catch(err) {setState(s=>({...s,error:String(err)}))}
-  }, [setPhase])
+    if (!sessionIdRef.current) return
+    if (phaseRef.current === 'paused') {
+      userPausedRef.current = false
+      try {
+        await worldApi.action(sessionIdRef.current, 'resume')
+        setPhase('streaming')
+        setIdleHolding(false)
+        noteUserInput()
+      } catch (err) {
+        setState((s) => ({ ...s, error: String(err) }))
+      }
+      return
+    }
+    userPausedRef.current = true
+    try {
+      await worldApi.action(sessionIdRef.current, 'pause')
+      setPhase('paused')
+      setIdleHolding(false)
+    } catch (err) {
+      setState((s) => ({ ...s, error: String(err) }))
+    }
+  }, [noteUserInput, setIdleHolding, setPhase])
 
   const disconnect = useCallback(() => {
     intentionalCloseRef.current = true
@@ -606,6 +704,7 @@ export function useWorldStream() {
       pointerLocked: false,
       lookRisk: 'ok',
       lastSentMouse: { dx: 0, dy: 0 },
+      idleHolding: false,
     }))
   }, [clearTimers])
 
@@ -617,6 +716,9 @@ export function useWorldStream() {
     smoothLookRef.current = { dx: 0, dy: 0 }
     cumulativeAbsYawRef.current = 0
     lastSentMouseRef.current = { dx: 0, dy: 0 }
+    userPausedRef.current = false
+    setIdleHolding(false)
+    noteUserInput()
     setState((s) => ({
       ...s,
       lookRisk: 'ok',
@@ -632,7 +734,7 @@ export function useWorldStream() {
     } catch (err) {
       setState((s) => ({ ...s, error: String(err) }))
     }
-  }, [setPhase])
+  }, [noteUserInput, setIdleHolding, setPhase])
 
   const reconnect = useCallback(() => {
     if(!sessionIdRef.current) {void start('facility','First-person industrial research facility',seedRef.current);return}
@@ -693,6 +795,8 @@ export function useWorldStream() {
       if (!e.repeat) keyHeldRef.current.set(k, (keyHeldRef.current.get(k) || 0) + 1)
       keysRef.current.add(k)
       proofRef.current.key_events++
+      noteUserInput()
+      void resumeFromIdleHold()
       e.preventDefault()
     }
     const onKeyUp = (e: KeyboardEvent) => {
@@ -705,7 +809,11 @@ export function useWorldStream() {
       } else keyHeldRef.current.set(k, n)
     }
     const onMouseMove = (e: MouseEvent) => {
-      if (phaseRef.current !== 'streaming') return
+      if (
+        phaseRef.current !== 'streaming' &&
+        !(phaseRef.current === 'paused' && idleHoldingRef.current)
+      )
+        return
       if (document.pointerLockElement == null && !e.buttons) {
         // Allow look without lock only when pointer is over stage with movement accumulation
         // during active streaming after click — still require lock for continuous look.
@@ -714,6 +822,8 @@ export function useWorldStream() {
       proofRef.current.mouse_events++
       const next = accumulateMouseDelta(mouseRef.current, e.movementX, e.movementY)
       mouseRef.current = { ...mouseRef.current, ...next }
+      noteUserInput()
+      void resumeFromIdleHold()
     }
     const onWheel = (e: WheelEvent) => {
       if (phaseRef.current !== 'streaming') return
@@ -721,10 +831,16 @@ export function useWorldStream() {
       e.preventDefault()
     }
     const onMouseDown = (e: MouseEvent) => {
-      if (phaseRef.current !== 'streaming') return
+      if (
+        phaseRef.current !== 'streaming' &&
+        !(phaseRef.current === 'paused' && idleHoldingRef.current)
+      )
+        return
       const m = MOUSE_BTN[e.button]
       if (m) {
         keysRef.current.add(m)
+        noteUserInput()
+        void resumeFromIdleHold()
         e.preventDefault()
       }
     }
@@ -765,7 +881,7 @@ export function useWorldStream() {
       window.removeEventListener('blur', onBlur)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
-  }, [presentLoop])
+  }, [noteUserInput, presentLoop, resumeFromIdleHold])
 
   useEffect(() => {
     const cleanup = () => {

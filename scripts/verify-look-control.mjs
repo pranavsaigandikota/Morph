@@ -34,8 +34,8 @@ check('default sensitivity is conservative (< 1.0)', () => {
 })
 
 check('clampSensitivity bounds', () => {
-  assert.equal(clampSensitivity(0), 0.15)
-  assert.equal(clampSensitivity(9), 1.25)
+  assert.equal(clampSensitivity(0), 0.1)
+  assert.equal(clampSensitivity(9), 0.75)
   assert.equal(clampSensitivity(0.5), 0.5)
 })
 
@@ -126,8 +126,8 @@ check('no duplicate application: consume then zero yields zero', () => {
 
 check('lookDriftRisk thresholds', () => {
   assert.equal(lookDriftRisk(0), 'ok')
-  assert.equal(lookDriftRisk(720), 'elevated')
-  assert.equal(lookDriftRisk(720 * 1.6), 'high')
+  assert.equal(lookDriftRisk(380), 'elevated')
+  assert.equal(lookDriftRisk(380 * 1.6), 'high')
 })
 
 check('reset lifecycle: yaw risk clears conceptually', () => {

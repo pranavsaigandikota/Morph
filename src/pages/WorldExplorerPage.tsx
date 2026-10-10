@@ -144,6 +144,7 @@ export function WorldExplorerPage() {
         lookSensitivity={stream.lookSensitivity}
         onLookSensitivity={stream.setMouseSens}
         lastSentMouse={stream.lastSentMouse}
+        idleHolding={stream.idleHolding}
         worlds={switchableWorlds}
         activeSeed={stream.activeSeed}
         onSwitchWorld={(seed) => void stream.switchWorld(seed)}

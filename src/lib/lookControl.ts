@@ -15,23 +15,23 @@
 export const PROTOCOL_MOUSE_BOUND = 1000
 
 /** Conservative default sensitivity (was 1.0 — too aggressive for Waypoint). */
-export const DEFAULT_LOOK_SENSITIVITY = 0.35
+export const DEFAULT_LOOK_SENSITIVITY = 0.22
 
-/** Allowed UI sensitivity range. */
-export const LOOK_SENS_MIN = 0.15
-export const LOOK_SENS_MAX = 1.25
+/** Allowed UI sensitivity range. Keep the ceiling low so judges cannot over-crank. */
+export const LOOK_SENS_MIN = 0.1
+export const LOOK_SENS_MAX = 0.75
 
 /**
  * Soft per-control-tick ceiling after sensitivity.
  * Far below protocol ±1000; limits one flick from becoming a large camera jump.
  */
-export const DEFAULT_MAX_DELTA_PER_TICK = 48
+export const DEFAULT_MAX_DELTA_PER_TICK = 28
 
 /** Vertical look is slightly damped vs yaw (reduces pitch thrash). */
-export const DEFAULT_PITCH_SCALE = 0.65
+export const DEFAULT_PITCH_SCALE = 0.55
 
 /** Cap raw accumulation between ticks so a blocked send cannot build a dump. */
-export const DEFAULT_MAX_ACCUM = 96
+export const DEFAULT_MAX_ACCUM = 56
 
 export interface LookPrepareInput {
   accumulatedDx: number
@@ -129,7 +129,8 @@ export function prepareLookDelta(input: LookPrepareInput): LookPrepareResult {
  */
 export function lookDriftRisk(
   cumulativeAbsYaw: number,
-  threshold: number = 720,
+  /** Lower threshold — warn earlier so Restore Scene is offered before full melt. */
+  threshold: number = 380,
 ): 'ok' | 'elevated' | 'high' {
   if (cumulativeAbsYaw >= threshold * 1.6) return 'high'
   if (cumulativeAbsYaw >= threshold) return 'elevated'

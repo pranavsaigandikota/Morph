@@ -1,5 +1,6 @@
 import clsx from 'clsx'
 import { useCallback, useEffect, useState, type RefObject } from 'react'
+import { preferredDisplaySize } from '../../lib/framePresent'
 import {
   DEFAULT_LOOK_SENSITIVITY,
   LOOK_SENS_MAX,
@@ -7,6 +8,8 @@ import {
 } from '../../lib/lookControl'
 import type { WorldFrameMeta, WorldMetrics } from '../../types/world'
 import { PerformanceOverlay } from './PerformanceOverlay'
+
+const CLEAR_VIEW = preferredDisplaySize(1.5)
 
 export interface SwitchableWorld {
   id: string
@@ -35,6 +38,7 @@ interface Props {
   lookSensitivity?: number
   onLookSensitivity?: (v: number) => void
   lastSentMouse?: { dx: number; dy: number }
+  idleHolding?: boolean
   /** Saved / preset worlds — switch without remounting React */
   worlds?: SwitchableWorld[]
   activeSeed?: string | null
@@ -61,6 +65,7 @@ export function WorldViewer({
   lookSensitivity = DEFAULT_LOOK_SENSITIVITY,
   onLookSensitivity,
   lastSentMouse,
+  idleHolding = false,
   worlds,
   activeSeed,
   onSwitchWorld,
@@ -118,19 +123,22 @@ export function WorldViewer({
     >
       <div
         ref={stageRef}
-        className="relative min-h-0 flex-1 cursor-crosshair overflow-hidden bg-ink"
+        className="relative flex min-h-0 flex-1 cursor-crosshair items-center justify-center overflow-hidden bg-ink"
         onClick={() => {
           if (live && !pointerLocked) onRequestLock()
         }}
       >
+        {/* Small clear viewport — native 640×360 at ≤1.5×; not a muddy full-bleed stretch. */}
         <canvas
           ref={canvasElRef}
-          className="mx-auto h-full w-full object-contain"
+          className="rounded-sm shadow-[0_0_0_1px_rgba(255,255,255,0.06)]"
           style={{
             imageRendering: 'auto',
-            // Prefer crisp native 640×360; avoid huge CSS blow-up.
-            maxWidth: 'min(100%, 1280px)',
-            maxHeight: 'min(100%, 720px)',
+            width: `min(100%, ${CLEAR_VIEW.width}px)`,
+            height: 'auto',
+            aspectRatio: '16 / 9',
+            maxWidth: CLEAR_VIEW.width,
+            maxHeight: CLEAR_VIEW.height,
           }}
         />
 
@@ -214,7 +222,14 @@ export function WorldViewer({
           </div>
         )}
 
-        {phase === 'paused' && (
+        {phase === 'paused' && idleHolding && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-28 z-10 flex justify-center">
+            <p className="rounded-md border border-line bg-ink/85 px-3 py-1.5 text-sm text-soft backdrop-blur">
+              Idle — world held. WASD or drag to continue.
+            </p>
+          </div>
+        )}
+        {phase === 'paused' && !idleHolding && (
           <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-void/40">
             <p className="font-display text-3xl font-bold tracking-wide text-bright">Paused</p>
           </div>
