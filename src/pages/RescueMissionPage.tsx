@@ -3,12 +3,10 @@ import { Link } from 'react-router-dom'
 import { MapLegend } from '../components/simulation/MapLegend'
 import { RescueScene } from '../components/simulation/RescueScene'
 import {
-  createMission,
-  keyToMove,
-  shortestExitPath,
-  stepMission,
+  rescueEnvAdapter,
+  rescueEnvSourceLabel,
   type RescueMissionState,
-} from '../services/browserRescueSim'
+} from '../services/rescueEnvAdapter'
 import { loadRescuePackage } from '../services/rescueStatic'
 import type { BuildingMap } from '../types/simulation'
 
@@ -38,7 +36,7 @@ export function RescueMissionPage() {
           return
         }
         setMap(m)
-        setMission(createMission(m))
+        setMission(rescueEnvAdapter.create(m))
       })
       .catch((err) => {
         if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Failed to load map')
@@ -48,18 +46,21 @@ export function RescueMissionPage() {
     }
   }, [scenarioId])
 
-  const astar = useMemo(() => (map ? shortestExitPath(map) : []), [map])
+  const astar = useMemo(
+    () => (map ? rescueEnvAdapter.shortestExitPath(map) : []),
+    [map],
+  )
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.repeat) return
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-      const move = keyToMove(e.code)
+      const move = rescueEnvAdapter.keyToMove(e.code)
       if (!move) return
       e.preventDefault()
       setMission((m) => {
         if (!m || m.status === 'success' || m.status === 'failed') return m
-        return stepMission(m, move)
+        return rescueEnvAdapter.step(m, move)
       })
     }
     window.addEventListener('keydown', onKey)
@@ -68,7 +69,7 @@ export function RescueMissionPage() {
 
   const restart = () => {
     if (map) {
-      setMission(createMission(map))
+      setMission(rescueEnvAdapter.create(map))
       setShowAstar(false)
     }
   }
@@ -108,6 +109,7 @@ export function RescueMissionPage() {
               Playable grid mission on the verified facility map. This is <strong>not</strong>{' '}
               Waypoint video — robots do not navigate generated worlds.
             </p>
+            <p className="mt-1 text-xs text-muted">{rescueEnvSourceLabel()}</p>
           </div>
           <Link
             to="/simulation"

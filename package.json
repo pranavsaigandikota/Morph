@@ -14,7 +14,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty false",
     "test:stream60": "node scripts/session60s.mjs",
-    "test:mock-protocol": "node scripts/verify-mock-protocol.mjs"
+    "test:mock-protocol": "node scripts/verify-mock-protocol.mjs",
+    "test:rescue": "tsx scripts/verify-rescue-mission.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
