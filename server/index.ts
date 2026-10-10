@@ -9,7 +9,9 @@ import {
   createSession,
   getSession,
   listSessionMetrics,
+  pauseSession,
   resetSession,
+  resumeSession,
   stopSession,
 } from './worldSessions.ts'
 import { attachWaypointStream, isEngineBusy } from './waypointStream.ts'
@@ -96,6 +98,24 @@ app.post('/world/stop', (req, res) => {
     return
   }
   res.json({ session_id: sessionId, status: 'stopped' })
+})
+
+app.post('/world/pause', (req, res) => {
+  const sessionId = String(req.body?.session_id ?? '')
+  if (!sessionId || !pauseSession(sessionId)) {
+    res.status(404).json({ error: 'session_not_found' })
+    return
+  }
+  res.json({ session_id: sessionId, status: 'paused' })
+})
+
+app.post('/world/resume', (req, res) => {
+  const sessionId = String(req.body?.session_id ?? '')
+  if (!sessionId || !resumeSession(sessionId)) {
+    res.status(404).json({ error: 'session_not_found' })
+    return
+  }
+  res.json({ session_id: sessionId, status: 'streaming' })
 })
 
 app.get('/world/metrics', (req, res) => {

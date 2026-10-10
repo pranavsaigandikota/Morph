@@ -8,10 +8,12 @@ import { defineConfig, loadEnv } from 'vite'
  */
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
+  // Prefer process.env.ENGINE_TARGET from scripts/dev.mjs (USE_MOCK_ENGINE → :4822)
+  // over .env VITE_WORLD_API_BASE_URL (:8000) so explicit mock is not overridden.
   const engineTarget =
+    process.env.ENGINE_TARGET ||
     env.ENGINE_TARGET ||
     env.VITE_WORLD_API_BASE_URL ||
-    process.env.ENGINE_TARGET ||
     process.env.VITE_WORLD_API_BASE_URL ||
     'http://127.0.0.1:8000'
   const mockTarget = 'http://127.0.0.1:4822'

@@ -593,7 +593,8 @@ export function useWorldStream() {
         if (typeof ev.data === 'string') {
           try {
             const msg = JSON.parse(ev.data) as {type?:string;msg?:string;message?:string;epoch?:number;timestamp_ms?:number} & Partial<Omit<WaypointHello,'type'>>
-            if (msg.type === 'frame') {
+            // Prefer type:"frame" (Codex). Accept legacy frame_meta for older mocks.
+            if (msg.type === 'frame' || msg.type === 'frame_meta') {
               wireRef.current = JSON.parse(ev.data)
               // Reset advances epoch on subsequent frames; adopt it here (frame
               // path returns early and must not skip epoch handling).
@@ -617,10 +618,27 @@ export function useWorldStream() {
               proofRef.current.last_frame_id=0; proofRef.current.epoch=msg.epoch
             }
             if (msg.type === 'hello') {
-              const hello = { ...msg, session_id:sessionId,engine:'Waypoint FP8',width:640,height:360,
-                temporal_compression:4,mock:false } as WaypointHello
+              // LIVE hello may omit dims/engine (see FRONTEND_INTEGRATION.md).
+              // Never force mock:false — preserve probe + hello.mock.
+              const engine =
+                msg.engine ||
+                engineNameRef.current ||
+                (mockRef.current ? 'MockWaypointEngine' : 'Waypoint FP8')
+              const hello = {
+                type: 'hello' as const,
+                session_id: sessionId,
+                engine,
+                width: msg.width ?? dimsRef.current.w ?? 640,
+                height: msg.height ?? dimsRef.current.h ?? 360,
+                temporal_compression: msg.temporal_compression ?? 4,
+                seed: msg.seed,
+                mock:
+                  msg.mock === true ||
+                  mockRef.current ||
+                  /mock/i.test(engine),
+              } satisfies WaypointHello
               sessionIdRef.current = hello.session_id
-              mockRef.current = !!hello.mock || /mock/i.test(hello.engine)
+              mockRef.current = !!hello.mock
               engineNameRef.current = hello.engine
               dimsRef.current = {
                 w: hello.width,

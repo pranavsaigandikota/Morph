@@ -1,10 +1,15 @@
+import { encode as encodeJpeg } from 'jpeg-js'
 import type { WebSocket } from 'ws'
-import type { WorldControlMessage, WorldFrameMeta, WorldSceneId } from '../src/types/world.ts'
-import { applyControls, generateFacilityFrame, type ViewState } from './frameGenerator.ts'
+import type { WorldControlMessage, WorldSceneId } from '../src/types/world.ts'
+import {
+  applyControls,
+  generateFacilityRgba,
+  type ViewState,
+} from './frameGenerator.ts'
 
 const WIDTH = 640
 const HEIGHT = 360
-const TARGET_FPS = 12
+const TARGET_FPS = 18
 
 export interface WorldSession {
   id: string
@@ -15,11 +20,13 @@ export interface WorldSession {
   view: ViewState
   frameId: number
   sequence: number
+  epoch: number
   dropped: number
   lastControl: WorldControlMessage | null
   keys: string[]
   mouseDx: number
   mouseDy: number
+  lastClientTs: number | null
   socket: WebSocket | null
   timer: ReturnType<typeof setInterval> | null
   generatedFps: number
@@ -41,11 +48,13 @@ export function createSession(sceneId: WorldSceneId, prompt: string): WorldSessi
     view: { yaw: 0, pitch: 0, x: 0, z: 0 },
     frameId: 0,
     sequence: 0,
+    epoch: 1,
     dropped: 0,
     lastControl: null,
     keys: [],
     mouseDx: 0,
     mouseDy: 0,
+    lastClientTs: null,
     socket: null,
     timer: null,
     generatedFps: TARGET_FPS,
@@ -91,11 +100,27 @@ export function resetSession(id: string): boolean {
   s.view = { yaw: 0, pitch: 0, x: 0, z: 0 }
   s.frameId = 0
   s.sequence = 0
+  s.epoch += 1
   s.dropped = 0
   s.keys = []
   s.mouseDx = 0
   s.mouseDy = 0
-  s.status = 'ready'
+  s.status = s.socket ? 'streaming' : 'ready'
+  if (s.socket && s.socket.readyState === 1) {
+    try {
+      s.socket.send(
+        JSON.stringify({
+          type: 'status',
+          status: s.status,
+          epoch: s.epoch,
+          mock: true,
+          message: 'reset — seed restored (MOCK)',
+        }),
+      )
+    } catch {
+      /* */
+    }
+  }
   return true
 }
 
@@ -108,6 +133,26 @@ export function stopSession(id: string): boolean {
   return true
 }
 
+export function pauseSession(id: string): boolean {
+  const s = sessions.get(id)
+  if (!s) return false
+  s.status = 'paused'
+  if (s.socket?.readyState === 1) {
+    s.socket.send(JSON.stringify({ type: 'status', status: 'paused', mock: true }))
+  }
+  return true
+}
+
+export function resumeSession(id: string): boolean {
+  const s = sessions.get(id)
+  if (!s) return false
+  s.status = 'streaming'
+  if (s.socket?.readyState === 1) {
+    s.socket.send(JSON.stringify({ type: 'status', status: 'streaming', mock: true }))
+  }
+  return true
+}
+
 function detachSocket(s: WorldSession): void {
   if (s.timer) {
     clearInterval(s.timer)
@@ -116,6 +161,11 @@ function detachSocket(s: WorldSession): void {
   s.socket = null
 }
 
+/**
+ * Codex-aligned mock stream (docs/codex/FRONTEND_INTEGRATION.md):
+ * hello → repeating (text type:"frame" + one JPEG binary).
+ * Not the Phase-2 batch envelope (that is /stream only).
+ */
 export function attachSocket(sessionId: string, socket: WebSocket): WorldSession | null {
   const s = sessions.get(sessionId)
   if (!s) return null
@@ -125,10 +175,18 @@ export function attachSocket(sessionId: string, socket: WebSocket): WorldSession
 
   socket.send(
     JSON.stringify({
-      type: 'status',
-      status: 'streaming',
-      message: 'Mock world stream connected',
+      type: 'hello',
+      controller: true,
+      session_id: s.id,
+      engine: 'MockWaypointEngine',
+      width: WIDTH,
+      height: HEIGHT,
+      temporal_compression: 4,
+      epoch: s.epoch,
+      encoding: 'jpeg',
+      max_unacknowledged_frames: 8,
       mock: true,
+      clock: 'server perf_counter milliseconds; client timestamp echoed unchanged',
     }),
   )
 
@@ -142,16 +200,31 @@ export function attachSocket(sessionId: string, socket: WebSocket): WorldSession
   socket.on('message', (data, isBinary) => {
     if (isBinary) return
     try {
-      const msg = JSON.parse(data.toString()) as WorldControlMessage & { type: string }
+      const msg = JSON.parse(data.toString()) as WorldControlMessage & {
+        type: string
+        timestamp_ms?: number
+        frame_id?: number
+        epoch?: number
+      }
       if (msg.type === 'control') {
         s.lastControl = msg
-        s.keys = msg.keys ?? []
+        s.keys = (msg.keys ?? []).map((k) => String(k).toLowerCase())
         s.mouseDx = msg.mouse_dx ?? 0
         s.mouseDy = msg.mouse_dy ?? 0
+        s.lastClientTs = msg.timestamp_ms ?? null
         s.view = applyControls(s.view, s.keys, s.mouseDx, s.mouseDy)
-        // Consume mouse delta each control packet
         s.mouseDx = 0
         s.mouseDy = 0
+        socket.send(
+          JSON.stringify({
+            type: 'control_ack',
+            seq: msg.seq,
+            timestamp_ms: msg.timestamp_ms ?? null,
+            mock: true,
+          }),
+        )
+      } else if (msg.type === 'display_ack') {
+        // Credit accounting — accept and ignore in MOCK.
       } else if (msg.type === 'pause') {
         s.status = 'paused'
         socket.send(JSON.stringify({ type: 'status', status: 'paused', mock: true }))
@@ -172,50 +245,50 @@ export function attachSocket(sessionId: string, socket: WebSocket): WorldSession
   return s
 }
 
-/**
- * Wire format (v1 mock transport):
- * 1) Text JSON frame_meta
- * 2) Binary PNG payload
- *
- * The client FrameTransport adapter isolates this so the engine team
- * can switch to a single framed binary blob without UI changes.
- */
 function pushFrame(s: WorldSession): void {
   const t0 = Date.now()
-  // Simulate occasional drop under load
-  if (Math.random() < 0.03) {
+  if (Math.random() < 0.02) {
     s.dropped += 1
     return
   }
 
   s.view = applyControls(s.view, s.keys, 0, 0)
-  const png = generateFacilityFrame(WIDTH, HEIGHT, s.view, s.frameId)
+  const rgba = generateFacilityRgba(WIDTH, HEIGHT, s.view, s.frameId)
+  const jpeg = Buffer.from(encodeJpeg({ data: rgba, width: WIDTH, height: HEIGHT }, 70).data)
   s.inferenceMs = 28 + Math.round(Math.random() * 35)
   s.frameId += 1
   s.sequence += 1
   s.lastFrameAt = Date.now()
   s.generatedFps = TARGET_FPS
 
-  const meta: WorldFrameMeta = {
-    type: 'frame_meta',
+  const batchSize = 4
+  const batchIndex = (s.frameId - 1) % batchSize
+  const meta = {
+    type: 'frame',
+    session_id: s.id,
     frame_id: s.frameId,
-    sequence: s.sequence,
+    batch_id: Math.floor((s.frameId - 1) / batchSize),
+    batch_index: batchIndex,
+    batch_size: batchSize,
+    epoch: s.epoch,
     generated_at_ms: s.lastFrameAt,
     inference_ms: s.inferenceMs,
     width: WIDTH,
     height: HEIGHT,
-    mime: 'image/png',
+    encoding: 'jpeg',
+    seq: s.sequence,
+    client_timestamp_ms: s.lastClientTs,
+    server_input_to_generated_ms: s.inferenceMs + 10,
+    sent_at_ms: Date.now(),
     mock: true,
-    dropped_since_last: 0,
   }
 
   try {
     s.socket!.send(JSON.stringify(meta))
-    s.socket!.send(png)
+    s.socket!.send(jpeg)
   } catch {
     s.dropped += 1
   }
 
-  // Keep displayed hint near generated with slight jitter
   s.displayedHint = Math.max(1, TARGET_FPS - (Date.now() - t0 > 50 ? 1 : 0))
 }
