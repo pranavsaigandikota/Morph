@@ -1,4 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  DEFAULT_LOOK_SENSITIVITY,
+  accumulateMouseDelta,
+  clampSensitivity,
+  lookDriftRisk,
+  prepareLookDelta,
+} from '../lib/lookControl'
 import { streamUrl } from '../services/engineConfig'
 import { worldApi } from '../services/worldApi'
 import {
@@ -33,6 +40,11 @@ interface WorldStreamState {
   height: number
   gpuMemoryMb: number | null
   gpuMemoryAvailable: boolean
+  /** Heuristic look-turn risk since last Restore Scene (ok | elevated | high). */
+  lookRisk: 'ok' | 'elevated' | 'high'
+  /** Last mouse_dx / mouse_dy actually put on the wire (diagnostics). */
+  lastSentMouse: { dx: number; dy: number }
+  lookSensitivity: number
 }
 
 /** Max JPEG sub-frames waiting to paint. Keep short — favor current over stale. */
@@ -59,10 +71,13 @@ export function useWorldStream() {
     mock: false,
     pointerLocked: false,
     engineName: null,
-    width: 1280,
-    height: 720,
+    width: 640,
+    height: 360,
     gpuMemoryMb: null,
     gpuMemoryAvailable: false,
+    lookRisk: 'ok',
+    lastSentMouse: { dx: 0, dy: 0 },
+    lookSensitivity: DEFAULT_LOOK_SENSITIVITY,
   })
 
   const wsRef = useRef<WebSocket | null>(null)
@@ -78,7 +93,7 @@ export function useWorldStream() {
   const reconnectAttemptRef = useRef(0)
   const mockRef = useRef(false)
   const engineNameRef = useRef<string | null>(null)
-  const dimsRef = useRef({ w: 1280, h: 720, tc: 4 })
+  const dimsRef = useRef({ w: 640, h: 360, tc: 4 })
   const drawingRef = useRef(false)
   const seqRef = useRef(0)
   const requestGenerationRef = useRef(0)
@@ -92,7 +107,10 @@ export function useWorldStream() {
   const keysRef = useRef<Set<string>>(new Set())
   const keyHeldRef = useRef<Map<string, number>>(new Map())
   const mouseRef = useRef({ dx: 0, dy: 0, scroll: 0 })
-  const mouseSensRef = useRef(1.0)
+  const mouseSensRef = useRef(DEFAULT_LOOK_SENSITIVITY)
+  const smoothLookRef = useRef({ dx: 0, dy: 0 })
+  const cumulativeAbsYawRef = useRef(0)
+  const lastSentMouseRef = useRef({ dx: 0, dy: 0 })
 
   const queueRef = useRef<QueuedJpeg[]>([])
   const lastPresentRef = useRef(0)
@@ -144,10 +162,21 @@ export function useWorldStream() {
       dispWindowStartRef.current = now
     }
 
-    if(canvasElRef.current) canvasElRef.current.dataset.telemetry = JSON.stringify({
-      ...proofRef.current, presentation_drops:droppedRef.current, at:performance.now(),
-      session_id:sessionIdRef.current, phase:phaseRef.current, server:serverMetricsRef.current,
-      pointer_locked:document.pointerLockElement != null})
+    if (canvasElRef.current)
+      canvasElRef.current.dataset.telemetry = JSON.stringify({
+        ...proofRef.current,
+        presentation_drops: droppedRef.current,
+        at: performance.now(),
+        session_id: sessionIdRef.current,
+        phase: phaseRef.current,
+        server: serverMetricsRef.current,
+        pointer_locked: document.pointerLockElement != null,
+        look_sensitivity: mouseSensRef.current,
+        last_mouse_dx: lastSentMouseRef.current.dx,
+        last_mouse_dy: lastSentMouseRef.current.dy,
+        cumulative_abs_yaw: Math.round(cumulativeAbsYawRef.current),
+        look_risk: lookDriftRisk(cumulativeAbsYawRef.current),
+      })
     setState((s) => ({
       ...s,
       metrics: {
@@ -210,7 +239,12 @@ export function useWorldStream() {
           canvas.width = img.width
           canvas.height = img.height
         }
+        // Mild presentation only — does not recover generative geometry.
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+        ctx.filter = 'contrast(1.05) saturate(1.02)'
         ctx.drawImage(img, 0, 0)
+        ctx.filter = 'none'
         dispCountRef.current += 1
         proofRef.current.displayed++
         proofRef.current.draw_at.push(performance.now())
@@ -305,15 +339,53 @@ export function useWorldStream() {
   )
 
   const sendControl = useCallback(() => {
-    const ws=wsRef.current
-    if(!ws || ws.readyState!==WebSocket.OPEN || ws.bufferedAmount>4096) return
-    const paused=phaseRef.current==='paused'
-    ws.send(JSON.stringify({type:'control',seq:++seqRef.current,
-      keys:paused?[]:[...keysRef.current].filter(k=>/^[WASD]$/.test(k)).map(k=>k.toLowerCase()),
-      mouse_dx:paused?0:Math.max(-1000,Math.min(1000,mouseRef.current.dx*mouseSensRef.current)),
-      mouse_dy:paused?0:Math.max(-1000,Math.min(1000,mouseRef.current.dy*mouseSensRef.current)),
-      timestamp_ms:performance.now()}))
-    mouseRef.current={dx:0,dy:0,scroll:0}
+    const ws = wsRef.current
+    const paused = phaseRef.current === 'paused'
+
+    // Always consume accumulation each tick — even if the socket cannot send —
+    // so a bufferedAmount skip cannot dump a huge look later (double-apply / dump bug).
+    const look = prepareLookDelta({
+      accumulatedDx: mouseRef.current.dx,
+      accumulatedDy: mouseRef.current.dy,
+      sensitivity: mouseSensRef.current,
+      prevSmoothDx: smoothLookRef.current.dx,
+      prevSmoothDy: smoothLookRef.current.dy,
+      smoothAlpha: 0.35,
+    })
+    mouseRef.current = { dx: 0, dy: 0, scroll: 0 }
+    smoothLookRef.current = { dx: look.smoothDx, dy: look.smoothDy }
+
+    if (!ws || ws.readyState !== WebSocket.OPEN || ws.bufferedAmount > 4096) {
+      return
+    }
+
+    const mouse_dx = paused ? 0 : look.mouse_dx
+    const mouse_dy = paused ? 0 : look.mouse_dy
+    lastSentMouseRef.current = { dx: mouse_dx, dy: mouse_dy }
+    if (!paused) {
+      cumulativeAbsYawRef.current += Math.abs(mouse_dx)
+      const risk = lookDriftRisk(cumulativeAbsYawRef.current)
+      setState((s) =>
+        s.lookRisk === risk &&
+        s.lastSentMouse.dx === mouse_dx &&
+        s.lastSentMouse.dy === mouse_dy
+          ? s
+          : { ...s, lookRisk: risk, lastSentMouse: { dx: mouse_dx, dy: mouse_dy } },
+      )
+    }
+
+    ws.send(
+      JSON.stringify({
+        type: 'control',
+        seq: ++seqRef.current,
+        keys: paused
+          ? []
+          : [...keysRef.current].filter((k) => /^[WASD]$/.test(k)).map((k) => k.toLowerCase()),
+        mouse_dx,
+        mouse_dy,
+        timestamp_ms: performance.now(),
+      }),
+    )
   }, [])
 
   const openSocket = useCallback(
@@ -520,6 +592,9 @@ export function useWorldStream() {
     keysRef.current.clear()
     keyHeldRef.current.clear()
     mouseRef.current = { dx: 0, dy: 0, scroll: 0 }
+    smoothLookRef.current = { dx: 0, dy: 0 }
+    cumulativeAbsYawRef.current = 0
+    lastSentMouseRef.current = { dx: 0, dy: 0 }
     queueRef.current = []
     setState((s) => ({
       ...s,
@@ -529,15 +604,35 @@ export function useWorldStream() {
       meta: null,
       error: null,
       pointerLocked: false,
+      lookRisk: 'ok',
+      lastSentMouse: { dx: 0, dy: 0 },
     }))
   }, [clearTimers])
 
   const reset = useCallback(async () => {
-    if(!sessionIdRef.current) return
-    keysRef.current.clear();mouseRef.current={dx:0,dy:0,scroll:0};queueRef.current=[]
-    try {await worldApi.action(sessionIdRef.current,'reset')}
-    catch(err) {setState(s=>({...s,error:String(err)}))}
-  }, [])
+    if (!sessionIdRef.current) return
+    keysRef.current.clear()
+    mouseRef.current = { dx: 0, dy: 0, scroll: 0 }
+    queueRef.current = []
+    smoothLookRef.current = { dx: 0, dy: 0 }
+    cumulativeAbsYawRef.current = 0
+    lastSentMouseRef.current = { dx: 0, dy: 0 }
+    setState((s) => ({
+      ...s,
+      lookRisk: 'ok',
+      lastSentMouse: { dx: 0, dy: 0 },
+    }))
+    try {
+      await worldApi.action(sessionIdRef.current, 'reset')
+      // Reset restores seed and may leave paused; resume so judges can continue.
+      if (phaseRef.current === 'paused') {
+        await worldApi.action(sessionIdRef.current, 'resume')
+        setPhase('streaming')
+      }
+    } catch (err) {
+      setState((s) => ({ ...s, error: String(err) }))
+    }
+  }, [setPhase])
 
   const reconnect = useCallback(() => {
     if(!sessionIdRef.current) {void start('facility','First-person industrial research facility',seedRef.current);return}
@@ -617,8 +712,8 @@ export function useWorldStream() {
       }
       if (document.pointerLockElement == null && !(e.buttons === 1 && e.target === canvasElRef.current)) return
       proofRef.current.mouse_events++
-      mouseRef.current.dx += e.movementX
-      mouseRef.current.dy += e.movementY
+      const next = accumulateMouseDelta(mouseRef.current, e.movementX, e.movementY)
+      mouseRef.current = { ...mouseRef.current, ...next }
     }
     const onWheel = (e: WheelEvent) => {
       if (phaseRef.current !== 'streaming') return
@@ -691,7 +786,9 @@ export function useWorldStream() {
     canvasElRef,
     mouseSens: mouseSensRef,
     setMouseSens: (v: number) => {
-      mouseSensRef.current = Math.max(0.5, Math.min(3, v))
+      const next = clampSensitivity(v)
+      mouseSensRef.current = next
+      setState((s) => ({ ...s, lookSensitivity: next }))
     },
     start,
     pause,

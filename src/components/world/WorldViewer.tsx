@@ -1,5 +1,10 @@
 import clsx from 'clsx'
 import { useCallback, useEffect, useState, type RefObject } from 'react'
+import {
+  DEFAULT_LOOK_SENSITIVITY,
+  LOOK_SENS_MAX,
+  LOOK_SENS_MIN,
+} from '../../lib/lookControl'
 import type { WorldFrameMeta, WorldMetrics } from '../../types/world'
 import { PerformanceOverlay } from './PerformanceOverlay'
 
@@ -26,6 +31,10 @@ interface Props {
   onReset: () => void
   onDisconnect: () => void
   onReconnect: () => void
+  lookRisk?: 'ok' | 'elevated' | 'high'
+  lookSensitivity?: number
+  onLookSensitivity?: (v: number) => void
+  lastSentMouse?: { dx: number; dy: number }
   /** Saved / preset worlds — switch without remounting React */
   worlds?: SwitchableWorld[]
   activeSeed?: string | null
@@ -48,6 +57,10 @@ export function WorldViewer({
   onReset,
   onDisconnect,
   onReconnect,
+  lookRisk = 'ok',
+  lookSensitivity = DEFAULT_LOOK_SENSITIVITY,
+  onLookSensitivity,
+  lastSentMouse,
   worlds,
   activeSeed,
   onSwitchWorld,
@@ -112,8 +125,13 @@ export function WorldViewer({
       >
         <canvas
           ref={canvasElRef}
-          className="h-full w-full object-contain"
-          style={{ imageRendering: 'auto' }}
+          className="mx-auto h-full w-full object-contain"
+          style={{
+            imageRendering: 'auto',
+            // Prefer crisp native 640×360; avoid huge CSS blow-up.
+            maxWidth: 'min(100%, 1280px)',
+            maxHeight: 'min(100%, 720px)',
+          }}
         />
 
         {!hasFrame && (
@@ -162,6 +180,40 @@ export function WorldViewer({
           </div>
         )}
 
+        {lookRisk !== 'ok' && live && hasFrame && (
+          <div className="absolute inset-x-0 top-14 z-30 mx-auto flex max-w-lg justify-center px-4">
+            <div
+              className={clsx(
+                'rounded-lg border px-4 py-3 text-sm shadow-xl backdrop-blur',
+                lookRisk === 'high'
+                  ? 'border-danger/50 bg-danger/15 text-bright'
+                  : 'border-hazard/40 bg-hazard/10 text-bright',
+              )}
+            >
+              <p className="font-semibold">
+                {lookRisk === 'high'
+                  ? 'Look drift likely — scene may look broken'
+                  : 'Large camera turn — prefer slow look'}
+              </p>
+              <p className="mt-1 text-xs text-soft">
+                Waypoint does not keep persistent 3D geometry. Spinning in place often collapses
+                the view. Use <span className="text-bright">Restore Scene</span> to jump back to
+                the seed (visible reset — not automatic).
+              </p>
+              <button
+                type="button"
+                className="pointer-events-auto mt-2 rounded-md border border-line bg-elevated px-3 py-1 text-xs font-semibold text-signal hover:border-signal/50"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onReset()
+                }}
+              >
+                Restore Scene
+              </button>
+            </div>
+          </div>
+        )}
+
         {phase === 'paused' && (
           <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center bg-void/40">
             <p className="font-display text-3xl font-bold tracking-wide text-bright">Paused</p>
@@ -186,10 +238,11 @@ export function WorldViewer({
               </div>
               <ul className="space-y-1 text-soft">
                 <li>
-                  <kbd className="text-bright">W A S D</kbd> — move
+                  <kbd className="text-bright">W A S D</kbd> — move (continuous while held)
                 </li>
                 <li>
-                  <kbd className="text-bright">Mouse</kbd> — look (pointer lock or drag-look)
+                  <kbd className="text-bright">Mouse</kbd> — look via pointer lock or hold-left
+                  drag on the video
                 </li>
                 <li>
                   <kbd className="text-bright">Esc</kbd> release lock ·{' '}
@@ -198,8 +251,9 @@ export function WorldViewer({
                 </li>
               </ul>
               <p className="mt-3 text-xs text-muted">
-                Only controls verified with the Waypoint backend are listed. First-person stream —
-                use Rescue Mission for grid navigation.
+                Verified Explorer controls only. Prefer slow look; full-circle spins usually break
+                coherence. <span className="text-bright">Restore Scene</span> calls backend reset
+                (seed jump). Filters cannot fix generative drift.
               </p>
             </div>
           </div>
@@ -218,8 +272,33 @@ export function WorldViewer({
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-xs text-muted">
           <span className="font-mono">
             {meta ? `${meta.width}×${meta.height}` : '—'} · frame {meta?.frame_id ?? '—'} · gen{' '}
-            {meta ? `${meta.inference_ms}ms` : '—'} · tc {meta?.temporal_compression ?? '—'}
+            {meta ? `${meta.inference_ms}ms` : '—'} · look{' '}
+            {lastSentMouse
+              ? `${lastSentMouse.dx.toFixed(1)},${lastSentMouse.dy.toFixed(1)}`
+              : '—'}
           </span>
+          {onLookSensitivity && (
+            <label
+              className="flex items-center gap-2 text-soft"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span className="whitespace-nowrap text-[10px] uppercase tracking-wider text-muted">
+                Look
+              </span>
+              <input
+                type="range"
+                min={LOOK_SENS_MIN}
+                max={LOOK_SENS_MAX}
+                step={0.05}
+                value={lookSensitivity}
+                onChange={(e) => onLookSensitivity(Number(e.target.value))}
+                className="w-24 accent-[var(--color-signal,#5eead4)]"
+              />
+              <span className="font-mono text-[10px] text-muted">
+                {lookSensitivity.toFixed(2)}
+              </span>
+            </label>
+          )}
           {worlds && worlds.length > 0 && onSwitchWorld && (
             <label className="flex items-center gap-2 text-soft">
               <span className="whitespace-nowrap text-[10px] uppercase tracking-wider text-muted">
@@ -266,7 +345,7 @@ export function WorldViewer({
             {phase === 'paused' ? 'Resume' : 'Pause'}
           </ControlButton>
           <ControlButton onClick={onReset} disabled={!live && phase !== 'error'}>
-            Reset
+            Restore Scene
           </ControlButton>
           <ControlButton onClick={onReconnect} disabled={phase === 'idle'}>
             Reconnect

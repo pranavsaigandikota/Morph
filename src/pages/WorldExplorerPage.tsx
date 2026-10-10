@@ -140,6 +140,10 @@ export function WorldExplorerPage() {
         onReset={() => void stream.reset()}
         onDisconnect={() => void stream.disconnect()}
         onReconnect={() => stream.reconnect()}
+        lookRisk={stream.lookRisk}
+        lookSensitivity={stream.lookSensitivity}
+        onLookSensitivity={stream.setMouseSens}
+        lastSentMouse={stream.lastSentMouse}
         worlds={switchableWorlds}
         activeSeed={stream.activeSeed}
         onSwitchWorld={(seed) => void stream.switchWorld(seed)}

@@ -16,7 +16,8 @@
     "test:stream60": "node scripts/session60s.mjs",
     "test:mock-protocol": "node scripts/verify-mock-protocol.mjs",
     "test:rescue": "tsx scripts/verify-rescue-mission.mjs",
-    "test:rescue-keys": "node scripts/verify-rescue-discrete-keys.mjs"
+    "test:rescue-keys": "node scripts/verify-rescue-discrete-keys.mjs",
+    "test:look": "tsx scripts/verify-look-control.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
