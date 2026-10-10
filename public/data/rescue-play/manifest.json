@@ -1,0 +1,106 @@
+{
+  "package": "@worldshift/rescue-play",
+  "format_version": 1,
+  "disclaimer": "Fictional scenario. A discrete grid abstraction for gameplay and evaluation only; it is not representative of real-world flood, storm, structural or chemical behaviour and must not be used for operational planning or emergency response.",
+  "coordinate_system": {
+    "format": "[x, y]",
+    "origin": "top-left",
+    "x_axis": "right",
+    "y_axis": "down",
+    "grid_indexing": "grid[y][x]",
+    "actions": {
+      "0": "up (y-1)",
+      "1": "down (y+1)",
+      "2": "left (x-1)",
+      "3": "right (x+1)"
+    }
+  },
+  "action_mapping": {
+    "0": {
+      "name": "up",
+      "delta_xy": [
+        0,
+        -1
+      ]
+    },
+    "1": {
+      "name": "down",
+      "delta_xy": [
+        0,
+        1
+      ]
+    },
+    "2": {
+      "name": "left",
+      "delta_xy": [
+        -1,
+        0
+      ]
+    },
+    "3": {
+      "name": "right",
+      "delta_xy": [
+        1,
+        0
+      ]
+    }
+  },
+  "rules": "Identical to rescue_sim RescueEnv (see README rules table); default rewards, hazard_terminates=true.",
+  "missions": [
+    {
+      "id": "cypress-lane-flood",
+      "title": "Cypress Lane Flood Response",
+      "difficulty": "easy",
+      "map_size": "10x10",
+      "par": 16,
+      "max_steps": 100,
+      "seed": 900001,
+      "mission": "missions/cypress-lane-flood.json",
+      "astar_route": "routes/cypress-lane-flood_astar.json"
+    },
+    {
+      "id": "storm-damaged-facility",
+      "title": "Storm-Damaged Facility Sweep",
+      "difficulty": "medium",
+      "map_size": "10x10",
+      "par": 21,
+      "max_steps": 100,
+      "seed": 900002,
+      "mission": "missions/storm-damaged-facility.json",
+      "astar_route": "routes/storm-damaged-facility_astar.json"
+    },
+    {
+      "id": "blocked-evacuation-corridor",
+      "title": "Blocked Evacuation Corridor",
+      "difficulty": "medium",
+      "map_size": "8x8",
+      "par": 13,
+      "max_steps": 64,
+      "seed": 900003,
+      "mission": "missions/blocked-evacuation-corridor.json",
+      "astar_route": "routes/blocked-evacuation-corridor_astar.json"
+    },
+    {
+      "id": "emergency-supply-route",
+      "title": "Emergency Supply Route",
+      "difficulty": "easy",
+      "map_size": "8x8",
+      "par": 12,
+      "max_steps": 64,
+      "seed": 900004,
+      "mission": "missions/emergency-supply-route.json",
+      "astar_route": "routes/emergency-supply-route_astar.json"
+    },
+    {
+      "id": "hazardous-research-building",
+      "title": "Hazardous Research Building",
+      "difficulty": "hard",
+      "map_size": "10x10",
+      "par": 21,
+      "max_steps": 100,
+      "seed": 900005,
+      "mission": "missions/hazardous-research-building.json",
+      "astar_route": "routes/hazardous-research-building_astar.json"
+    }
+  ]
+}

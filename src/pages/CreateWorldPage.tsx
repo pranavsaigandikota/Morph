@@ -1,22 +1,27 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { CODEX_PRESETS, type CodexPreset } from '../data/codexPresets'
 import {
   WORLD_STYLES,
   generateScene,
   loadSavedScenes,
   persistSavedScenes,
   randomWorldIdea,
-  scenePresets,
   type GeneratedScene,
   type SceneProgress,
   type WorldStyle,
 } from '../services/sceneGeneration'
 
+function asWorldStyle(style: string): WorldStyle {
+  return WORLD_STYLES.some((s) => s.id === style) ? (style as WorldStyle) : 'cinematic'
+}
+
 export function CreateWorldPage() {
   const navigate = useNavigate()
-  const presets = useMemo(() => scenePresets(), [])
+  const presets = useMemo(() => CODEX_PRESETS, [])
   const [prompt, setPrompt] = useState('')
   const [style, setStyle] = useState<WorldStyle>('cinematic')
+  const [generationSeed, setGenerationSeed] = useState<string>('')
   const [progress, setProgress] = useState<SceneProgress>({
     stage: 'idle',
     percent: 0,
@@ -35,10 +40,28 @@ export function CreateWorldPage() {
     persistSavedScenes(next)
   }
 
+  const parsedSeed = (): number | null => {
+    const t = generationSeed.trim()
+    if (!t) return null
+    const n = Number(t)
+    if (!Number.isInteger(n) || n < 0 || n > 4294967295) return null
+    return n
+  }
+
   const onGenerate = async (mode: 'live' | 'mock') => {
     setError(null)
+    const seed = parsedSeed()
+    if (generationSeed.trim() && seed === null) {
+      setError('Optional seed must be an integer from 0 to 4294967295')
+      return
+    }
     try {
-      const scene = await generateScene(prompt, { style, mode, onProgress: setProgress })
+      const scene = await generateScene(prompt, {
+        style,
+        seed,
+        mode,
+        onProgress: setProgress,
+      })
       commitScene(scene)
     } catch (err) {
       setProgress({ stage: 'error', percent: 0, message: '' })
@@ -50,10 +73,30 @@ export function CreateWorldPage() {
     }
   }
 
+  const applyPreset = (p: CodexPreset) => {
+    setPrompt(p.prompt)
+    setStyle(asWorldStyle(p.style))
+    setGenerationSeed(String(p.generationSeed))
+    setError(null)
+    setProgress({ stage: 'ready', percent: 100, message: 'Preset preview (local PNG)' })
+    commitScene({
+      id: p.sceneId,
+      prompt: p.prompt,
+      style: asWorldStyle(p.style),
+      imageUrl: p.localImageUrl,
+      seed: p.sceneId,
+      mock: false,
+      createdAt: new Date().toISOString(),
+      source: 'codex-preset',
+      generationSeed: p.generationSeed,
+    })
+  }
+
   const startExplore = (scene: GeneratedScene) => {
     const q = new URLSearchParams()
-    q.set('scene', 'facility')
-    if (scene.seed) q.set('seed', scene.seed)
+    // Saved Codex scene IDs explore via /world/start scene_id (after Import-DemoPresets on Windows).
+    if (scene.seed && !scene.mock) q.set('seed', scene.seed)
+    else q.set('scene', 'facility')
     q.set('prompt', scene.prompt)
     q.set('style', scene.style)
     if (scene.mock) q.set('mock_seed', '1')
@@ -120,6 +163,20 @@ export function CreateWorldPage() {
                 ))}
               </div>
             </div>
+
+            <label className="mt-4 block">
+              <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted">
+                Optional generation seed
+              </span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={generationSeed}
+                onChange={(e) => setGenerationSeed(e.target.value)}
+                placeholder="Leave blank for random · 0…4294967295"
+                className="w-full rounded-xl border border-line bg-ink/80 px-4 py-2.5 font-mono text-sm outline-none focus:border-signal"
+              />
+            </label>
 
             <div className="mt-5 flex flex-wrap gap-2">
               <button
@@ -203,21 +260,29 @@ export function CreateWorldPage() {
           <div className="animate-fade-up space-y-4" style={{ animationDelay: '80ms' }}>
             <div className="ws-panel rounded-2xl p-4">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-                Creative presets
+                Six real SDXL presets
+              </p>
+              <p className="mt-1 text-[11px] text-muted">
+                Local PNG previews. Explore uses saved scene IDs after Windows{' '}
+                <code className="text-signal">Import-DemoPresets.ps1</code>.
               </p>
               <div className="mt-3 grid gap-2">
                 {presets.map((p) => (
                   <button
-                    key={p.title}
+                    key={p.presetName}
                     type="button"
-                    onClick={() => {
-                      setPrompt(p.prompt)
-                      setStyle(p.style)
-                    }}
-                    className="rounded-xl border border-line bg-elevated/50 px-3 py-2.5 text-left transition hover:border-signal/40"
+                    onClick={() => applyPreset(p)}
+                    className="flex gap-3 rounded-xl border border-line bg-elevated/50 p-2 text-left transition hover:border-signal/40"
                   >
-                    <span className="block text-sm font-bold text-bright">{p.title}</span>
-                    <span className="mt-0.5 line-clamp-2 text-xs text-muted">{p.prompt}</span>
+                    <img
+                      src={p.localImageUrl}
+                      alt=""
+                      className="h-14 w-20 shrink-0 rounded-lg object-cover"
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-bold text-bright">{p.title}</span>
+                      <span className="mt-0.5 line-clamp-2 text-xs text-muted">{p.prompt}</span>
+                    </span>
                   </button>
                 ))}
               </div>

@@ -1,10 +1,10 @@
 /**
- * Seam for Grok Bot 1's authoritative TypeScript RescueEnv adapter.
+ * Legacy facility_a seam kept for offline showdown package helpers / older tests.
  *
- * Until that package is checked into the repo (or published), Interactive
- * Missions use `browserRescueSim.ts` against the frozen facility_a map schema.
- * Do NOT invent alternate physics here — swap implementations behind this API
- * when the handoff lands, and keep verified evaluation JSON untouched.
+ * Interactive `/mission` now uses authoritative RescueGame from
+ * `src/lib/rescue-play` + `public/data/rescue-play/` (see INTEGRATION.md).
+ * Do not reintroduce duplicate step logic on the mission page.
+ * Verified evaluation JSON under public/data/rescue/ remains untouched.
  */
 
 import type { BuildingMap } from '../types/simulation'

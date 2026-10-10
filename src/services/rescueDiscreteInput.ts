@@ -2,12 +2,13 @@
  * One-step-per-keypress gate for Rescue Mission (Grok Bot 1 browser demo).
  * World Explorer keeps continuous hold-to-move separately — do not reuse this there.
  */
-import type { RescueMove } from './browserRescueSim'
-import { keyToMove } from './browserRescueSim'
+import { keyToAction, type Action } from '../lib/rescue-play'
+
+export type { Action }
 
 export interface DiscreteKeyGate {
-  /** Returns a move exactly once per physical press; null if held/repeat/unmapped. */
-  onKeyDown(code: string, repeat: boolean): RescueMove | null
+  /** Returns an action exactly once per physical press; null if held/repeat/unmapped. */
+  onKeyDown(code: string, repeat: boolean): Action | null
   onKeyUp(code: string): void
   /** Clear all held keys (blur, restart, episode end). */
   reset(): void
@@ -21,10 +22,10 @@ export function createDiscreteKeyGate(): DiscreteKeyGate {
     onKeyDown(code, repeat) {
       if (repeat) return null
       if (held.has(code)) return null
-      const move = keyToMove(code)
-      if (!move) return null
+      const action = keyToAction(code)
+      if (action === null) return null
       held.add(code)
-      return move
+      return action
     },
     onKeyUp(code) {
       held.delete(code)

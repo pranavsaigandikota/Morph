@@ -1,0 +1,281 @@
+{
+  "version": 1,
+  "seed": 900004,
+  "width": 8,
+  "height": 8,
+  "start": [
+    1,
+    1
+  ],
+  "goal": [
+    6,
+    6
+  ],
+  "walls": [
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      2
+    ],
+    [
+      0,
+      3
+    ],
+    [
+      0,
+      4
+    ],
+    [
+      0,
+      5
+    ],
+    [
+      0,
+      6
+    ],
+    [
+      0,
+      7
+    ],
+    [
+      1,
+      0
+    ],
+    [
+      1,
+      7
+    ],
+    [
+      2,
+      0
+    ],
+    [
+      2,
+      2
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      2,
+      5
+    ],
+    [
+      2,
+      7
+    ],
+    [
+      3,
+      0
+    ],
+    [
+      3,
+      2
+    ],
+    [
+      3,
+      7
+    ],
+    [
+      4,
+      0
+    ],
+    [
+      4,
+      7
+    ],
+    [
+      5,
+      0
+    ],
+    [
+      5,
+      2
+    ],
+    [
+      5,
+      3
+    ],
+    [
+      5,
+      4
+    ],
+    [
+      5,
+      7
+    ],
+    [
+      6,
+      0
+    ],
+    [
+      6,
+      7
+    ],
+    [
+      7,
+      0
+    ],
+    [
+      7,
+      1
+    ],
+    [
+      7,
+      2
+    ],
+    [
+      7,
+      3
+    ],
+    [
+      7,
+      4
+    ],
+    [
+      7,
+      5
+    ],
+    [
+      7,
+      6
+    ],
+    [
+      7,
+      7
+    ]
+  ],
+  "doors": [
+    [
+      2,
+      4
+    ]
+  ],
+  "blocked": [
+    [
+      1,
+      3
+    ],
+    [
+      4,
+      6
+    ],
+    [
+      6,
+      3
+    ]
+  ],
+  "hazards": [
+    [
+      4,
+      4
+    ]
+  ],
+  "max_steps": 64,
+  "mission": {
+    "id": "emergency-supply-route",
+    "title": "Emergency Supply Route",
+    "briefing": "A fictional field hospital needs medical supplies. The road network between the depot and the hospital tent has a fallen tree and an unstable sinkhole.",
+    "objective": "Deliver the supplies to the hospital tent.",
+    "difficulty": "easy",
+    "handcrafted": true,
+    "generated": false,
+    "map_size": "8x8",
+    "par": 12,
+    "max_steps": 64,
+    "legend": {
+      "walls": "buildings and fences",
+      "blocked": "fallen trees / abandoned vehicles",
+      "doors": "fence gates",
+      "hazards": "sinkhole / unstable ground",
+      "start": "supply depot",
+      "goal": "field hospital tent"
+    },
+    "map_ascii": [
+      "########",
+      "#S.....#",
+      "#.##.#.#",
+      "#X#..#X#",
+      "#.D.^#.#",
+      "#.#....#",
+      "#...X.G#",
+      "########"
+    ],
+    "map_ascii_legend": {
+      "#": "walls",
+      "X": "blocked",
+      "^": "hazards",
+      "D": "doors",
+      "B": "blocked door (doors + blocked)",
+      "S": "start",
+      "G": "goal",
+      ".": "floor"
+    },
+    "design_notes": "The east lane would be fastest but a fallen tree blocks it. The middle road crosses a sinkhole, the west gate leads into a dead-end yard, and the safe route skirts the sinkhole to the west.",
+    "analysis": {
+      "par": 12,
+      "hazard_shortcut_length": 10,
+      "hazard_shortcut_exists": true,
+      "length_if_blocked_cleared": 10,
+      "blocked_forces_detour": true,
+      "dead_ends": [
+        [
+          1,
+          2
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          6,
+          4
+        ]
+      ],
+      "hazards_adjacent_to_par_route": [
+        [
+          4,
+          4
+        ]
+      ],
+      "doors": 1
+    },
+    "controls": {
+      "up": [
+        "ArrowUp",
+        "W"
+      ],
+      "down": [
+        "ArrowDown",
+        "S"
+      ],
+      "left": [
+        "ArrowLeft",
+        "A"
+      ],
+      "right": [
+        "ArrowRight",
+        "D"
+      ],
+      "restart": [
+        "R"
+      ],
+      "undo": [
+        "U / Backspace (play feature)"
+      ],
+      "show_astar_after_finish": [
+        "H"
+      ]
+    },
+    "mechanics": "Identical to RescueEnv: no water flow, no spreading hazards, no physics. Narrative labels are cosmetic only.",
+    "disclaimer": "Fictional scenario. A discrete grid abstraction for gameplay and evaluation only; it is not representative of real-world flood, storm, structural or chemical behaviour and must not be used for operational planning or emergency response."
+  }
+}

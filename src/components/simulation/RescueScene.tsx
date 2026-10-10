@@ -25,16 +25,27 @@ interface Props {
 }
 
 function Walls({ map }: { map: BuildingMap }) {
-  const walls = useMemo(
-    () => map.cells.filter((c) => c.type === 'wall'),
-    [map],
-  )
+  const walls = useMemo(() => map.cells.filter((c) => c.type === 'wall'), [map])
+  const blocked = useMemo(() => map.cells.filter((c) => c.type === 'blocked'), [map])
+  const doors = useMemo(() => map.cells.filter((c) => c.type === 'door'), [map])
   return (
     <group>
       {walls.map((c) => (
         <mesh key={`w-${c.x}-${c.y}`} position={[c.x + 0.5, 0.6, c.y + 0.5]} castShadow>
           <boxGeometry args={[0.95, 1.2, 0.95]} />
           <meshStandardMaterial color="#2a3544" roughness={0.85} />
+        </mesh>
+      ))}
+      {blocked.map((c) => (
+        <mesh key={`b-${c.x}-${c.y}`} position={[c.x + 0.5, 0.35, c.y + 0.5]} castShadow>
+          <boxGeometry args={[0.9, 0.7, 0.9]} />
+          <meshStandardMaterial color="#8a5a2b" roughness={0.9} />
+        </mesh>
+      ))}
+      {doors.map((c) => (
+        <mesh key={`d-${c.x}-${c.y}`} position={[c.x + 0.5, 0.08, c.y + 0.5]} receiveShadow>
+          <boxGeometry args={[0.95, 0.12, 0.95]} />
+          <meshStandardMaterial color="#c9b77a" roughness={0.7} />
         </mesh>
       ))}
     </group>

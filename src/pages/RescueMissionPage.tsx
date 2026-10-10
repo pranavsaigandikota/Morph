@@ -3,106 +3,93 @@ import { Link } from 'react-router-dom'
 import { MapLegend } from '../components/simulation/MapLegend'
 import { RescueScene } from '../components/simulation/RescueScene'
 import {
+  RescueGame,
+  type AStarComparison,
+  type ScoreResult,
+  type SimState,
+  type Action,
+} from '../lib/rescue-play'
+import {
   createDiscreteKeyGate,
   isRescueMoveCode,
 } from '../services/rescueDiscreteInput'
 import {
-  rescueEnvAdapter,
-  rescueEnvSourceLabel,
-  type RescueMissionState,
-  type RescueMove,
-} from '../services/rescueEnvAdapter'
-import { loadRescuePackage } from '../services/rescueStatic'
-import type { BuildingMap } from '../types/simulation'
+  agentPoseFromSim,
+  astarPathFromComparison,
+  buildingMapFromSim,
+  playerPathFromState,
+} from '../services/rescuePlayBridge'
 
-const SCENARIOS = [
-  {
-    id: 'facility_a',
-    title: 'Facility A — Sublevel 2',
-    blurb: 'Reach any exit. Walls block. Hazards register hits.',
-  },
-]
+interface ManifestMission {
+  id: string
+  title: string
+  difficulty: string
+  map_size: string
+  par: number
+  max_steps: number
+  seed: number
+  mission: string
+  astar_route: string
+}
+
+interface Manifest {
+  missions: ManifestMission[]
+  disclaimer?: string
+}
+
+const MANIFEST_URL = '/data/rescue-play/manifest.json'
 
 function DPad({
   disabled,
   onMove,
 }: {
   disabled: boolean
-  onMove: (m: RescueMove) => void
+  onMove: (a: Action) => void
 }) {
   const btn =
     'grid h-11 w-11 place-items-center rounded-xl border border-line bg-elevated text-sm font-bold text-bright transition hover:border-signal/50 disabled:opacity-35'
   return (
     <div className="grid grid-cols-3 gap-1.5 place-items-center" aria-label="On-screen movement">
       <span />
-      <button type="button" className={btn} disabled={disabled} onClick={() => onMove('N')}>
+      <button type="button" className={btn} disabled={disabled} onClick={() => onMove(0)}>
         ↑
       </button>
       <span />
-      <button type="button" className={btn} disabled={disabled} onClick={() => onMove('W')}>
+      <button type="button" className={btn} disabled={disabled} onClick={() => onMove(2)}>
         ←
       </button>
-      <button type="button" className={btn} disabled={disabled} onClick={() => onMove('S')}>
+      <button type="button" className={btn} disabled={disabled} onClick={() => onMove(1)}>
         ↓
       </button>
-      <button type="button" className={btn} disabled={disabled} onClick={() => onMove('E')}>
+      <button type="button" className={btn} disabled={disabled} onClick={() => onMove(3)}>
         →
       </button>
     </div>
   )
 }
 
+function starsLabel(stars: number): string {
+  if (stars <= 0) return '☆☆☆'
+  return '★'.repeat(stars) + '☆'.repeat(Math.max(0, 3 - stars))
+}
+
 export function RescueMissionPage() {
-  const [map, setMap] = useState<BuildingMap | null>(null)
+  const [manifest, setManifest] = useState<Manifest | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [mission, setMission] = useState<RescueMissionState | null>(null)
+  const [missionId, setMissionId] = useState<string | null>(null)
+  const [state, setState] = useState<SimState | null>(null)
+  const [score, setScore] = useState<ScoreResult | null>(null)
+  const [comparison, setComparison] = useState<AStarComparison | null>(null)
   const [showAstar, setShowAstar] = useState(false)
-  const [scenarioId, setScenarioId] = useState('facility_a')
   const [collisionFlash, setCollisionFlash] = useState(false)
   const [boardFocused, setBoardFocused] = useState(false)
+  const [briefing, setBriefing] = useState<string>('')
 
-  const missionRef = useRef<RescueMissionState | null>(null)
+  const gameRef = useRef<RescueGame | null>(null)
   const gateRef = useRef(createDiscreteKeyGate())
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const boardRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    missionRef.current = mission
-  }, [mission])
-
-  useEffect(() => {
-    let cancelled = false
-    void loadRescuePackage()
-      .then((pkg) => {
-        if (cancelled) return
-        const m = pkg.maps[scenarioId] ?? Object.values(pkg.maps)[0]
-        if (!m) {
-          setLoadError('No map in public/data/rescue/')
-          return
-        }
-        setMap(m)
-        setMission(rescueEnvAdapter.create(m))
-        setShowAstar(false)
-        setCollisionFlash(false)
-        gateRef.current.reset()
-        // Focus board after paint so physical WASD works without an extra click.
-        requestAnimationFrame(() => {
-          boardRef.current?.focus({ preventScroll: true })
-          setBoardFocused(true)
-        })
-      })
-      .catch((err) => {
-        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Failed to load map')
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [scenarioId])
-
-  const astar = useMemo(
-    () => (map ? rescueEnvAdapter.shortestExitPath(map) : []),
-    [map],
-  )
+  const armedRef = useRef(false)
 
   const clearFlashTimer = () => {
     if (flashTimerRef.current) {
@@ -122,52 +109,151 @@ export function RescueMissionPage() {
 
   useEffect(() => () => clearFlashTimer(), [])
 
-  const applyMove = useCallback(
-    (move: RescueMove) => {
-      const current = missionRef.current
-      if (!current || current.status === 'success' || current.status === 'failed') return
+  const syncFromGame = useCallback(() => {
+    const g = gameRef.current
+    if (!g) return
+    const next = g.getState(true)
+    setState(next)
+    setScore(g.score())
+    if (g.done) setComparison(g.compareWithAStar())
+    else setComparison(null)
+  }, [])
 
-      const next = rescueEnvAdapter.step(current, move)
-      if (next.collisions > current.collisions) pulseCollision()
-      missionRef.current = next
-      setMission(next)
+  useEffect(() => {
+    let cancelled = false
+    void fetch(MANIFEST_URL)
+      .then((r) => {
+        if (!r.ok) throw new Error(`Failed to load ${MANIFEST_URL}`)
+        return r.json() as Promise<Manifest>
+      })
+      .then((m) => {
+        if (cancelled) return
+        setManifest(m)
+        setMissionId(m.missions[0]?.id ?? null)
+      })
+      .catch((err) => {
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Manifest load failed')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
-      if (next.status === 'success' || next.status === 'failed') {
+  useEffect(() => {
+    if (!manifest || !missionId) return
+    let cancelled = false
+    const entry = manifest.missions.find((m) => m.id === missionId)
+    if (!entry) return
+
+    void (async () => {
+      try {
+        const url = new URL(entry.mission, window.location.origin + MANIFEST_URL)
+        const data = await (await fetch(url)).json()
+        if (cancelled) return
+        const game = new RescueGame(data)
+        gameRef.current = game
         gateRef.current.reset()
+        setShowAstar(false)
+        setCollisionFlash(false)
+        setComparison(null)
+        const missionMeta = (data as { mission?: { briefing?: string; objective?: string } }).mission
+        setBriefing(
+          [missionMeta?.briefing, missionMeta?.objective].filter(Boolean).join(' ') ||
+            entry.title,
+        )
+        syncFromGame()
+        requestAnimationFrame(() => {
+          boardRef.current?.focus({ preventScroll: true })
+          armedRef.current = true
+          setBoardFocused(true)
+        })
+      } catch (err) {
+        if (!cancelled) {
+          setLoadError(err instanceof Error ? err.message : 'Mission load failed')
+        }
       }
-    },
-    [pulseCollision],
-  )
+    })()
 
-  const armedRef = useRef(false)
+    return () => {
+      cancelled = true
+    }
+  }, [manifest, missionId, syncFromGame])
+
+  const applyAction = useCallback(
+    (action: Action) => {
+      const g = gameRef.current
+      if (!g || g.done) return
+      const result = g.step(action)
+      if (result.info.collision) pulseCollision()
+      syncFromGame()
+      if (g.done) gateRef.current.reset()
+    },
+    [pulseCollision, syncFromGame],
+  )
 
   const focusBoard = useCallback(() => {
     const el = boardRef.current
     if (!el) return
-    // Three.js canvas can steal DOM focus; keep the board armed for discrete WASD.
     if (document.activeElement !== el) el.focus({ preventScroll: true })
     armedRef.current = true
     setBoardFocused(true)
   }, [])
 
+  const restart = useCallback(() => {
+    const g = gameRef.current
+    if (!g) return
+    clearFlashTimer()
+    gateRef.current.reset()
+    setShowAstar(false)
+    setCollisionFlash(false)
+    setComparison(null)
+    g.restart()
+    syncFromGame()
+    focusBoard()
+  }, [focusBoard, syncFromGame])
+
+  const undo = useCallback(() => {
+    const g = gameRef.current
+    if (!g) return
+    const ok = g.undo()
+    if (!ok) return
+    clearFlashTimer()
+    setCollisionFlash(false)
+    setShowAstar(false)
+    gateRef.current.reset()
+    syncFromGame()
+  }, [syncFromGame])
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      // Restart / undo follow INTEGRATION.md (play-layer helpers).
+      if (e.key === 'r' || e.key === 'R') {
+        if (!armedRef.current && document.activeElement !== boardRef.current) return
+        e.preventDefault()
+        restart()
+        return
+      }
+      if (e.key === 'u' || e.key === 'U' || e.key === 'Backspace') {
+        if (!armedRef.current && document.activeElement !== boardRef.current) return
+        e.preventDefault()
+        undo()
+        return
+      }
+
       if (!isRescueMoveCode(e.code)) return
       if (!armedRef.current) return
-      // Prevent page scroll for arrows/WASD while mission keyboard is armed.
       e.preventDefault()
 
-      const current = missionRef.current
-      if (!current || current.status === 'success' || current.status === 'failed') return
+      const g = gameRef.current
+      if (!g || g.done) return
 
-      const move = gateRef.current.onKeyDown(e.code, e.repeat)
-      if (!move) return
-      applyMove(move)
+      const action = gateRef.current.onKeyDown(e.code, e.repeat)
+      if (action === null) return
+      applyAction(action)
     }
 
     const onKeyUp = (e: KeyboardEvent) => {
       if (!isRescueMoveCode(e.code)) return
-      // Always clear hold state on release — even if focus briefly left the canvas.
       gateRef.current.onKeyUp(e.code)
     }
 
@@ -185,39 +271,42 @@ export function RescueMissionPage() {
       window.removeEventListener('keyup', onKeyUp, { capture: true })
       window.removeEventListener('blur', onBlurWindow)
     }
-  }, [applyMove])
+  }, [applyAction, restart, undo])
 
-  const restart = () => {
-    if (!map) return
-    clearFlashTimer()
-    gateRef.current.reset()
-    setShowAstar(false)
-    setCollisionFlash(false)
-    const fresh = rescueEnvAdapter.create(map)
-    missionRef.current = fresh
-    setMission(fresh)
-    focusBoard()
-  }
+  const map = useMemo(() => {
+    if (!state || !missionId) return null
+    const title = manifest?.missions.find((m) => m.id === missionId)?.title ?? missionId
+    return buildingMapFromSim(state, missionId, title)
+  }, [state, missionId, manifest])
+
+  const agent = useMemo(() => (state ? agentPoseFromSim(state) : null), [state])
+  const path = useMemo(() => (state ? playerPathFromState(state) : []), [state])
+  const astarPath = useMemo(
+    () => (showAstar ? astarPathFromComparison(comparison) : undefined),
+    [showAstar, comparison],
+  )
 
   if (loadError) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
         <p className="text-danger">{loadError}</p>
         <p className="mt-2 text-sm text-muted">
-          Rescue Missions use static JSON from public/data/rescue/ — no GPU required.
+          Rescue Missions use RescueGame from public/data/rescue-play/ — no GPU required.
         </p>
       </div>
     )
   }
 
-  if (!map || !mission) {
+  if (!manifest || !state || !map || !agent || !missionId) {
     return (
-      <div className="grid min-h-[50vh] place-items-center text-soft">Loading facility map…</div>
+      <div className="grid min-h-[50vh] place-items-center text-soft">Loading RescueGame…</div>
     )
   }
 
-  const ended = mission.status === 'success' || mission.status === 'failed'
+  const ended = state.done
   const playDisabled = ended
+  const metrics = gameRef.current?.metrics()
+  const entry = manifest.missions.find((m) => m.id === missionId)
 
   return (
     <div className="relative min-h-[calc(100vh-3.5rem)]">
@@ -232,10 +321,12 @@ export function RescueMissionPage() {
               Pilot the rescue robot
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-soft">
-              Playable grid mission on the verified facility map. This is <strong>not</strong>{' '}
-              Waypoint video — robots do not navigate generated worlds.
+              Authoritative <strong className="text-bright">RescueGame</strong> engine (Grok
+              rescue-play). Grid missions — not Waypoint video.
             </p>
-            <p className="mt-1 text-xs text-muted">{rescueEnvSourceLabel()}</p>
+            <p className="mt-1 text-xs text-muted">
+              Engine: @worldshift/rescue-play · one step per keypress · native rewards preserved
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
@@ -254,40 +345,56 @@ export function RescueMissionPage() {
         </div>
 
         <div className="mt-6 flex flex-wrap gap-2">
-          {SCENARIOS.map((s) => (
+          {manifest.missions.map((s) => (
             <button
               key={s.id}
               type="button"
-              onClick={() => setScenarioId(s.id)}
-              className={`rounded-xl border px-4 py-2 text-sm font-semibold ${
-                scenarioId === s.id
+              onClick={() => setMissionId(s.id)}
+              className={`rounded-xl border px-3 py-2 text-left text-sm font-semibold ${
+                missionId === s.id
                   ? 'border-hazard/50 bg-hazard/15 text-hazard'
                   : 'border-line bg-elevated text-soft'
               }`}
             >
-              {s.title}
+              <span className="block">{s.title}</span>
+              <span className="text-[10px] font-normal uppercase tracking-wider text-muted">
+                {s.difficulty} · {s.map_size} · par {s.par}
+              </span>
             </button>
           ))}
         </div>
 
-        {ended && (
+        {briefing && (
+          <p className="mt-4 max-w-3xl text-sm text-soft">{briefing}</p>
+        )}
+
+        {ended && score && (
           <div
             className={`animate-fade-up mt-5 rounded-2xl border px-4 py-3 text-sm ${
-              mission.status === 'success'
+              score.status === 'success'
                 ? 'border-ok/40 bg-ok/10 text-ok'
                 : 'border-danger/40 bg-danger/10 text-danger'
             }`}
           >
             <p className="font-display text-lg font-bold">
-              {mission.status === 'success' ? 'Mission complete' : 'Mission failed'}
+              {score.status === 'success' ? 'Mission complete' : 'Mission failed'}
+              {score.status === 'success' ? ` · ${starsLabel(score.stars)}` : ''}
             </p>
-            <p className="mt-1 text-bright/90">{mission.message}</p>
+            <p className="mt-1 text-bright/90">
+              {score.status === 'success'
+                ? `Score ${score.score} · efficiency ${
+                    score.efficiency != null ? (score.efficiency * 100).toFixed(0) + '%' : '—'
+                  }`
+                : `Failed (${score.reason ?? state.outcome ?? 'unknown'})`}
+            </p>
             <p className="mt-1 text-xs text-muted">
-              Steps {mission.step} · collisions {mission.collisions} · hazard hits{' '}
-              {mission.hazardHits}
-              {showAstar
-                ? ` · A* optimum ${astar.length ? astar.length - 1 : '—'} steps`
-                : ' · compare with A* below'}
+              Steps {state.step_count} · collisions {state.collisions} · native reward{' '}
+              {metrics?.native_total_reward ?? state.cumulative_reward}
+              {comparison?.optimal_length != null
+                ? ` · A* par ${comparison.optimal_length}`
+                : entry
+                  ? ` · par ${entry.par}`
+                  : ''}
             </p>
           </div>
         )}
@@ -303,14 +410,11 @@ export function RescueMissionPage() {
               setBoardFocused(true)
             }}
             onBlur={(e) => {
-              // Keep armed if focus moves into the WebGL canvas (still inside the board).
               const next = e.relatedTarget
               if (next instanceof Node && e.currentTarget.contains(next)) {
                 focusBoard()
                 return
               }
-              // Disarm keyboard; do NOT clear held keys here — keyup / window blur owns that,
-              // so OS auto-repeat cannot sneak a second step after a canvas focus flicker.
               armedRef.current = false
               setBoardFocused(false)
             }}
@@ -321,9 +425,9 @@ export function RescueMissionPage() {
           >
             <RescueScene
               map={map}
-              agent={mission.agent}
-              path={mission.path}
-              comparePath={showAstar ? astar : undefined}
+              agent={agent}
+              path={path}
+              comparePath={astarPath}
               interactiveCamera
             />
             {collisionFlash && (
@@ -365,35 +469,51 @@ export function RescueMissionPage() {
                   <dt className="text-muted">Status</dt>
                   <dd
                     className={
-                      mission.status === 'success'
+                      score?.status === 'success'
                         ? 'font-bold text-ok'
-                        : mission.status === 'failed'
+                        : score?.status === 'failure'
                           ? 'font-bold text-danger'
                           : 'font-semibold text-bright'
                     }
                   >
-                    {mission.status}
+                    {score?.status ?? 'in_progress'}
                   </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted">Steps</dt>
                   <dd className="font-mono">
-                    {mission.step} / {mission.maxSteps}
+                    {state.step_count} / {state.max_steps}
                   </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted">Collisions</dt>
-                  <dd className={`font-mono ${collisionFlash ? 'text-hazard font-bold' : ''}`}>
-                    {mission.collisions}
+                  <dd className={`font-mono ${collisionFlash ? 'font-bold text-hazard' : ''}`}>
+                    {state.collisions}
                   </dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-muted">Hazard hits</dt>
-                  <dd className="font-mono">{mission.hazardHits}</dd>
+                  <dt className="text-muted">Native reward</dt>
+                  <dd className="font-mono">
+                    {metrics?.native_total_reward ?? state.cumulative_reward}
+                  </dd>
                 </div>
+                {score?.status === 'success' && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted">Score / stars</dt>
+                    <dd className="font-mono text-ok">
+                      {score.score} · {starsLabel(score.stars)}
+                    </dd>
+                  </div>
+                )}
               </dl>
-              <p className={`mt-3 text-xs ${collisionFlash ? 'font-semibold text-hazard' : 'text-soft'}`}>
-                {mission.message}
+              <p
+                className={`mt-3 text-xs ${collisionFlash ? 'font-semibold text-hazard' : 'text-soft'}`}
+              >
+                {collisionFlash
+                  ? 'Blocked — wall or debris'
+                  : state.outcome
+                    ? `Outcome: ${state.outcome}`
+                    : 'Reach the green goal. Hazards end the run.'}
               </p>
             </div>
 
@@ -401,11 +521,12 @@ export function RescueMissionPage() {
               <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">
                 Move
               </p>
-              <DPad disabled={playDisabled} onMove={applyMove} />
+              <DPad disabled={playDisabled} onMove={applyAction} />
               <p className="mt-3 text-[11px] leading-snug text-muted">
-                <kbd className="text-signal">WASD</kbd> / arrows = <strong className="text-soft">one
-                step per press</strong> (release before the next). No hold-to-move. D-pad = one click,
-                one step. Drag orbit on the map.
+                <kbd className="text-signal">WASD</kbd> / arrows ={' '}
+                <strong className="text-soft">one step per press</strong> (release before the
+                next). D-pad = one click, one step. <kbd className="text-signal">R</kbd> restart ·{' '}
+                <kbd className="text-signal">U</kbd> undo.
               </p>
             </div>
 
@@ -419,21 +540,34 @@ export function RescueMissionPage() {
               </button>
               <button
                 type="button"
+                onClick={undo}
+                disabled={!state.trajectory?.length && !ended}
+                className="rounded-xl border border-line bg-elevated px-4 py-2.5 text-sm font-bold text-soft disabled:opacity-40"
+              >
+                Undo last step
+              </button>
+              <button
+                type="button"
                 disabled={!ended}
                 onClick={() => setShowAstar(true)}
                 className="rounded-xl border border-hazard/40 bg-hazard/10 px-4 py-2.5 text-sm font-bold text-hazard disabled:opacity-40"
               >
                 Compare my route vs A*
               </button>
-              {showAstar && (
+              {showAstar && comparison && (
                 <p className="text-xs text-muted">
-                  Teal = your path · Amber = shortest A* (
-                  {astar.length ? astar.length - 1 : '—'} steps). You used {mission.step} steps.
+                  Teal = your path · Amber = A* (
+                  {comparison.optimal_length ?? '—'} steps). You used {comparison.player_steps}{' '}
+                  steps
+                  {comparison.extra_steps != null ? ` (${comparison.extra_steps} extra)` : ''}.
                 </p>
               )}
             </div>
 
             <MapLegend />
+            {manifest.disclaimer && (
+              <p className="text-[10px] leading-snug text-muted">{manifest.disclaimer}</p>
+            )}
           </aside>
         </div>
       </div>

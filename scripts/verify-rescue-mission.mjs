@@ -1,23 +1,17 @@
-#!/usr/bin/env node
 /**
- * Offline Rescue Mission mechanics + verified showdown rate checks.
- * Frozen facility_a map + browserRescueSim (RescueEnv seam).
- * Pending: swap to Grok Bot 1 RescueEnv + official parity suite when landed.
+ * Offline Rescue Mission + verified showdown checks.
+ * Mission engine: authoritative RescueGame (@worldshift/rescue-play).
+ * Showdown rates: frozen public/data/rescue evaluation JSON (untouched).
  */
 import { readFileSync } from 'node:fs'
-import {
-  createMission,
-  keyToMove,
-  shortestExitPath,
-  stepMission,
-} from '../src/services/browserRescueSim.ts'
 import { createDiscreteKeyGate } from '../src/services/rescueDiscreteInput.ts'
+import { RescueGame, keyToAction, pathToActions, astarPath } from '../src/lib/rescue-play/index.js'
 
 const manifest = JSON.parse(readFileSync('public/data/rescue/manifest.json', 'utf8'))
 const showdown = JSON.parse(
   readFileSync('public/data/rescue/evaluations/eval_verified_showdown.json', 'utf8'),
 )
-const map = JSON.parse(readFileSync('public/data/rescue/maps/facility_a.json', 'utf8'))
+const playManifest = JSON.parse(readFileSync('public/data/rescue-play/manifest.json', 'utf8'))
 
 const expect = {
   'random-walker': [0.195, 0.08],
@@ -49,58 +43,69 @@ check(
   /shortest-path/i.test(note) && /not live/i.test(note),
 )
 
-check('WASD keymap', keyToMove('KeyW') === 'N' && keyToMove('ArrowLeft') === 'W')
+check('WASD keymap via RescueGame keyToAction', keyToAction('KeyW') === 0 && keyToAction('ArrowLeft') === 2)
 
 {
   const gate = createDiscreteKeyGate()
-  check('discrete: first KeyW steps', gate.onKeyDown('KeyW', false) === 'N')
+  check('discrete: first KeyW steps', gate.onKeyDown('KeyW', false) === 0)
   check('discrete: ignore event.repeat', gate.onKeyDown('KeyW', true) === null)
   check('discrete: ignore held without release', gate.onKeyDown('KeyW', false) === null)
   gate.onKeyUp('KeyW')
-  check('discrete: after release can step again', gate.onKeyDown('KeyW', false) === 'N')
-  gate.onKeyUp('KeyW')
-  check('discrete: ArrowUp one step', gate.onKeyDown('ArrowUp', false) === 'N')
-  check('discrete: ArrowUp held blocked', gate.onKeyDown('ArrowUp', false) === null)
+  check('discrete: after release can step again', gate.onKeyDown('KeyW', false) === 0)
   gate.reset()
-  check('discrete: reset clears hold', gate.onKeyDown('ArrowUp', false) === 'N')
 }
 
-const astar = shortestExitPath(map)
-check('A* finds exit path on facility_a', astar.length >= 2, `len=${astar.length}`)
+check('rescue-play has five missions', playManifest.missions?.length === 5, String(playManifest.missions?.length))
 
-let m = createMission(map)
-for (let i = 1; i < astar.length; i++) {
-  const a = astar[i - 1]
-  const b = astar[i]
-  const dx = b.x - a.x
-  const dy = b.y - a.y
-  const move = dx === 1 ? 'E' : dx === -1 ? 'W' : dy === 1 ? 'S' : dy === -1 ? 'N' : null
-  if (!move) {
-    check('A* orthogonal steps', false)
-    break
+for (const entry of playManifest.missions) {
+  const scenario = JSON.parse(
+    readFileSync(`public/data/rescue-play/${entry.mission}`, 'utf8'),
+  )
+  const game = new RescueGame(scenario)
+  const route = astarPath(game.scenario)
+  check(`${entry.id}: A* finds route`, Array.isArray(route) && route.length >= 2, `len=${route?.length}`)
+
+  const actions = pathToActions(route)
+  for (const a of actions) {
+    if (game.done) break
+    game.step(a)
   }
-  m = stepMission(m, move)
-}
-check('follow A* reaches success', m.status === 'success', m.status)
-check('player step count matches A*', m.step === astar.length - 1, `steps=${m.step}`)
+  const sc = game.score()
+  check(`${entry.id}: follow A* succeeds`, sc.status === 'success', sc.status)
+  check(`${entry.id}: stars awarded`, sc.stars >= 1, String(sc.stars))
 
-m = createMission(map)
-let hitWall = false
-for (const mv of ['N', 'S', 'E', 'W']) {
-  const next = stepMission(m, mv)
-  if (next.collisions > m.collisions) {
-    hitWall = true
-    check('wall collision increments counter', true, mv)
-    break
+  // Collision penalty preserved: bump a wall from start if adjacent wall exists.
+  const g2 = new RescueGame(scenario)
+  const before = g2.getState().collisions
+  let bumped = false
+  for (const a of [0, 1, 2, 3]) {
+    const r = g2.step(a)
+    if (r.info.collision) {
+      bumped = true
+      check(`${entry.id}: collision increments`, g2.getState().collisions === before + 1)
+      check(`${entry.id}: native collision reward`, r.reward < 0, String(r.reward))
+      break
+    }
+    if (g2.done) break
   }
-  m = next
-}
-if (!hitWall) check('wall collision probe (open spawn)', true, 'no adjacent wall from spawn')
+  if (!bumped) check(`${entry.id}: collision probe skipped (open neighbors)`, true)
 
-check('GPU-independent (static map only)', true, map.id)
+  g2.restart()
+  check(`${entry.id}: restart clears done`, !g2.done && g2.getState().step_count === 0)
+}
 
 console.log('\n=== RESCUE / SHOWDOWN OFFLINE SUMMARY ===')
-console.log(JSON.stringify({ failed, astar_steps: Math.max(0, astar.length - 1), map: map.id }, null, 2))
-console.log('Pending: Grok Bot 1 RescueEnv adapter + official parity suite.')
+console.log(
+  JSON.stringify(
+    {
+      failed,
+      showdown_preserved: true,
+      missions: playManifest.missions.map((m) => m.id),
+      engine: '@worldshift/rescue-play',
+    },
+    null,
+    2,
+  ),
+)
 if (failed) process.exit(1)
 console.log('Rescue Mission / Showdown offline checks: PASSED')

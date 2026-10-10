@@ -1,0 +1,383 @@
+{
+  "version": 1,
+  "seed": 900002,
+  "width": 10,
+  "height": 10,
+  "start": [
+    8,
+    1
+  ],
+  "goal": [
+    1,
+    1
+  ],
+  "walls": [
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      2
+    ],
+    [
+      0,
+      3
+    ],
+    [
+      0,
+      4
+    ],
+    [
+      0,
+      5
+    ],
+    [
+      0,
+      6
+    ],
+    [
+      0,
+      7
+    ],
+    [
+      0,
+      8
+    ],
+    [
+      0,
+      9
+    ],
+    [
+      1,
+      0
+    ],
+    [
+      1,
+      4
+    ],
+    [
+      1,
+      9
+    ],
+    [
+      2,
+      0
+    ],
+    [
+      2,
+      6
+    ],
+    [
+      2,
+      8
+    ],
+    [
+      2,
+      9
+    ],
+    [
+      3,
+      0
+    ],
+    [
+      3,
+      4
+    ],
+    [
+      3,
+      6
+    ],
+    [
+      3,
+      8
+    ],
+    [
+      3,
+      9
+    ],
+    [
+      4,
+      0
+    ],
+    [
+      4,
+      1
+    ],
+    [
+      4,
+      3
+    ],
+    [
+      4,
+      4
+    ],
+    [
+      4,
+      6
+    ],
+    [
+      4,
+      8
+    ],
+    [
+      4,
+      9
+    ],
+    [
+      5,
+      0
+    ],
+    [
+      5,
+      9
+    ],
+    [
+      6,
+      0
+    ],
+    [
+      6,
+      3
+    ],
+    [
+      6,
+      4
+    ],
+    [
+      6,
+      5
+    ],
+    [
+      6,
+      6
+    ],
+    [
+      6,
+      8
+    ],
+    [
+      6,
+      9
+    ],
+    [
+      7,
+      0
+    ],
+    [
+      7,
+      3
+    ],
+    [
+      7,
+      8
+    ],
+    [
+      7,
+      9
+    ],
+    [
+      8,
+      0
+    ],
+    [
+      8,
+      9
+    ],
+    [
+      9,
+      0
+    ],
+    [
+      9,
+      1
+    ],
+    [
+      9,
+      2
+    ],
+    [
+      9,
+      3
+    ],
+    [
+      9,
+      4
+    ],
+    [
+      9,
+      5
+    ],
+    [
+      9,
+      6
+    ],
+    [
+      9,
+      7
+    ],
+    [
+      9,
+      8
+    ],
+    [
+      9,
+      9
+    ]
+  ],
+  "doors": [
+    [
+      2,
+      4
+    ],
+    [
+      4,
+      2
+    ]
+  ],
+  "blocked": [
+    [
+      4,
+      2
+    ],
+    [
+      8,
+      5
+    ]
+  ],
+  "hazards": [
+    [
+      1,
+      8
+    ],
+    [
+      3,
+      5
+    ],
+    [
+      6,
+      2
+    ],
+    [
+      6,
+      7
+    ]
+  ],
+  "max_steps": 100,
+  "mission": {
+    "id": "storm-damaged-facility",
+    "title": "Storm-Damaged Facility Sweep",
+    "briefing": "A storm has damaged a fictional logistics facility. Interior walls have partly collapsed and live wires hang near the loading bay. A worker is sheltering in the control room.",
+    "objective": "Reach the control room through the intact doors, avoiding live wires.",
+    "difficulty": "medium",
+    "handcrafted": true,
+    "generated": false,
+    "map_size": "10x10",
+    "par": 21,
+    "max_steps": 100,
+    "legend": {
+      "walls": "collapsed / damaged walls",
+      "blocked": "fallen racking and debris",
+      "doors": "intact doorways",
+      "hazards": "live wires",
+      "start": "east entrance",
+      "goal": "control room"
+    },
+    "map_ascii": [
+      "##########",
+      "#G..#...S#",
+      "#...B.^..#",
+      "#...#.##.#",
+      "##D##.#..#",
+      "#..^..#.X#",
+      "#.###.#..#",
+      "#.....^..#",
+      "#^###.##.#",
+      "##########"
+    ],
+    "map_ascii_legend": {
+      "#": "walls",
+      "X": "blocked",
+      "^": "hazards",
+      "D": "doors",
+      "B": "blocked door (doors + blocked)",
+      "S": "start",
+      "G": "goal",
+      ".": "floor"
+    },
+    "design_notes": "The doorway straight into the control room (west wall) is jammed with debris. The quickest detour cuts across a live wire next to the lower door; the safe route swings through the south hall.",
+    "analysis": {
+      "par": 21,
+      "hazard_shortcut_length": 15,
+      "hazard_shortcut_exists": true,
+      "length_if_blocked_cleared": 9,
+      "blocked_forces_detour": true,
+      "dead_ends": [
+        [
+          4,
+          5
+        ],
+        [
+          5,
+          8
+        ],
+        [
+          8,
+          8
+        ]
+      ],
+      "hazards_adjacent_to_par_route": [
+        [
+          1,
+          8
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          6,
+          2
+        ],
+        [
+          6,
+          7
+        ]
+      ],
+      "doors": 2
+    },
+    "controls": {
+      "up": [
+        "ArrowUp",
+        "W"
+      ],
+      "down": [
+        "ArrowDown",
+        "S"
+      ],
+      "left": [
+        "ArrowLeft",
+        "A"
+      ],
+      "right": [
+        "ArrowRight",
+        "D"
+      ],
+      "restart": [
+        "R"
+      ],
+      "undo": [
+        "U / Backspace (play feature)"
+      ],
+      "show_astar_after_finish": [
+        "H"
+      ]
+    },
+    "mechanics": "Identical to RescueEnv: no water flow, no spreading hazards, no physics. Narrative labels are cosmetic only.",
+    "disclaimer": "Fictional scenario. A discrete grid abstraction for gameplay and evaluation only; it is not representative of real-world flood, storm, structural or chemical behaviour and must not be used for operational planning or emergency response."
+  }
+}

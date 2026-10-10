@@ -1,0 +1,382 @@
+{
+  "version": 1,
+  "seed": 900001,
+  "width": 10,
+  "height": 10,
+  "start": [
+    1,
+    1
+  ],
+  "goal": [
+    8,
+    8
+  ],
+  "walls": [
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      2
+    ],
+    [
+      0,
+      3
+    ],
+    [
+      0,
+      4
+    ],
+    [
+      0,
+      5
+    ],
+    [
+      0,
+      6
+    ],
+    [
+      0,
+      7
+    ],
+    [
+      0,
+      8
+    ],
+    [
+      0,
+      9
+    ],
+    [
+      1,
+      0
+    ],
+    [
+      1,
+      7
+    ],
+    [
+      1,
+      9
+    ],
+    [
+      2,
+      0
+    ],
+    [
+      2,
+      2
+    ],
+    [
+      2,
+      3
+    ],
+    [
+      2,
+      4
+    ],
+    [
+      2,
+      5
+    ],
+    [
+      2,
+      7
+    ],
+    [
+      2,
+      9
+    ],
+    [
+      3,
+      0
+    ],
+    [
+      3,
+      2
+    ],
+    [
+      3,
+      5
+    ],
+    [
+      3,
+      9
+    ],
+    [
+      4,
+      0
+    ],
+    [
+      4,
+      7
+    ],
+    [
+      4,
+      9
+    ],
+    [
+      5,
+      0
+    ],
+    [
+      5,
+      1
+    ],
+    [
+      5,
+      3
+    ],
+    [
+      5,
+      5
+    ],
+    [
+      5,
+      7
+    ],
+    [
+      5,
+      9
+    ],
+    [
+      6,
+      0
+    ],
+    [
+      6,
+      9
+    ],
+    [
+      7,
+      0
+    ],
+    [
+      7,
+      2
+    ],
+    [
+      7,
+      3
+    ],
+    [
+      7,
+      4
+    ],
+    [
+      7,
+      6
+    ],
+    [
+      7,
+      7
+    ],
+    [
+      7,
+      9
+    ],
+    [
+      8,
+      0
+    ],
+    [
+      8,
+      9
+    ],
+    [
+      9,
+      0
+    ],
+    [
+      9,
+      1
+    ],
+    [
+      9,
+      2
+    ],
+    [
+      9,
+      3
+    ],
+    [
+      9,
+      4
+    ],
+    [
+      9,
+      5
+    ],
+    [
+      9,
+      6
+    ],
+    [
+      9,
+      7
+    ],
+    [
+      9,
+      8
+    ],
+    [
+      9,
+      9
+    ]
+  ],
+  "doors": [
+    [
+      5,
+      2
+    ],
+    [
+      5,
+      6
+    ]
+  ],
+  "blocked": [
+    [
+      5,
+      4
+    ],
+    [
+      6,
+      5
+    ]
+  ],
+  "hazards": [
+    [
+      3,
+      3
+    ],
+    [
+      4,
+      5
+    ],
+    [
+      5,
+      8
+    ],
+    [
+      6,
+      6
+    ]
+  ],
+  "max_steps": 100,
+  "mission": {
+    "id": "cypress-lane-flood",
+    "title": "Cypress Lane Flood Response",
+    "briefing": "Heavy rain has flooded parts of the fictional Cypress Lane neighbourhood. A resident is waiting at the community shelter on the far side of the block. Several streets are under water and a stalled car blocks the main alley.",
+    "objective": "Reach the community shelter without entering a flooded street.",
+    "difficulty": "easy",
+    "handcrafted": true,
+    "generated": false,
+    "map_size": "10x10",
+    "par": 16,
+    "max_steps": 100,
+    "legend": {
+      "walls": "houses and garden walls",
+      "blocked": "stalled vehicles",
+      "doors": "gates and driveways",
+      "hazards": "flooded streets / downed power lines",
+      "start": "rescue boat launch point",
+      "goal": "community shelter"
+    },
+    "map_ascii": [
+      "##########",
+      "#S...#...#",
+      "#.##.D.#.#",
+      "#.#^.#.#.#",
+      "#.#..X.#.#",
+      "#.##^#X..#",
+      "#....D^#.#",
+      "###.##.#.#",
+      "#....^..G#",
+      "##########"
+    ],
+    "map_ascii_legend": {
+      "#": "walls",
+      "X": "blocked",
+      "^": "hazards",
+      "D": "doors",
+      "B": "blocked door (doors + blocked)",
+      "S": "start",
+      "G": "goal",
+      ".": "floor"
+    },
+    "design_notes": "The quickest-looking line south through the middle gardens crosses flooded streets, and a stalled car at the east junction closes the short way to the east street, so the safe route loops along the north road and down the far east street.",
+    "analysis": {
+      "par": 16,
+      "hazard_shortcut_length": 14,
+      "hazard_shortcut_exists": true,
+      "length_if_blocked_cleared": 14,
+      "blocked_forces_detour": true,
+      "dead_ends": [
+        [
+          1,
+          8
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          8
+        ],
+        [
+          5,
+          6
+        ],
+        [
+          6,
+          4
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          7,
+          5
+        ]
+      ],
+      "hazards_adjacent_to_par_route": [],
+      "doors": 2
+    },
+    "controls": {
+      "up": [
+        "ArrowUp",
+        "W"
+      ],
+      "down": [
+        "ArrowDown",
+        "S"
+      ],
+      "left": [
+        "ArrowLeft",
+        "A"
+      ],
+      "right": [
+        "ArrowRight",
+        "D"
+      ],
+      "restart": [
+        "R"
+      ],
+      "undo": [
+        "U / Backspace (play feature)"
+      ],
+      "show_astar_after_finish": [
+        "H"
+      ]
+    },
+    "mechanics": "Identical to RescueEnv: no water flow, no spreading hazards, no physics. Narrative labels are cosmetic only.",
+    "disclaimer": "Fictional scenario. A discrete grid abstraction for gameplay and evaluation only; it is not representative of real-world flood, storm, structural or chemical behaviour and must not be used for operational planning or emergency response."
+  }
+}
