@@ -278,6 +278,68 @@ export function SimulationLabPage() {
             </aside>
           </div>
 
+          {bundle.manifest.comparisons && bundle.manifest.comparisons.length > 0 && (
+            <section className="mt-6 rounded-lg border border-line bg-panel p-4">
+              <h3 className="mb-1 font-display text-sm font-bold text-soft">
+                Method comparison (recorded)
+              </h3>
+              <p className="mb-3 text-xs text-muted">
+                Random vs A* vs PPO trajectories from the static package — not live races.
+              </p>
+              {bundle.manifest.comparisons.map((cmp) => (
+                <div key={cmp.id} className="mb-3">
+                  <p className="mb-2 text-sm text-bright">{cmp.title}</p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead className="text-xs uppercase tracking-wider text-muted">
+                        <tr>
+                          <th className="px-2 py-1">Method</th>
+                          <th className="px-2 py-1">Steps</th>
+                          <th className="px-2 py-1">Victims</th>
+                          <th className="px-2 py-1">Reward</th>
+                          <th className="px-2 py-1">Result</th>
+                          <th className="px-2 py-1" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cmp.trajectory_ids.map((id) => {
+                          const t = bundle.trajectories[id]
+                          if (!t) return null
+                          const ag = bundle.agents[t.agent_id]
+                          return (
+                            <tr key={id} className="border-t border-line/70">
+                              <td className="px-2 py-1.5">{ag?.name ?? t.agent_id}</td>
+                              <td className="px-2 py-1.5 font-mono">{t.summary.steps}</td>
+                              <td className="px-2 py-1.5 font-mono">{t.summary.victims_rescued}</td>
+                              <td className="px-2 py-1.5 font-mono">{t.summary.reward ?? '—'}</td>
+                              <td className="px-2 py-1.5">
+                                <span className={t.summary.success ? 'text-ok' : 'text-danger'}>
+                                  {t.summary.success ? 'success' : 'failed'}
+                                </span>
+                              </td>
+                              <td className="px-2 py-1.5">
+                                <button
+                                  type="button"
+                                  className="text-xs font-semibold text-signal hover:underline"
+                                  onClick={() => {
+                                    setAgentId(t.agent_id)
+                                    setTrajId(t.id)
+                                  }}
+                                >
+                                  Load replay
+                                </button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+            </section>
+          )}
+
           <div className="mt-6 grid gap-4 lg:grid-cols-2">
             <section className="rounded-lg border border-line bg-panel p-4">
               <h3 className="mb-1 font-display text-sm font-bold text-soft">

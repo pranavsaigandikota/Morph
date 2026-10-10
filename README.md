@@ -1,73 +1,44 @@
 # WorldShift AI
 
-Interactive AI-generated worlds and autonomous rescue training — frontend for the WorldShift hackathon.
+First-person **Waypoint** interactive worlds (Codex GPU) + offline **Rescue Lab** evaluation.
 
-Inspired by Odyssey-style streamed worlds, with a separate deterministic Three.js rescue simulator and an agent evaluation dashboard.
+## Two modes
 
-## Features
-
-- **Landing + scene selection** — Research Facility scene ready; more scenes locked as placeholders
-- **AI World Explorer** — Codex Waypoint GPU stream (`WS /stream`), WASD + pointer-lock, clear connection status when the model server is down
-- **Rescue Simulation Lab** — **static JSON** under `public/data/rescue/` (manifest-driven). Maps, recorded trajectories, eval charts, training history — no Python/FastAPI/PPO required
-- **Agent Evaluation** — recorded metrics from the same static package; optional live API adapter
-- **Windows launchers** — `start-windows.bat` / `start-windows.ps1` (see `docs/WINDOWS.md`)
-
-World Explorer needs genuine Waypoint generation on `:8000`. Rescue Lab works from the static package alone.
+1. **World Explorer** — real-time Waypoint-generated video (`WS /stream`, binary JPEG envelopes). Needs Codex on `http://127.0.0.1:8000`.
+2. **Rescue Lab** — recorded Random / A* / PPO replays & charts from `public/data/rescue/` via `fetch()`. No Python/FastAPI/PPO service.
 
 ## Quick start
 
-**Windows:** double-click `start-windows.bat` (or `.\start-windows.ps1`). Details: [docs/WINDOWS.md](docs/WINDOWS.md).
+**Windows:** double-click `start-windows.bat` — see [docs/WINDOWS.md](docs/WINDOWS.md).
 
 ```bash
 npm install
 npm run dev
 ```
 
-- App: [http://127.0.0.1:4821](http://127.0.0.1:4821)
-- **Rescue Lab data:** `public/data/rescue/manifest.json` (copy handoff here)
-- **Waypoint engine (Codex):** `http://127.0.0.1:8000` — required for genuine World Explorer video
+- UI: http://127.0.0.1:4821  
+- Config: copy `.env.example` → `.env` (`VITE_WORLD_API_BASE_URL=http://127.0.0.1:8000`)
+
+If `:8000` is down, `npm run dev` starts a **protocol mock** and shows an explicit **MOCK** badge. Cloud VMs cannot reach your PC’s GPU — validate WASD/mouse on Windows against real Waypoint before calling World Explorer “done”.
 
 ```bash
-ENGINE_URL=http://127.0.0.1:8000 npm run test:stream60
+npm run dev:mock          # force mock
+npm run test:stream60     # 60s control harness (set ENGINE_URL)
 ```
+
+## Create World
+
+`/create` — describe a world → seed preview → Start Exploring.  
+Text→image produces the seed; **Waypoint does not process the prompt**. Without `VITE_SCENE_API_BASE_URL`, seeds are clearly labeled **MOCK**.
+
+## Protocol
+
+See [docs/WAYPOINT_PROTOCOL.md](docs/WAYPOINT_PROTOCOL.md). If Codex provides `FRONTEND_INTEGRATION.md`, place it under `docs/` and reconcile any disagreements before changing the client.
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Mock server + Vite |
-| `npm run build` | Typecheck + production build |
-| `npm run typecheck` | TypeScript project build |
-| `npm run lint` | Oxlint |
-| `npm run preview` | Preview production build |
-
-## Architecture
-
-```
-src/
-  pages/           Landing, World Explorer, Rescue Lab, Agent Eval
-  components/      World viewer, R3F scene, charts
-  services/        Typed HTTP adapters + FrameTransport (WS framing)
-  hooks/           useWorldStream, keyboard controls
-  types/           Shared contracts
-server/            Express + WebSocket mock implementing the contracts
-docs/INTEGRATION.md
-```
-
-Routes:
-
-- `/` — WorldShift landing
-- `/world` — AI World Explorer
-- `/simulation` — Rescue Simulation Lab
-- `/agents` — Agent training / evaluation dashboard
-
-## Integration
-
-See [docs/INTEGRATION.md](docs/INTEGRATION.md) for world/sim/agent contracts, proxy env vars, and transport notes.
-
-## Design notes
-
-- World Explorer uses the **Codex Waypoint Phase-2** protocol (`docs/WAYPOINT_PROTOCOL.md`) — binary JPEG envelopes, not prerecorded playback.
-- Do **not** infer reliable physical geometry from generated video — use the simulator map.
-- Do **not** implement Waypoint inference or RL training in this frontend.
-- Generated FPS counts wire JPEGs; presentation drops never reduce that counter.
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Vite (+ mock if :8000 down) |
+| `npm run build` | Production build |
+| `npm run test:stream60` | Navigation session metrics |

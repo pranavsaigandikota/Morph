@@ -24,6 +24,16 @@
       "id": "ppo-rescue-v1",
       "path": "agents/ppo-rescue-v1.json",
       "name": "PPO Rescue v1"
+    },
+    {
+      "id": "random-walker",
+      "path": "agents/random-walker.json",
+      "name": "Random Walker"
+    },
+    {
+      "id": "astar-planner",
+      "path": "agents/astar-planner.json",
+      "name": "A* Planner"
     }
   ],
   "trajectories": [
@@ -47,6 +57,20 @@
       "agent_id": "ppo-rescue-v1",
       "map_id": "facility_a",
       "label": "PPO v1 · south exit (best)"
+    },
+    {
+      "id": "traj_random_south",
+      "path": "trajectories/traj_random_south.json",
+      "agent_id": "random-walker",
+      "map_id": "facility_a",
+      "label": "Random · south exit (noisy)"
+    },
+    {
+      "id": "traj_astar_south",
+      "path": "trajectories/traj_astar_south.json",
+      "agent_id": "astar-planner",
+      "map_id": "facility_a",
+      "label": "A* · south exit (shortest)"
     }
   ],
   "evaluations": [
@@ -62,6 +86,17 @@
       "path": "training/train_ppo_v1.json",
       "agent_id": "ppo-rescue-v1",
       "title": "PPO v1 training curve"
+    }
+  ],
+  "comparisons": [
+    {
+      "id": "cmp_facility_methods",
+      "title": "Random vs A* vs PPO (recorded)",
+      "trajectory_ids": [
+        "traj_random_south",
+        "traj_astar_south",
+        "traj_ppo_south"
+      ]
     }
   ]
 }

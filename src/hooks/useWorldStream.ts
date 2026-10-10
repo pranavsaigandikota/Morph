@@ -24,7 +24,7 @@ export type StreamPhase =
 interface WorldStreamState {
   phase: StreamPhase
   sessionId: string | null
-  frameUrl: string | null
+  hasFrame: boolean
   meta: WorldFrameMeta | null
   error: string | null
   metrics: WorldMetrics | null
@@ -33,12 +33,14 @@ interface WorldStreamState {
   engineName: string | null
   width: number
   height: number
+  gpuMemoryMb: number | null
+  gpuMemoryAvailable: boolean
 }
 
-/** Max JPEG sub-frames waiting to paint. Drop oldest when exceeded. */
-const MAX_PRESENTATION_QUEUE = 8
-/** Target presentation cadence (~22 FPS like reference player; drops keep latency low). */
-const PRESENT_FRAME_MS = 1000 / 24
+/** Max JPEG sub-frames waiting to paint. Keep short — favor current over stale. */
+const MAX_PRESENTATION_QUEUE = 3
+/** Target presentation cadence (~20 FPS browser-drawn, matching Codex verification). */
+const PRESENT_FRAME_MS = 1000 / 20
 const CONTROL_MS = 33
 const METRICS_MS = 500
 
@@ -52,7 +54,7 @@ export function useWorldStream() {
   const [state, setState] = useState<WorldStreamState>({
     phase: 'idle',
     sessionId: null,
-    frameUrl: null,
+    hasFrame: false,
     meta: null,
     error: null,
     metrics: null,
@@ -61,10 +63,15 @@ export function useWorldStream() {
     engineName: null,
     width: 1280,
     height: 720,
+    gpuMemoryMb: null,
+    gpuMemoryAvailable: false,
   })
 
   const wsRef = useRef<WebSocket | null>(null)
-  const canvasRef = useRef<HTMLDivElement | null>(null)
+  /** Stage wrapper for pointer lock / click. */
+  const stageRef = useRef<HTMLDivElement | null>(null)
+  /** Actual drawing surface — browser-displayed FPS counts canvas draws. */
+  const canvasElRef = useRef<HTMLCanvasElement | null>(null)
   const phaseRef = useRef<StreamPhase>('idle')
   const sessionIdRef = useRef<string | null>(null)
   const seedRef = useRef<string | null>(null)
@@ -73,6 +80,7 @@ export function useWorldStream() {
   const mockRef = useRef(false)
   const engineNameRef = useRef<string | null>(null)
   const dimsRef = useRef({ w: 1280, h: 720, tc: 4 })
+  const drawingRef = useRef(false)
 
   const keysRef = useRef<Set<string>>(new Set())
   const keyHeldRef = useRef<Map<string, number>>(new Map())
@@ -80,7 +88,6 @@ export function useWorldStream() {
   const mouseSensRef = useRef(1.0)
 
   const queueRef = useRef<QueuedJpeg[]>([])
-  const frameUrlRef = useRef<string | null>(null)
   const lastPresentRef = useRef(0)
   const rafRef = useRef<number | null>(null)
 
@@ -102,13 +109,6 @@ export function useWorldStream() {
   const setPhase = useCallback((phase: StreamPhase) => {
     phaseRef.current = phase
     setState((s) => ({ ...s, phase }))
-  }, [])
-
-  const revokeFrame = useCallback(() => {
-    if (frameUrlRef.current) {
-      URL.revokeObjectURL(frameUrlRef.current)
-      frameUrlRef.current = null
-    }
   }, [])
 
   const clearTimers = useCallback(() => {
@@ -145,7 +145,7 @@ export function useWorldStream() {
         displayed_fps: Math.round(dispFpsRef.current * 10) / 10,
         latency_ms: latEwmaRef.current != null ? Math.round(latEwmaRef.current) : 0,
         dropped_frames: droppedRef.current,
-        gpu_memory_mb: null,
+        gpu_memory_mb: null, // labeled unavailable in UI unless backend supplies it
         connection_status:
           phaseRef.current === 'reconnecting'
             ? 'reconnecting'
@@ -164,32 +164,54 @@ export function useWorldStream() {
     }))
   }, [])
 
-  const presentLoop = useCallback(
-    (t: number) => {
-      rafRef.current = requestAnimationFrame(presentLoop)
-      if (phaseRef.current === 'paused') return
-      if (queueRef.current.length === 0) return
-      if (t - lastPresentRef.current < PRESENT_FRAME_MS) return
-      lastPresentRef.current = t
+  const presentLoop = useCallback((t: number) => {
+    rafRef.current = requestAnimationFrame(presentLoop)
+    if (phaseRef.current === 'paused') return
+    if (drawingRef.current) return
+    if (queueRef.current.length === 0) return
+    if (t - lastPresentRef.current < PRESENT_FRAME_MS) return
+    lastPresentRef.current = t
 
-      const next = queueRef.current.shift()
-      if (!next) return
+    // Prefer newest queued frame; discard stale intermediates for responsiveness.
+    while (queueRef.current.length > 1) {
+      queueRef.current.shift()
+      droppedRef.current += 1
+    }
+    const next = queueRef.current.shift()
+    if (!next) return
 
-      const blob = new Blob([next.bytes.slice()], { type: 'image/jpeg' })
-      const url = URL.createObjectURL(blob)
-      const prev = frameUrlRef.current
-      frameUrlRef.current = url
-      dispCountRef.current += 1
-      setState((s) => ({
-        ...s,
-        frameUrl: url,
-        meta: next.header,
-        phase: phaseRef.current === 'paused' ? 'paused' : 'streaming',
-      }))
-      if (prev) URL.revokeObjectURL(prev)
-    },
-    [],
-  )
+    const canvas = canvasElRef.current
+    if (!canvas) return
+    drawingRef.current = true
+    const blob = new Blob([next.bytes.slice()], { type: 'image/jpeg' })
+    const url = URL.createObjectURL(blob)
+    const img = new Image()
+    img.onload = () => {
+      const ctx = canvas.getContext('2d')
+      if (ctx) {
+        if (canvas.width !== img.width || canvas.height !== img.height) {
+          canvas.width = img.width
+          canvas.height = img.height
+        }
+        ctx.drawImage(img, 0, 0)
+        dispCountRef.current += 1
+        setState((s) => ({
+          ...s,
+          hasFrame: true,
+          meta: next.header,
+          phase: phaseRef.current === 'paused' ? 'paused' : 'streaming',
+        }))
+      }
+      URL.revokeObjectURL(url)
+      drawingRef.current = false
+    }
+    img.onerror = () => {
+      droppedRef.current += 1
+      URL.revokeObjectURL(url)
+      drawingRef.current = false
+    }
+    img.src = url
+  }, [])
 
   const enqueueJpegs = useCallback(
     (
@@ -403,11 +425,10 @@ export function useWorldStream() {
         ...s,
         phase: 'starting',
         error: null,
-        frameUrl: null,
+        hasFrame: false,
         meta: null,
         metrics: null,
       }))
-      revokeFrame()
       queueRef.current = []
       droppedRef.current = 0
       genCountRef.current = 0
@@ -434,7 +455,7 @@ export function useWorldStream() {
       seedRef.current = seed ?? null
       openSocket(seedRef.current)
     },
-    [openSocket, revokeFrame],
+    [openSocket],
   )
 
   const pause = useCallback(() => {
@@ -454,17 +475,16 @@ export function useWorldStream() {
     keyHeldRef.current.clear()
     mouseRef.current = { dx: 0, dy: 0, scroll: 0 }
     queueRef.current = []
-    revokeFrame()
     setState((s) => ({
       ...s,
       phase: 'disconnected',
       sessionId: null,
-      frameUrl: null,
+      hasFrame: false,
       meta: null,
       error: null,
       pointerLocked: false,
     }))
-  }, [clearTimers, revokeFrame])
+  }, [clearTimers])
 
   const reset = useCallback(async () => {
     intentionalCloseRef.current = true
@@ -476,12 +496,10 @@ export function useWorldStream() {
     keysRef.current.clear()
     keyHeldRef.current.clear()
     mouseRef.current = { dx: 0, dy: 0, scroll: 0 }
-    revokeFrame()
-    // Brief gap then reconnect same seed
     await new Promise((r) => setTimeout(r, 200))
     intentionalCloseRef.current = false
     openSocket(seedRef.current)
-  }, [clearTimers, openSocket, revokeFrame])
+  }, [clearTimers, openSocket])
 
   const reconnect = useCallback(() => {
     intentionalCloseRef.current = false
@@ -497,7 +515,8 @@ export function useWorldStream() {
   }, [openSocket])
 
   const requestPointerLock = useCallback(() => {
-    canvasRef.current?.requestPointerLock()
+    const el = canvasElRef.current ?? stageRef.current
+    el?.requestPointerLock()
   }, [])
 
   // Input listeners
@@ -589,13 +608,13 @@ export function useWorldStream() {
       intentionalCloseRef.current = true
       clearTimers()
       wsRef.current?.close()
-      revokeFrame()
     }
-  }, [clearTimers, revokeFrame])
+  }, [clearTimers])
 
   return {
     ...state,
-    canvasRef,
+    stageRef,
+    canvasElRef,
     mouseSens: mouseSensRef,
     setMouseSens: (v: number) => {
       mouseSensRef.current = Math.max(0.5, Math.min(3, v))

@@ -22,6 +22,8 @@ export interface RescueManifest {
   }>
   evaluations: Array<{ id: string; path: string; title: string }>
   training_history: Array<{ id: string; path: string; agent_id: string; title: string }>
+  /** Optional additive comparison sets (Random vs A* vs PPO, etc.) */
+  comparisons?: Array<{ id: string; title: string; trajectory_ids: string[] }>
 }
 
 export interface RescueAgentInfo {

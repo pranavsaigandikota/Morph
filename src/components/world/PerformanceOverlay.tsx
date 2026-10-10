@@ -59,9 +59,16 @@ export function PerformanceOverlay({ metrics, phase, mock, engineName }: Props) 
         <Row
           label="GPU Mem"
           value={
-            metrics?.gpu_memory_mb != null ? `${metrics.gpu_memory_mb} MB` : 'n/a'
+            metrics?.gpu_memory_mb != null
+              ? `${metrics.gpu_memory_mb} MB`
+              : 'unavailable'
           }
+          warn={metrics?.gpu_memory_mb == null}
         />
+        <p className="pt-0.5 text-[10px] text-muted">
+          Gen = wire JPEGs · Disp = canvas draws
+          {metrics?.gpu_memory_mb == null ? ' · GPU not supplied by backend' : ''}
+        </p>
         {engineName && <Row label="Engine" value={engineName} />}
       </div>
       <div className="mt-2 flex items-center gap-2 border-t border-line/80 pt-2">

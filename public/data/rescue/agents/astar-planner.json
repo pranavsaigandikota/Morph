@@ -1,0 +1,8 @@
+{
+  "id": "astar-planner",
+  "name": "A* Planner",
+  "kind": "astar",
+  "description": "Recorded A* shortest-path planner for comparison against PPO.",
+  "version": "1.0",
+  "created_at": "2026-09-18T12:00:00.000Z"
+}

@@ -3,6 +3,7 @@ import clsx from 'clsx'
 
 const NAV = [
   { to: '/', label: 'Home', end: true },
+  { to: '/create', label: 'Create World' },
   { to: '/world', label: 'World Explorer' },
   { to: '/simulation', label: 'Rescue Lab' },
   { to: '/agents', label: 'Agent Eval' },

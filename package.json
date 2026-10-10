@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.mjs",
+    "dev:mock": "USE_MOCK_ENGINE=1 node scripts/dev.mjs",
     "dev:web": "vite",
-    "dev:real": "ENGINE_TARGET=http://127.0.0.1:8000 node scripts/dev.mjs",
+    "dev:real": "ENGINE_TARGET=http://127.0.0.1:8000 VITE_WORLD_API_BASE_URL=http://127.0.0.1:8000 node scripts/dev.mjs",
     "mock": "tsx server/index.ts",
     "build": "tsc -b && vite build",
     "lint": "oxlint",

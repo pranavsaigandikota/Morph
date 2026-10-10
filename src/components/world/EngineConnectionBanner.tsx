@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { engineOrigin } from '../../services/engineConfig'
+import { worldApiBaseUrl } from '../../services/engineConfig'
 
 export type EngineConnectionKind = 'probing' | 'live' | 'mock' | 'unavailable'
 
@@ -31,16 +31,17 @@ export function EngineConnectionBanner({ kind, detail, engineName }: Props) {
         {kind === 'unavailable' && (
           <>
             World Explorer needs the local Codex Waypoint inference service at{' '}
-            <code className="text-signal">{engineOrigin()}</code> for streamed AI frames. Start that
-            GPU server, then click Retry / Start session. Rescue Lab does not need it — it runs from
-            static JSON under <code className="text-signal">public/data/rescue/</code>.
+            <code className="text-signal">{worldApiBaseUrl()}</code> (
+            <code className="text-signal">VITE_WORLD_API_BASE_URL</code>) for streamed AI frames.
+            Start that GPU server, then Retry. Rescue Lab does not need it — it runs from{' '}
+            <code className="text-signal">public/data/rescue/</code>.
           </>
         )}
         {kind === 'mock' && (
           <>
-            Dev is proxying a protocol-compatible mock. For real Odyssey-style frames, run Codex
-            Waypoint on <code className="text-signal">:8000</code> and restart with{' '}
-            <code className="text-signal">ENGINE_TARGET=http://127.0.0.1:8000</code>.
+            Protocol mock frames only — explicit MOCK mode. For genuine generation, run Codex
+            Waypoint on <code className="text-signal">:8000</code> and set{' '}
+            <code className="text-signal">VITE_WORLD_API_BASE_URL=http://127.0.0.1:8000</code>.
           </>
         )}
         {kind === 'live' && (
@@ -49,7 +50,7 @@ export function EngineConnectionBanner({ kind, detail, engineName }: Props) {
             not prerecorded video.
           </>
         )}
-        {kind === 'probing' && <>Contacting {engineOrigin()}…</>}
+        {kind === 'probing' && <>Contacting {worldApiBaseUrl()}…</>}
         {detail ? ` ${detail}` : null}
       </p>
     </div>
