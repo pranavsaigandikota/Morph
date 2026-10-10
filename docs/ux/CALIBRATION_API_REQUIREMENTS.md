@@ -1,40 +1,54 @@
 # Outstanding API requirements — user-guided calibration
 
 **Branch:** `cursor/calibration-user-guided-cd95`  
+**Accepted frontend tip:** `7d0ea97` (user-guided Capture View MOCK shell)  
 **Codex decision:** Automatic fixed-angle calibration = **NO-GO**.
 
-Frontend MOCK shell implements user-guided Capture View with approve / reject / retake, optional soft labels, Skip / Cancel, and a MOCK “restore clean seed” step. Do not invent endpoints to match the shell.
+Frontend MOCK shell at `7d0ea97` is the accepted UI direction. Preserve it. Do **not** invent Capture View endpoints. Do **not** add new calibration UI features until Codex publishes a verified LIVE contract.
 
-## Required for LIVE wiring
+## Current posture
+
+| Item | Status |
+|---|---|
+| User-guided Capture View UI (`7d0ea97`) | **Accepted — preserve** |
+| Invented capture routes | **Forbidden** |
+| LIVE labeling of captures | **Forbidden** until genuine Waypoint frame + SHA-256 work end to end |
+| Adapter wiring | **Wait** for Codex verified LIVE calibration contract |
+| Checkpoint API reuse investigation | **Codex-owned** |
+| Presentation queue / Rescue / Showdown / PPO | **Unchanged** |
+
+## Required for LIVE wiring (Codex publishes; then minimal adapter)
 
 1. **Capture current view**  
-   - Authenticated call that returns the **current genuine Waypoint raw frame** (or durable URL) for the active session.  
-   - Must include `image_sha256` of original bytes.  
-   - Must **not** require the browser to screenshot the canvas as provenance.
+   - Prefer reusing existing spatial-memory checkpoint APIs if Codex verifies them for this use.  
+   - Must return the **current genuine Waypoint raw frame** (or durable URL) + `image_sha256`.  
+   - Must **not** require the browser to screenshot the canvas as provenance.  
+   - No new Capture View endpoints without Codex approval.
 
-2. **Session lifecycle events**  
-   - create / skip / cancel / complete  
-   - capture added / retaken / approved / rejected  
-   - Explicit **restore original seed** before explore (existing `POST /world/reset` acceptable if documented).
+2. **Approve / reject**  
+   - Persisted review that does not mutate image evidence.
 
-3. **Optional soft labels**  
-   - User-assigned tags (`forward`, `right`, …, `unlabeled`) with no claim of measured yaw.  
-   - Backend must not treat labels as commanded camera angles.
+3. **Restore original seed**  
+   - Existing `POST /world/reset` if Codex documents it as the post-calibration path.
 
-4. **Provenance**  
-   - `source: live_waypoint` only when the capture API succeeds.  
-   - MOCK / UI simulations stay `mock_ui`.
+4. **Optional soft labels**  
+   - User-assigned descriptive tags only — not measured yaw / commanded angles.
 
-5. **Presentation queue**  
-   - Leave the validated client presentation queue unchanged until Codex finishes browser scheduling diagnosis.  
-   - Do not ship claims that a four-frame queue improved FPS.
+5. **Provenance**  
+   - `source: live_waypoint` only after end-to-end genuine Waypoint + SHA verification.  
+   - Until then every capture stays `mock_ui` / MOCK-labeled.
 
-## Explicitly out of scope
+6. **Presentation queue**  
+   - Leave unchanged pending Codex browser scheduling diagnosis (separate workstream).
 
-- Automatic rotate-by-N-degrees calibration  
-- Hardcoded camera angles in the frontend  
+## Explicitly out of scope right now
+
+- New Capture View endpoints  
+- New calibration UI features  
+- Automatic rotate-by-N-degrees  
 - Browser screenshot → “LIVE frame” laundering  
-- New undocumented capture routes without Claude/Codex approval  
+- Premature LIVE adapter before Codex contract  
+- Changes to RescueGame, Showdown, or PPO data  
 
 ## Related
 

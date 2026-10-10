@@ -1,11 +1,11 @@
 # Integration checklist — LIVE calibration & visual memory
 
-**UX tip (user-guided calibration):** `cursor/calibration-user-guided-cd95`  
+**UX tip (user-guided calibration):** `cursor/calibration-user-guided-cd95` @ **`7d0ea97`** (accepted frontend direction)  
 **Prior polish freeze:** `cursor/worldshift-ux-polish-cd95` @ `535f02e`  
 
 **Codex decision:** Automatic fixed-angle calibration is **NO-GO**. UI is user-guided Capture View only.
 
-**Status:** No LIVE calibration wiring until Claude’s reviewed contract lands. Presentation queue unchanged pending Codex browser scheduling diagnosis — do not claim four-frame queue improved FPS.
+**Status:** Preserve the `7d0ea97` MOCK shell. Codex is investigating reuse of existing spatial-memory checkpoint APIs for genuine native-720p frames, approval/rejection, and original-seed reset. **No LIVE adapter and no new Capture View endpoints until Codex publishes a verified LIVE calibration contract.** Do not label captures LIVE until Waypoint provenance + SHA-256 work end to end. Presentation queue, RescueGame, Showdown, and PPO data stay unchanged. No new UI features right now.
 
 Do **not** invent capture endpoints, hardcode camera angles, or treat browser screenshots as LIVE raw frames.
 
@@ -139,14 +139,16 @@ Run on Windows with Codex Waypoint on **`:8000`** (preserve RescueGame / Showdow
 ## Gate to unfreeze LIVE calibration wiring
 
 ```
-[ ] Claude reviewed contract in-repo (API_CONTRACT / calibration section)
-[ ] Codex Phase A0 camera-turn + native-720p playback notes published
-[ ] Checklist §§1–7 owners agree adapter mapping
-[ ] Windows acceptance §8 filled
-[ ] Explicit “unfreeze” note on this branch (new commit) before LIVE adapter work
+[x] Accepted UI tip preserved: 7d0ea97 user-guided Capture View (MOCK)
+[ ] Codex publishes verified LIVE calibration contract (checkpoint reuse or approved path)
+[ ] Minimal frontend adapter only — no new Capture View endpoints
+[ ] End-to-end Waypoint frame + SHA-256 before any live_waypoint labels
+[ ] Windows native-720p acceptance §8
+[ ] Presentation queue / Rescue / Showdown / PPO untouched
+[ ] Merge only with approval
 ```
 
-Until then: ship UI as MOCK/shell only; wait.
+Until then: ship UI as MOCK shell only at `7d0ea97`; no adapter work.
 
 ## Related docs
 
