@@ -27,7 +27,8 @@ class SessionRequest(Strict):
 class Control(Strict):
     type: Literal["control"]
     seq: int = Field(ge=0, le=2**53-1, strict=True)
-    keys: list[Literal["w", "a", "s", "d"]] = Field(max_length=4)
+    # "shift" = sprint (Waypoint/Biome button 0x10). Additive; WASD unchanged.
+    keys: list[Literal["w", "a", "s", "d", "shift"]] = Field(max_length=5)
     mouse_dx: float = Field(default=0, ge=-1000, le=1000)
     mouse_dy: float = Field(default=0, ge=-1000, le=1000)
     timestamp_ms: float = Field(ge=0)
@@ -40,4 +41,4 @@ class DisplayAck(Strict):
     client_elapsed_ms: float = Field(ge=0)
 
 
-BUTTONS = {"w": 87, "a": 65, "s": 83, "d": 68}
+BUTTONS = {"w": 87, "a": 65, "s": 83, "d": 68, "shift": 16}

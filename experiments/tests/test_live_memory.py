@@ -152,8 +152,8 @@ class LiveMemoryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.m.navigation_since(9999)['trajectory'], [])
         snap = self.m.snapshot()
         self.assertEqual(snap['trajectory_total'], 2100)
-        self.assertEqual(snap['nav_model']['source'], 'nominal_constant')
-        self.assertEqual(snap['nav_model']['turn_gain'], 'not_established')
+        self.assertEqual(snap['nav_model']['source'], 'held_look_fit_assumed_hfov')
+        self.assertEqual(snap['nav_model']['assumed_hfov_deg'], 90)
 
     async def test_restore_event_epoch_invariant(self):
         """K3: every memory event carries the live service epoch; status precedes recovery_completed."""
@@ -204,12 +204,24 @@ class RequestModelTests(unittest.TestCase):
             Review(session_id='s', approved=True, reason='x' * 201)
 
 
-class NominalConstantsTests(unittest.TestCase):
-    def test_constants_unchanged(self):
-        self.assertEqual(NAV_MODEL['yaw_rad_per_unit'], .002)
+class HeadingModelTests(unittest.TestCase):
+    def test_power_law_turn_and_symmetry(self):
+        from worldshift.memory import look_delta, YAW_GAIN, PAN_EXPONENT
+        self.assertEqual(NAV_MODEL['version'], 2)
+        self.assertEqual(look_delta(0), 0)
+        self.assertAlmostEqual(look_delta(56), -look_delta(-56))
+        # Sub-linear: doubling input less than doubles the turn (fit exponent ~0.49).
+        self.assertLess(look_delta(112), 2 * look_delta(56))
+        # v1 over-rotated: 56 units/batch was 0.112 rad; v2 is several times smaller.
+        self.assertLess(look_delta(56), 0.112 / 4)
         n = Navigation(1)
-        n.apply(['w'], (math.pi / 4 / .002, 0), 1, 1, 1, 60)
+        n.apply(['w'], ((math.pi / 4 / YAW_GAIN) ** (1 / PAN_EXPONENT), 0), 1, 1, 1, 60)
         self.assertAlmostEqual(n.state['x'], math.sqrt(.5))
+
+    def test_shift_alone_does_not_move(self):
+        n = Navigation(1)
+        n.apply(['shift'], (0, 0), 1, 1, 1, 60)
+        self.assertEqual((n.state['x'], n.state['z']), (0, 0))
 
 
 if __name__ == '__main__':

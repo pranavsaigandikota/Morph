@@ -71,6 +71,42 @@ class SceneBackend:
             gc.collect()
             torch.cuda.empty_cache()
 
+    def enhance(self, image, prompt, strength, seed, steps=30):
+        """SDXL img2img on a captured Waypoint frame (shared weights, CPU offload). The result is a separate
+        presentation/anchor image: it can alter structure and never replaces the raw frame as evidence."""
+        import torch
+        from diffusers import StableDiffusionXLImg2ImgPipeline
+        from PIL import ImageOps, Image
+        source = ImageOps.fit(image.convert("RGB"), (1280, 720), method=Image.Resampling.LANCZOS)
+        started = time.perf_counter()
+        # Waypoint shares this process and its caching allocator. Release cached-but-unused blocks first: with
+        # the world loaded, SDXL at 1280x720 otherwise exceeds 16 GB and Windows spills to slow shared memory
+        # (measured 410 s, 15040 MiB peak reserved before this change).
+        gc.collect()
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats()
+        img2img = StableDiffusionXLImg2ImgPipeline(**self.pipe.components)  # from_pipe upcast the UNet to fp32 (10.8 GB, 42 s/step)
+        img2img.set_progress_bar_config(disable=True)
+        try:
+            img2img.enable_model_cpu_offload(gpu_id=0)
+            img2img.vae.enable_tiling()
+            img2img.vae.enable_slicing()
+            out = img2img(prompt="First-person eye-level view, " + prompt + ", sharp focus, highly detailed, clean",
+                          negative_prompt="blurry, smeared, melted, distorted, ghosting, double exposure, low quality",
+                          image=source, strength=strength, num_inference_steps=steps, guidance_scale=5.0,
+                          generator=torch.Generator(device="cpu").manual_seed(seed)).images[0]
+            torch.cuda.synchronize()
+            stats = {"enhance_seconds": time.perf_counter() - started,
+                     "enhance_peak_reserved_mb": torch.cuda.max_memory_reserved() / 2**20}
+            return ImageOps.fit(out.convert("RGB"), (1280, 720), method=Image.Resampling.LANCZOS), stats
+        finally:
+            img2img.maybe_free_model_hooks()
+            del img2img
+            # from_pipe shares modules; restore the base pipeline's offload hook chain for scene generation.
+            self.pipe.enable_model_cpu_offload(gpu_id=0)
+            gc.collect()
+            torch.cuda.empty_cache()
+
     def close(self):
         self.pipe.maybe_free_model_hooks()
         del self.pipe

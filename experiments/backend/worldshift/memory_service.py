@@ -9,11 +9,31 @@ from .service import ROOT
 from .protocol import Strict
 from .memory import Memory
 
+async def prewarm_sdxl(app):
+    """Load SDXL weights (CPU RAM, offload hooks) once Waypoint is ready, so the first anchor capture is fast."""
+    import asyncio, logging
+    from .scenes_backend import SceneBackend
+    s=app.state.service
+    while s.backend is None and s.status!='error':
+        await asyncio.sleep(1)
+    if s.status=='error':return
+    try:
+        async with s.gpu_lock:
+            if app.state.scenes.backend is None:
+                app.state.scenes.backend=await s.gpu(SceneBackend,lambda *a:None)
+        logging.getLogger('worldshift').info('SDXL prewarmed for anchor enhancement')
+    except Exception:
+        logging.getLogger('worldshift').exception('SDXL prewarm failed; enhancement will load on demand')
+
 @asynccontextmanager
 async def lifespan(app):
+    import asyncio, os
     async with combined_lifespan(app):
         app.state.service.visual_memory = Memory(app.state.service, ROOT)
+        app.state.service.visual_memory.scenes = app.state.scenes
+        warm = asyncio.create_task(prewarm_sdxl(app)) if os.environ.get('WORLDSHIFT_PREWARM_SDXL','0')=='1' else None
         yield
+        if warm: await warm
         await app.state.service.visual_memory.finish()
 
 app.router.lifespan_context = lifespan
@@ -39,6 +59,12 @@ class Review(Strict):
     approved: bool
     reviewer: str | None = Field(default=None, max_length=64)
     reason: str | None = Field(default=None, max_length=200)
+class AnchorCapture(Strict):
+    session_id: str
+    label: str = Field(default='Clear view', max_length=100)
+    enhance: bool = True
+    strength: float = Field(default=0.35, ge=0.1, le=0.6)
+    restore_here: bool = False
 class Restore(Strict):
     session_id: str
     checkpoint_id: str
@@ -63,6 +89,10 @@ async def checkpoints(session_id: str):
 async def save(req: Save):
     cal=req.calibration.model_dump() if req.calibration else None
     return await memory(req.session_id).save(req.label,capture_reason=req.capture_reason,calibration=cal)
+
+@app.post('/world/anchors/capture')
+async def capture_anchor(req: AnchorCapture):
+    return await memory(req.session_id).capture_anchor(req.session_id,req.label,req.enhance,req.strength,req.restore_here)
 
 @app.get('/world/navigation')
 async def navigation(session_id: str, trajectory_since: int = Query(default=0, ge=0)):

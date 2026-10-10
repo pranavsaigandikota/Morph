@@ -76,6 +76,12 @@ class Service:
         self.batch_id = 0
         self.task = None
         self.wake = asyncio.Event()
+        # Idle hold: stop generating while there is no input, so a standing view stays still instead of
+        # being regenerated (and drifting). Generation resumes on the next key or mouse input.
+        self.idle_hold = os.environ.get("WORLDSHIFT_IDLE_HOLD", "0") == "1"
+        self.idle_settle = max(1, int(os.environ.get("WORLDSHIFT_IDLE_SETTLE_BATCHES", "3")))
+        self.idle_batches = 0
+        self.idle_holding = False
         self.samples = deque(maxlen=10000)
         self.generated = 0
         self.active_seconds = 0
@@ -108,6 +114,8 @@ class Service:
     def clear_controls(self):
         self.keys, self.mouse = [], [0.0, 0.0]
         self.seq, self.client_ts, self.received_ms, self.last_control = -1, None, 0, 0
+        # Lifecycle transitions (start/reset/restore) always produce fresh frames before any idle hold.
+        self.idle_batches = 0
 
     def seed_path(self, req):
         if req.seed_image_path:
@@ -178,6 +186,13 @@ class Service:
                     self.wake.clear()
                     await self.wake.wait()
                     continue
+                if self.idle_hold and self.idle_batches >= self.idle_settle and not (self.keys or any(self.mouse)):
+                    self.idle_holding = True
+                    self.wake.clear()
+                    with suppress(asyncio.TimeoutError):
+                        await asyncio.wait_for(self.wake.wait(), 0.25)
+                    continue
+                self.idle_holding = False
                 async with self.gpu_lock:
                     if self.status != "running":
                         continue
@@ -190,6 +205,7 @@ class Service:
                     seq, timestamp = self.seq, self.client_ts
                     received = self.received_ms
                     frames, at, inference, transfer, memory = await self.gpu(self.backend.generate, keys, mouse)
+                    self.idle_batches = 0 if (keys or any(mouse)) else self.idle_batches + 1
                     jpeg, encoding_ms = await asyncio.to_thread(encode, frames)
                     self.memory = memory
                     batch_ms = (time.perf_counter()-tick)*1000
@@ -323,9 +339,10 @@ async def health():
             # Additive (World Memory API v1.1). False means absent; never mock a missing capability.
             "capabilities": {"memory_api": memory, "checkpoint_restore": memory,
                              "calibration_capture": memory, "light_navigation": memory,
+                             "idle_hold": s.idle_hold, "sprint_key": True,
                              "calibration_backend": False, "observations": False,
-                             "obstacles": False, "enhancement": False},
-            "contract": "world-memory-v1.1" if memory else None}
+                             "obstacles": False, "enhancement": memory, "anchors": memory},
+            "contract": "world-memory-v1.2" if memory else None}
 
 
 @app.get("/world/metrics")
@@ -408,6 +425,8 @@ async def stream(ws: WebSocket, session_id: str):
                     s.mouse = [max(-1000, min(1000, a+b)) for a, b in zip(s.mouse, (ctrl.mouse_dx, ctrl.mouse_dy))]
                     s.seq, s.client_ts = ctrl.seq, ctrl.timestamp_ms
                     s.last_control = time.perf_counter()
+                    if s.keys or ctrl.mouse_dx or ctrl.mouse_dy:
+                        s.wake.set()
                     s.received_ms = s.last_control*1000
                     sub.put({"type": "control_ack", "seq": ctrl.seq, "timestamp_ms": ctrl.timestamp_ms,
                              "server_received_at_ms": s.received_ms})

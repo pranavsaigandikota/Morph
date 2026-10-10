@@ -11,6 +11,10 @@ $ErrorActionPreference = 'Stop'
 $env:HF_HUB_OFFLINE = '1'
 $env:WORLDSHIFT_EXPERIMENT_MODEL = 'Overworld/Waypoint-1.5-1B'
 $env:WORLDSHIFT_NAV_EVENT_HZ = "$NavEventHz"
+# Freeze the view while the player is idle (no regeneration/drift when standing still).
+$env:WORLDSHIFT_IDLE_HOLD = '1'
+# Load SDXL into RAM at startup so 'capture clear view' (img2img enhancement) responds quickly.
+$env:WORLDSHIFT_PREWARM_SDXL = '1'
 # WebSocket origins are checked server-side; include Cursor dev (4821) and the native720 harness (4834).
 $env:WORLDSHIFT_ORIGINS = @(3000, 4821, 4834 | ForEach-Object { "http://localhost:$_"; "http://127.0.0.1:$_" }) -join ','
 

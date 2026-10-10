@@ -31,13 +31,27 @@ def write_json(path,value):
     temp.write_text(json.dumps(value,indent=2),encoding='utf-8')
     temp.replace(path)
 
-# Arbitrary dead-reckoning constants. Phase A0 (experiment/native720-turn-gain-a0@d7c7435) found NO
-# reliable mouse-to-angle mapping, so yaw is nominal and must never be presented as a measured angle.
-YAW_RAD_PER_UNIT=.002
+# Heading model v2 (ESTIMATED). Fitted on experiment/held-look-ijkl: 1801 steady held batches, 3 scenes,
+# image pan per batch ~= 0.27*|mouse|^0.49 px at 160 px width (sub-linear). Pan is converted to radians with an
+# ASSUMED 90 degree horizontal field of view; no FOV has been measured, so headings are estimates, not angles.
+# The v1 linear 0.002 rad/unit over-rotated the map ~6x versus the visible turn.
+PAN_PX_GAIN=.2697
+PAN_EXPONENT=.494
+ASSUMED_HFOV_RAD=math.pi/2
+YAW_GAIN=PAN_PX_GAIN/160*ASSUMED_HFOV_RAD
 UNITS_PER_SECOND=1.
 NOMINAL_FPS=60
-NAV_MODEL={'version':1,'yaw_rad_per_unit':YAW_RAD_PER_UNIT,'units_per_second':UNITS_PER_SECOND,'nominal_fps':NOMINAL_FPS,'source':'nominal_constant','turn_gain':'not_established','a0_report':'experiment/native720-turn-gain-a0@d7c7435:experiments/a0/PHASE_A0_TURN_GAIN_REPORT.md'}
-CAPTURE_REASONS=('initial_seed','manual','periodic','calibration')
+SPRINT_FACTOR=1.35  # Shift; INFERRED: sprint showed ~1.35x per-batch image change vs walk (Florida, 2 repeats each)
+NAV_MODEL={'version':2,'yaw_model':'power','yaw_gain_rad':YAW_GAIN,'yaw_exponent':PAN_EXPONENT,'assumed_hfov_deg':90,'units_per_second':UNITS_PER_SECOND,'nominal_fps':NOMINAL_FPS,'sprint_factor':SPRINT_FACTOR,'source':'held_look_fit_assumed_hfov','turn_gain':'estimated_from_image_pan','fit_report':'experiment/held-look-ijkl:experiments/held-look/HELD_LOOK_REPORT.md','a0_report':'experiment/native720-turn-gain-a0@d7c7435:experiments/a0/PHASE_A0_TURN_GAIN_REPORT.md'}
+CAPTURE_REASONS=('initial_seed','manual','periodic','calibration','anchor')
+# Raised for player-captured clear-view anchors (raw + enhanced PNG each).
+MAX_CHECKPOINTS=int(os.getenv('WORLDSHIFT_MAX_CHECKPOINTS','128'))
+DISK_BUDGET=int(os.getenv('WORLDSHIFT_MEMORY_DISK_MB','2048'))*1024**2
+MAX_WORLDS=int(os.getenv('WORLDSHIFT_MAX_WORLDS','64'))
+
+def look_delta(units):
+    """Estimated radians for one batch's accumulated mouse units (sign preserved)."""
+    return math.copysign(YAW_GAIN*abs(units)**PAN_EXPONENT,units) if units else 0.
 
 class Navigation:
     def __init__(self,epoch):
@@ -45,13 +59,14 @@ class Navigation:
     def apply(self,keys,mouse,seq,epoch,at,frames=4):
         s=self.state
         dx,dy=mouse
-        s['yaw']=(s['yaw']+dx*YAW_RAD_PER_UNIT+math.pi)%(2*math.pi)-math.pi
-        s['pitch']=max(-math.pi/2,min(math.pi/2,s['pitch']+dy*YAW_RAD_PER_UNIT))
+        s['yaw']=(s['yaw']+look_delta(dx)+math.pi)%(2*math.pi)-math.pi
+        # Pitch uses the same fitted response; vertical look was not separately measured. Positive dy = look down.
+        s['pitch']=max(-math.pi/2,min(math.pi/2,s['pitch']+look_delta(dy)))
         forward=int('w' in keys)-int('s' in keys)
         strafe=int('d' in keys)-int('a' in keys)
         norm=math.hypot(forward,strafe)
         if norm:
-            dt=frames/NOMINAL_FPS*UNITS_PER_SECOND
+            dt=frames/NOMINAL_FPS*UNITS_PER_SECOND*(SPRINT_FACTOR if 'shift' in keys else 1.)
             s['x']+=(forward*math.sin(s['yaw'])+strafe*math.cos(s['yaw']))/norm*dt
             s['z']+=(forward*math.cos(s['yaw'])-strafe*math.sin(s['yaw']))/norm*dt
             s['cumulative_movement']+=dt
@@ -70,6 +85,7 @@ class Memory:
         self.last_save=0.;self.last_event=0.;self.last_turn=0.;self.event_seq=0
         self.lock=asyncio.Lock();self.capture_task=None;self.jobs={};self.enhance_task=None
         self.recovery={'status':'idle','error':None}
+        self.scenes=None;self.anchor_busy=False
     def find(self,sid):
         self.s.find(sid)
         if not self.world or self.world['session_id']!=sid:
@@ -83,7 +99,7 @@ class Memory:
             # Never evict a JPEG/credit just to send optional memory telemetry.
             if sub.queue.qsize()<6:sub.queue.put_nowait(event)
     def preflight_start(self):
-        if len(list(self.root.glob('*/world.json')))>=8:
+        if len(list(self.root.glob('*/world.json')))>=MAX_WORLDS:
             raise HTTPException(507,'Memory world-folder quota reached; archive old experiment evidence before starting')
     async def finish(self):
         if self.capture_task:await self.capture_task
@@ -132,10 +148,10 @@ class Memory:
                 if not self.latest:raise HTTPException(409,'No generated frame available')
                 raw,meta,pose=self.latest
             world=self.world
-            if len(world['checkpoints'])>=32:raise HTTPException(507,'Checkpoint quota32 reached')
+            if len(world['checkpoints'])>=MAX_CHECKPOINTS:raise HTTPException(507,f'Checkpoint quota {MAX_CHECKPOINTS} reached')
             folder=self.root/world['world_id']
             total=sum(p.stat().st_size for p in self.root.glob('*/*') if p.is_file())
-            if total+len(raw)>256*1024**2:raise HTTPException(507,'Memory disk budget256MiB reached')
+            if total+len(raw)>DISK_BUDGET:raise HTTPException(507,'Memory disk budget reached')
             quality=await asyncio.to_thread(inspect_image,raw)
             if quality['status']=='invalid_uniform':raise HTTPException(422,{'message':'Image rejected','quality':quality})
             if self.world is not world:raise HTTPException(409,'World changed during capture')
@@ -162,7 +178,7 @@ class Memory:
         if not file.is_file():raise HTTPException(404,'Image variant unavailable')
         return file
     def snapshot(self):
-        return {**self.world,'epoch':self.s.epoch,'navigation':dict(self.nav.state),'trajectory':list(self.trajectory),'trajectory_offset':self.trajectory_total-len(self.trajectory),'trajectory_total':self.trajectory_total,'recovery':self.recovery,'nav_model':dict(NAV_MODEL),'limits':{'checkpoints':32,'trajectory_points':2048,'disk_mb':256,'world_folders':8,'checkpoint_seconds':self.interval,'nav_event_hz':round(1/self.event_period,3)}}
+        return {**self.world,'epoch':self.s.epoch,'navigation':dict(self.nav.state),'trajectory':list(self.trajectory),'trajectory_offset':self.trajectory_total-len(self.trajectory),'trajectory_total':self.trajectory_total,'recovery':self.recovery,'nav_model':dict(NAV_MODEL),'limits':{'checkpoints':MAX_CHECKPOINTS,'trajectory_points':2048,'disk_mb':DISK_BUDGET//1024**2,'world_folders':MAX_WORLDS,'checkpoint_seconds':self.interval,'nav_event_hz':round(1/self.event_period,3)}}
     def navigation_since(self,since):
         """Light read: current pose plus trajectory points with absolute index >= since."""
         offset=self.trajectory_total-len(self.trajectory)
@@ -206,3 +222,45 @@ class Memory:
             except Exception as exc:
                 s.status='error';s.error=str(exc);self.recovery={'status':'failed','error':str(exc)}
                 self.emit('recovery_failed',dict(self.recovery));raise HTTPException(503,str(exc)) from exc
+
+    async def capture_anchor(self,sid,label='Clear view',enhance=True,strength=.35,restore_here=False):
+        """Player-captured clear-view anchor at the current ESTIMATED pose: raw frame (evidence) + optional SDXL
+        img2img enhanced variant (presentation/anchor). The player's action is the approval. Enhancement pauses
+        Waypoint generation (shared GPU lock) for a few seconds."""
+        s=self.s;self.find(sid)
+        if self.anchor_busy:raise HTTPException(409,'Anchor capture already running')
+        if s.lifecycle_lock.locked():raise HTTPException(409,'Lifecycle action active')
+        if not self.latest:raise HTTPException(409,'No generated frame available')
+        self.anchor_busy=True
+        try:
+            cp=await self.save(label,capture_reason='anchor')
+            if enhance:
+                from .scenes_backend import SceneBackend,MODEL as SDXL_MODEL,REVISION as SDXL_REVISION
+                world=self.world;folder=self.root/world['world_id'];cid=cp['checkpoint_id']
+                raw=await asyncio.to_thread((folder/(cid+'.raw')).read_bytes)
+                with Image.open(io.BytesIO(raw)) as im:source=im.convert('RGB')
+                seed=int.from_bytes(os.urandom(4),'little')
+                self.emit('checkpoint_updated',{'checkpoint':cp,'status':'enhancing'})
+                async with s.gpu_lock:
+                    if self.scenes.backend is None:
+                        self.scenes.backend=await s.gpu(SceneBackend,lambda *a:None)
+                    image,stats=await s.gpu(self.scenes.backend.enhance,source,world['prompt'],strength,seed)
+                    s.memory=await s.gpu(s.backend.memory)
+                path=folder/(cid+'.enhanced.png')
+                await asyncio.to_thread(image.save,path)
+                data=await asyncio.to_thread(path.read_bytes)
+                async with self.lock:
+                    cp['enhanced_image_url']=f"/world/checkpoints/{cid}/image?session_id={world['session_id']}&variant=enhanced"
+                    cp['enhancement_status']='ready'
+                    cp['enhancement']={'model':SDXL_MODEL,'revision':SDXL_REVISION,'method':'img2img','strength':strength,'steps':30,'seed':seed,
+                        'source_image_sha256':cp['image_sha256'],'enhanced_image_sha256':hashlib.sha256(data).hexdigest(),**stats,
+                        'limitations':['AI-enhanced; may alter structure','Presentation/anchor image, not raw evidence']}
+                    await asyncio.to_thread(write_json,folder/'world.json',world)
+            cp=await self.review(cp['checkpoint_id'],True,'player','captured as clear-view anchor')
+        finally:
+            self.anchor_busy=False
+        restored=None
+        if restore_here and enhance:
+            from types import SimpleNamespace
+            restored=await self.restore(SimpleNamespace(session_id=sid,checkpoint_id=cp['checkpoint_id'],variant='enhanced',accept_unreviewed=False))
+        return {'checkpoint':cp,'restored':restored}

@@ -20,7 +20,8 @@ class NavigationTests(unittest.TestCase):
         n.apply(['w','d'],(0,0),1,1,1,60)
         self.assertAlmostEqual(math.hypot(n.state['x'],n.state['z']),1)
         n=Navigation(1)
-        n.apply(['w'],(math.pi/4/.002,0),1,1,1,60)
+        from worldshift.memory import YAW_GAIN, PAN_EXPONENT
+        n.apply(['w'],((math.pi/4/YAW_GAIN)**(1/PAN_EXPONENT),0),1,1,1,60)
         self.assertAlmostEqual(n.state['x'],math.sqrt(.5))
         self.assertLess(n.state['confidence'],1)
     def test_uniform_is_rejected_not_certified_clean(self):
