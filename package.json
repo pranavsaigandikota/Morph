@@ -21,8 +21,7 @@
     "test:stability": "tsx scripts/verify-stability-mode.mjs",
     "test:world-memory": "tsx scripts/verify-world-memory.mjs",
     "test:hq-starters": "tsx scripts/verify-hq-starters.mjs",
-    "test:calibration-ui": "tsx scripts/verify-calibration-ui.mjs",
-    "test:calibration-live": "tsx scripts/verify-calibration-live.mjs"
+    "test:calibration-ui": "tsx scripts/verify-calibration-ui.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

@@ -15,15 +15,6 @@ import {
   stopSession,
 } from './worldSessions.ts'
 import { attachWaypointStream, isEngineBusy } from './waypointStream.ts'
-import {
-  discardWorldMemory,
-  getCheckpoint,
-  getCheckpointImage,
-  listCheckpoints,
-  noteSessionReset,
-  reviewCheckpoint,
-  saveCheckpoint,
-} from './mockCheckpoints.ts'
 
 const PORT = Number(process.env.MOCK_API_PORT ?? 4822)
 
@@ -93,84 +84,11 @@ app.post('/world/start', (req, res) => {
 
 app.post('/world/reset', (req, res) => {
   const sessionId = String(req.body?.session_id ?? '')
-  const result = sessionId ? resetSession(sessionId) : { ok: false as const }
-  if (!result.ok) {
+  if (!sessionId || !resetSession(sessionId)) {
     res.status(404).json({ error: 'session_not_found' })
     return
   }
-  noteSessionReset(sessionId)
-  // Validated reset lifecycle: epoch advanced, controls cleared, stale JPEGs discarded.
-  res.json({
-    session_id: sessionId,
-    status: 'ready',
-    epoch: result.epoch,
-    mock: true,
-    seed_restored: true,
-  })
-})
-
-/**
- * MOCK spatial-memory checkpoint routes (contract-compatible shapes).
- * Captures are MockWaypointEngine JPEGs — health.mock:true; never live_waypoint.
- */
-app.get('/world/checkpoints', (req, res) => {
-  const sessionId = String(req.query.session_id ?? '')
-  const listed = sessionId ? listCheckpoints(sessionId) : null
-  if (!listed) {
-    res.status(404).json({ error: 'Unknown memory session' })
-    return
-  }
-  res.json(listed)
-})
-
-app.post('/world/checkpoints/save', (req, res) => {
-  const sessionId = String(req.body?.session_id ?? '')
-  const label = String(req.body?.label ?? 'Manual checkpoint')
-  const result = saveCheckpoint(sessionId, label)
-  if ('error' in result) {
-    res.status(result.status).json({ error: result.error })
-    return
-  }
-  res.json(result.checkpoint)
-})
-
-app.get('/world/checkpoints/:checkpointId', (req, res) => {
-  const sessionId = String(req.query.session_id ?? '')
-  const cp = getCheckpoint(sessionId, req.params.checkpointId)
-  if (!cp) {
-    res.status(404).json({ error: 'Checkpoint not in current world' })
-    return
-  }
-  res.json(cp)
-})
-
-app.get('/world/checkpoints/:checkpointId/image', (req, res) => {
-  const sessionId = String(req.query.session_id ?? '')
-  const variant = String(req.query.variant ?? 'raw')
-  const img = getCheckpointImage(sessionId, req.params.checkpointId, variant)
-  if (img === 'missing_variant') {
-    res.status(404).json({ error: 'Image variant unavailable' })
-    return
-  }
-  if (!img) {
-    res.status(404).json({ error: 'Checkpoint not in current world' })
-    return
-  }
-  res.setHeader('Content-Type', 'image/jpeg')
-  res.setHeader('Cache-Control', 'no-store')
-  res.setHeader('X-WorldShift-Mock', '1')
-  res.send(img)
-})
-
-app.post('/world/checkpoints/:checkpointId/review', (req, res) => {
-  const sessionId = String(req.body?.session_id ?? '')
-  const approved = Boolean(req.body?.approved)
-  const result = reviewCheckpoint(sessionId, req.params.checkpointId, approved)
-  if ('error' in result) {
-    res.status(result.status).json({ error: result.error })
-    return
-  }
-  res.json(result.checkpoint)
+  res.json({ session_id: sessionId, status: 'ready' })
 })
 
 app.post('/world/stop', (req, res) => {
@@ -179,7 +97,6 @@ app.post('/world/stop', (req, res) => {
     res.status(404).json({ error: 'session_not_found' })
     return
   }
-  discardWorldMemory(sessionId)
   res.json({ session_id: sessionId, status: 'stopped' })
 })
 

@@ -11,37 +11,11 @@
 
 const DEFAULT_ENGINE = 'http://127.0.0.1:8000'
 
-function viteEnv(key: string): string | undefined {
-  try {
-    const env = (import.meta as ImportMeta & { env?: Record<string, unknown> }).env
-    const v = env?.[key]
-    if (v == null) return undefined
-    if (typeof v === 'boolean') return v ? 'true' : 'false'
-    const s = String(v)
-    return s.length ? s : undefined
-  } catch {
-    return undefined
-  }
-}
-
-function nodeEnv(key: string): string | undefined {
-  try {
-    const proc = (globalThis as { process?: { env?: Record<string, string | undefined> } })
-      .process
-    const v = proc?.env?.[key]
-    return v != null && String(v).length ? String(v) : undefined
-  } catch {
-    return undefined
-  }
-}
-
 /** Absolute backend origin (Codex on the user's PC). */
 export function worldApiBaseUrl(): string {
   const raw =
-    viteEnv('VITE_WORLD_API_BASE_URL') ||
-    viteEnv('VITE_ENGINE_ORIGIN') ||
-    nodeEnv('VITE_WORLD_API_BASE_URL') ||
-    nodeEnv('VITE_ENGINE_ORIGIN') ||
+    import.meta.env.VITE_WORLD_API_BASE_URL ||
+    import.meta.env.VITE_ENGINE_ORIGIN ||
     DEFAULT_ENGINE
   return String(raw).replace(/\/$/, '')
 }
@@ -56,22 +30,14 @@ export function engineOrigin(): string {
  * to localhost:8000 from the Vite origin. Production / direct mode uses the absolute URL.
  */
 export function engineHttpBase(): string {
-  const override = viteEnv('VITE_ENGINE_HTTP') || nodeEnv('VITE_ENGINE_HTTP')
-  if (override) return override
-  // Browser Vite dev uses /engine proxy; Node scripts use absolute origin.
-  try {
-    const env = (import.meta as ImportMeta & { env?: { DEV?: boolean } }).env
-    if (typeof window !== 'undefined' && env?.DEV) return '/engine'
-  } catch {
-    /* Node */
-  }
+  if (import.meta.env.VITE_ENGINE_HTTP) return import.meta.env.VITE_ENGINE_HTTP
+  if (import.meta.env.DEV) return '/engine'
   return worldApiBaseUrl()
 }
 
 export function engineWsUrl(pathWithQuery: string): string {
-  const wsOverride = viteEnv('VITE_ENGINE_WS') || nodeEnv('VITE_ENGINE_WS')
-  if (wsOverride) {
-    return `${String(wsOverride).replace(/\/$/, '')}${pathWithQuery}`
+  if (import.meta.env.VITE_ENGINE_WS) {
+    return `${String(import.meta.env.VITE_ENGINE_WS).replace(/\/$/, '')}${pathWithQuery}`
   }
   const http = engineHttpBase()
   if (http.startsWith('http://') || http.startsWith('https://')) {
@@ -79,13 +45,8 @@ export function engineWsUrl(pathWithQuery: string): string {
     const proto = u.protocol === 'https:' ? 'wss:' : 'ws:'
     return `${proto}//${u.host}${pathWithQuery}`
   }
-  const proto =
-    typeof window !== 'undefined' && window.location.protocol === 'https:'
-      ? 'wss:'
-      : 'ws:'
-  const host =
-    typeof window !== 'undefined' ? window.location.host : '127.0.0.1'
-  return `${proto}//${host}${http.replace(/\/$/, '')}${pathWithQuery}`
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${proto}//${window.location.host}${http.replace(/\/$/, '')}${pathWithQuery}`
 }
 
 export function streamUrl(sessionId: string): string {

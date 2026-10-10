@@ -53,15 +53,10 @@ export function createMockCalibrationSession(opts: {
     phase: 'world_created',
     captures: [],
     source: 'mock',
-    transport: 'mock',
-    engineSessionId: null,
-    engineIsMock: true,
     seedRestoreRequired: true,
     seedRestoreDone: false,
-    restoredEpoch: null,
     createdAtMs: Date.now(),
     completedAtMs: null,
-    lastError: null,
     policy: {
       automaticFixedAngleCalibration: 'no-go',
       captureMode: 'user_guided_visual',
@@ -81,7 +76,6 @@ export function mockCaptureCurrentView(
   return {
     id: `cap_${Date.now().toString(36)}_${layoutIndex}`,
     suggestedLabel,
-    labelText: suggestedLabel === 'unlabeled' ? 'Manual checkpoint' : suggestedLabel,
     imageUrl: mockGuidedCaptureSvg(suggestedLabel, layoutIndex),
     capturedAtMs: Date.now(),
     source: 'mock_ui',
@@ -89,16 +83,10 @@ export function mockCaptureCurrentView(
     reviewStatus: 'pending',
     confidence: null,
     layoutIndex,
-    frameId: null,
-    sessionId: null,
-    worldId: null,
-    epoch: null,
-    navigationSegmentId: null,
-    provenance: null,
   }
 }
 
-const STORAGE_KEY = 'ws_calibration_session_v3'
+const STORAGE_KEY = 'ws_calibration_session_v2'
 
 export function persistCalibrationSession(session: CalibrationSession): void {
   try {
@@ -110,25 +98,14 @@ export function persistCalibrationSession(session: CalibrationSession): void {
 
 export function loadCalibrationSession(): CalibrationSession | null {
   try {
-    const raw =
-      sessionStorage.getItem(STORAGE_KEY) ??
-      sessionStorage.getItem('ws_calibration_session_v2')
+    const raw = sessionStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as CalibrationSession
     // Reject legacy v1 auto-angle sessions (missing policy / seedRestore fields).
     if (!parsed.policy || parsed.policy.automaticFixedAngleCalibration !== 'no-go') {
       return null
     }
-    // Normalize fields added for LIVE wiring.
-    return {
-      ...parsed,
-      transport: parsed.transport ?? 'mock',
-      engineSessionId: parsed.engineSessionId ?? null,
-      engineIsMock: parsed.engineIsMock ?? (parsed.source === 'mock' ? true : null),
-      restoredEpoch: parsed.restoredEpoch ?? null,
-      lastError: parsed.lastError ?? null,
-      source: parsed.source === 'live' ? 'live' : 'mock',
-    }
+    return parsed
   } catch {
     return null
   }
@@ -137,7 +114,6 @@ export function loadCalibrationSession(): CalibrationSession | null {
 export function clearCalibrationSession(): void {
   try {
     sessionStorage.removeItem(STORAGE_KEY)
-    sessionStorage.removeItem('ws_calibration_session_v2')
     sessionStorage.removeItem('ws_calibration_session_v1')
   } catch {
     /* ignore */

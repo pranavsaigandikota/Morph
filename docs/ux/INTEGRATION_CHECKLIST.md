@@ -5,9 +5,9 @@
 
 **Codex decision:** Automatic fixed-angle calibration is **NO-GO**. UI is user-guided Capture View only.
 
-**Status:** Capture View wired to existing checkpoint + reset APIs — see `docs/ux/CALIBRATION_LIVE_CONTRACT.md`. Presentation queue unchanged pending Codex browser scheduling diagnosis — do not claim four-frame queue improved FPS.
+**Status:** No LIVE calibration wiring until Claude’s reviewed contract lands. Presentation queue unchanged pending Codex browser scheduling diagnosis — do not claim four-frame queue improved FPS.
 
-Do **not** invent capture endpoints, hardcode camera angles, or treat browser screenshots as LIVE raw frames. `live_waypoint` only when a non-mock engine save returns raw SHA provenance.
+Do **not** invent capture endpoints, hardcode camera angles, or treat browser screenshots as LIVE raw frames.
 
 ---
 
@@ -16,7 +16,7 @@ Do **not** invent capture endpoints, hardcode camera angles, or treat browser sc
 | Surface | Keep |
 |---|---|
 | Explorer | Large 16:9 canvas, collapsible diagnostics, phase chips |
-| Calibration | Optional `/calibrate` — **user-guided** Capture View via checkpoints/save; approve/reject/retake; Skip/Cancel; `/world/reset` before explore |
+| Calibration | Optional MOCK `/calibrate` — **user-guided** Capture View; approve/reject/retake; Skip/Cancel; restore clean seed before explore |
 | Memory | Estimated map + gallery (calibration / checkpoints / approved / rejected) |
 | Labels | LIVE / MOCK / EXPERIMENTAL separation |
 | Brand | Hugging Face attribution + model cards |
@@ -30,14 +30,14 @@ Product visual target remains **native 1280×720 only** (`docs/PRODUCT_NATIVE_72
 
 | # | Check | Owner | Done when |
 |---|---|---|---|
-| 1.1 | Contract defines **user-guided** lifecycle: create → scan → capture* → review → **restore seed** → complete \| skip \| cancel | Frontend | `CALIBRATION_LIVE_CONTRACT.md` |
-| 1.2 | Frontend maps UI phases 1:1 — no invented transitions; **no automatic fixed-angle turns** | Frontend | `CalibrationFlow.tsx` |
-| 1.3 | Skip / Cancel are client-local outcomes (documented; no new lifecycle routes) | Frontend | Contract + UI hooks |
-| 1.4 | Capture View = `POST /world/checkpoints/save` — never browser screenshot as proof | Frontend | `checkpointApi.ts` |
-| 1.5 | Suggested direction labels optional — not measured headings / not turn targets | Frontend | Soft label → checkpoint `label` |
-| 1.6 | After calibration, restore original clean seed via `POST /world/reset` | Frontend | `restoreOriginalSeed()` |
+| 1.1 | Contract defines **user-guided** lifecycle: create → scan → capture* → review → **restore seed** → complete \| skip \| cancel | Claude | Reviewed DTO + state machine |
+| 1.2 | Frontend maps UI phases 1:1 — no invented transitions; **no automatic fixed-angle turns** | Frontend | Adapter table in PR |
+| 1.3 | Skip / Cancel emit explicit backend-acknowledged outcomes (or documented no-op) | Claude + Frontend | Contract + UI hook |
+| 1.4 | Capture View requests current genuine Waypoint frame via verified API — never browser screenshot as proof | Codex + Frontend | Contract + acceptance |
+| 1.5 | Suggested direction labels optional — not measured headings / not turn targets | Claude | Soft label enum |
+| 1.6 | After calibration, restore original clean seed before explore (`/world/reset` or approved equivalent) | Codex + Frontend | Wired only after contract |
 
-**Modules:** `calibrationClient.ts`, `checkpointApi.ts`, `CalibrationFlow.tsx`, `mockCalibration.ts`.
+**UI today (MOCK only):** `src/types/calibration.ts`, `CalibrationFlow.tsx`, `mockCalibration.ts`.
 
 ---
 
@@ -127,7 +127,7 @@ Run on Windows with Codex Waypoint on **`:8000`** (preserve RescueGame / Showdow
 | 8.2 | WASD + mouse-look for ≥60–120 s; Gen/Disp FPS near Codex Phase A0 baseline | ☐ |
 | 8.3 | Phase A0 camera-turn test recorded (Codex) — frontend does not invent turn APIs beforehand | ☐ |
 | 8.4 | Pause / Resume / Refresh World (`/world/reset`) / Disconnect behave per contract | ☐ |
-| 8.5 | LIVE calibration captures show real provenance + SHA on GPU backend; MOCK / mock-engine path still labeled | ☐ GPU handoff |
+| 8.5 | After Claude contract: LIVE calibration captures show real provenance + SHA; MOCK path still labeled | ☐ |
 | 8.6 | Gallery restore blocked for unsuitable anchors; Start / approved SDXL restore OK when supported | ☐ |
 | 8.7 | Map shows estimated pose only — no geographic/physical claims | ☐ |
 | 8.8 | Rescue Mission five missions + Showdown rates unchanged | ☐ |
@@ -136,24 +136,23 @@ Run on Windows with Codex Waypoint on **`:8000`** (preserve RescueGame / Showdow
 
 ---
 
-## Gate status — calibration checkpoint wiring
+## Gate to unfreeze LIVE calibration wiring
 
 ```
-[x] Contract published: docs/ux/CALIBRATION_LIVE_CONTRACT.md (reuses checkpoints + /world/reset)
-[x] Frontend adapter: calibrationClient / checkpointApi / CalibrationFlow
-[x] Mock-engine lifecycle tests: npm run test:calibration-live
-[ ] Windows GPU native-720p: Capture→Review→Reset→Explore with live_waypoint
-[ ] Codex Phase A0 camera-turn + browser scheduling diagnosis (separate; do not mix)
-[ ] Merge approval
+[ ] Claude reviewed contract in-repo (API_CONTRACT / calibration section)
+[ ] Codex Phase A0 camera-turn + native-720p playback notes published
+[ ] Checklist §§1–7 owners agree adapter mapping
+[ ] Windows acceptance §8 filled
+[ ] Explicit “unfreeze” note on this branch (new commit) before LIVE adapter work
 ```
+
+Until then: ship UI as MOCK/shell only; wait.
 
 ## Related docs
 
-- `docs/ux/CALIBRATION_LIVE_CONTRACT.md`  
 - `docs/ux/FRONTEND_UX_HANDOFF.md`  
 - `docs/ux/API_QUESTIONS_FOR_CLAUDE.md`  
 - `docs/ux/CODEX_HANDOFF.md`  
 - `docs/PRODUCT_NATIVE_720P.md`  
 - `docs/codex/ADAPTER_FREEZE.md`  
 - `docs/world-memory/HQ_STARTER_APPROVAL.md`  
-
