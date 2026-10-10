@@ -1,0 +1,6 @@
+import original from './vite.config.ts';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+const root='C:/Users/filma/Documents/Codex/2026-10-10/wo/outputs/native720';
+const base=original({mode:'development',command:'serve'});
+export default {...base,server:{...base.server,host:'127.0.0.1',port:4834,strictPort:true,proxy:{'/engine':{target:'http://127.0.0.1:8002',changeOrigin:true,ws:true,rewrite:p=>p.replace(/^\/engine/,''),headers:{Origin:'http://127.0.0.1:3000'}}}},plugins:[...base.plugins,{name:'local-quality-evidence',configureServer(server){server.middlewares.use('/__benchmark/v1/save',async(req,res)=>{try{if(req.method!=='POST')throw Error('POST required');let text='';for await(const b of req){text+=b;if(text.length>5000000)throw Error('Too large')}const b=JSON.parse(text);if(!/^[a-z0-9_-]+$/.test(b.run)||! /^[a-z0-9_-]+\.(json|jpg|png)$/.test(b.name))throw Error('Invalid evidence filename');const dir=path.join(root,b.run);await fs.mkdir(dir,{recursive:true});const file=path.join(dir,b.name);await fs.writeFile(file,b.base64?Buffer.from(b.base64,'base64'):JSON.stringify(b.data,null,2));res.setHeader('Content-Type','application/json');res.end(JSON.stringify({path:file}));}catch(e){res.statusCode=400;res.end(JSON.stringify({error:String(e)}))}})}}]};

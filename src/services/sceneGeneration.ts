@@ -250,7 +250,7 @@ export async function generateScene(
 
   onProgress?.({stage:'submitting',percent:5,message:'Submitting to local SDXL Turbo…'})
   const submitted=await sceneRequest('/scenes/generate',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({prompt:trimmed,style,seed:options.seed??null,steps:4,perspective:'first_person'})})
+    body:JSON.stringify({prompt:trimmed,style,seed:options.seed??null,steps:30,perspective:'first_person'})})
   for(;;) {
     const job=await sceneRequest(submitted.poll_url)
     if(job.status==='error') throw new Error(job.error||'SDXL generation failed')

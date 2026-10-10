@@ -1,0 +1,10 @@
+<!doctype html><meta charset="utf-8"><title>WorldShift isolated GPU recovery evaluation</title>
+<style>body{background:#10151b;color:#eee;font:16px system-ui;margin:20px}canvas{width:960px;max-width:100%;image-rendering:auto}button,input,select{font:inherit;margin:8px;padding:8px}pre{white-space:pre-wrap}#notice{color:#7fffd4}</style>
+<h1>LIVE Waypoint recovery benchmark — isolated prototype</h1>
+<p>Scripted controls; generated JPEGs only. Retains last displayed frame during explicit environment transitions. No spatial-continuity claim.</p>
+<label>Saved scene ID <input id="seed" value="3629cb4116a04816accfbb8928027436" size="36"></label>
+<label>Recovery <select id="mode"><option value="none">No recovery</option><option value="original">Original reset</option><option value="anchor">Last-good frame (first 1s after each initialization)</option><option value="fresh">Fresh SDXL seed</option><option value="saved">Alternate saved seed</option></select></label>
+<label>Trajectory <select id="trajectory"><option>mixed</option><option>forward</option><option>stationary</option><option>slow</option><option>rapid</option></select></label>
+<button id="run">Run 60-second comparison</button><button id="refresh">Refresh World</button><button id="stop">Stop</button><div id="notice"></div>
+<canvas id="video" width="640" height="360"></canvas><pre id="stats">Ready. Keep this browser visible for canvas measurements.</pre>
+<script type="module" src="/recovery-benchmark.js"></script>

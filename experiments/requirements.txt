@@ -1,0 +1,12 @@
+# Reuse verified GPU environment. Do NOT reinstall Torch/world_engine for this prototype.
+fastapi==0.143.0
+uvicorn==0.54.0
+websockets==16.1.1
+httpx==0.28.1
+pillow==12.3.0
+numpy==2.2.6
+pydantic==2.14.0
+diffusers==0.41.0
+accelerate==1.12.0
+transformers==5.19.0
+huggingface-hub==1.33.0

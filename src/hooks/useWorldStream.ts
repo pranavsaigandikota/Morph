@@ -357,7 +357,7 @@ export function useWorldStream() {
               proofRef.current.last_frame_id=0; proofRef.current.epoch=msg.epoch
             }
             if (msg.type === 'hello') {
-              const hello = { ...msg, session_id:sessionId,engine:'Waypoint FP8',width:640,height:360,
+              const hello = { ...msg, session_id:sessionId,engine:'Waypoint native 720P FP8',width:1280,height:720,
                 temporal_compression:4,mock:false } as WaypointHello
               sessionIdRef.current = hello.session_id
               mockRef.current = !!hello.mock || /mock/i.test(hello.engine)

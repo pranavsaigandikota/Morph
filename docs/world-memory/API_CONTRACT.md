@@ -2,6 +2,8 @@
 
 Implementation branch: `feature/worldshift-spatial-memory-backend`. Backend8002, Vite4834; `/engine` proxies8002. Existing accepted8000/4821 remains separate. Cursor owns frontend integration. This contract is published before integration; test status belongs in RESULTS.md, not implied by these examples.
 
+Implementation status (2026-10-10): checkpoint saving, raw images, estimated navigation, review, manual raw restoration and recovery GET are implemented and GPU-tested in isolation. HIGH SDXLBase is implemented; `quality:"high"` is the sole supported selector in this checkpoint. FAST remains available on the accepted8000 fallback, not through this selector yet. Enhancement endpoints and remembered-view suggestions below are PLANNED, not callable. Obstacle schema is separately PROPOSED for Cursor review and has no live API fields. Do not mock planned operations as LIVE or assume map UI has been integrated by Cursor.
+
 ## Existing protocol
 
 `POST /world/start {scene_id,seed_image_path:null,prompt}` returns `{session_id,status:"starting",prompt_conditioning:false,prompt_status:"metadata_only"}`. Native model is `Overworld/Waypoint-1.5-1B`, FP8,1280×720. Waypoint does not interpret text. `POST /world/pause|resume|reset|stop {session_id}` remains supported. Reset restores the original seed using the same session, increments epoch and clears controls/credits. Stop/start means a new world with unrelated navigation; it never silently joins paths.

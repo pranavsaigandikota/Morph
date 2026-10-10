@@ -1,0 +1,10 @@
+backend/assets/
+backend/models/
+backend/results/
+backend/saved_scenes/
+backend/world_memory/
+tests/__pycache__/
+backend/worldshift/__pycache__/
+*.log
+*.pid
+*.err
