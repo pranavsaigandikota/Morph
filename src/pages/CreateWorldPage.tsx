@@ -178,6 +178,17 @@ export function CreateWorldPage() {
               />
             </label>
 
+            <label className="mt-4 flex cursor-not-allowed items-start gap-2 rounded-xl border border-line/70 bg-ink/40 px-3 py-2.5 opacity-70">
+              <input type="checkbox" disabled className="mt-0.5" />
+              <span>
+                <span className="text-sm font-semibold text-soft">High Quality generation</span>
+                <span className="mt-0.5 block text-xs text-muted">
+                  Unavailable until Codex publishes the world-memory / HQ create contract. Current
+                  Generate World keeps the verified SDXL path — not relabeled as HQ.
+                </span>
+              </span>
+            </label>
+
             <div className="mt-5 flex flex-wrap gap-2">
               <button
                 type="button"

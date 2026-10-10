@@ -18,7 +18,8 @@
     "test:rescue": "tsx scripts/verify-rescue-mission.mjs",
     "test:rescue-keys": "node scripts/verify-rescue-discrete-keys.mjs",
     "test:look": "tsx scripts/verify-look-control.mjs",
-    "test:stability": "tsx scripts/verify-stability-mode.mjs"
+    "test:stability": "tsx scripts/verify-stability-mode.mjs",
+    "test:world-memory": "tsx scripts/verify-world-memory.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

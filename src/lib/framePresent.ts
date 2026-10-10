@@ -34,7 +34,8 @@ export function drawClearFrame(
   }
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
-  ctx.filter = 'contrast(1.12) saturate(1.06) brightness(1.03)'
+  // Light clarity only — avoid aggressive sharpening / halos on 360p.
+  ctx.filter = 'contrast(1.04) saturate(1.02)'
   ctx.drawImage(img, 0, 0, width, height)
   ctx.filter = 'none'
 }

@@ -4,7 +4,7 @@ import {
   EngineConnectionBanner,
   type EngineConnectionKind,
 } from '../components/world/EngineConnectionBanner'
-import { WorldViewer } from '../components/world/WorldViewer'
+import { WorldExplorerShell } from '../components/worldMemory/WorldExplorerShell'
 import { WORLD_SCENES } from '../data/scenes'
 import { useWorldStream } from '../hooks/useWorldStream'
 import { worldApiBaseUrl } from '../services/engineConfig'
@@ -123,8 +123,14 @@ export function WorldExplorerPage() {
   }, [connKind, seedFromCreate])
 
   if (active || stream.hasFrame) {
+    const worldName =
+      switchableWorlds.find((w) => w.seed === stream.activeSeed)?.label ||
+      scene.title ||
+      'WorldShift'
     return (
-      <WorldViewer
+      <WorldExplorerShell
+        worldName={worldName}
+        promptSummary={promptFromCreate || scene.prompt}
         hasFrame={stream.hasFrame}
         meta={stream.meta}
         metrics={stream.metrics}
@@ -153,6 +159,8 @@ export function WorldExplorerPage() {
         worlds={switchableWorlds}
         activeSeed={stream.activeSeed}
         onSwitchWorld={(seed) => void stream.switchWorld(seed)}
+        sessionId={stream.sessionId}
+        streamEpochHint={stream.meta?.epoch ?? 0}
       />
     )
   }

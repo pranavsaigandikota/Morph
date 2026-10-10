@@ -53,6 +53,8 @@ interface Props {
   worlds?: SwitchableWorld[]
   activeSeed?: string | null
   onSwitchWorld?: (seed: string | null) => void
+  /** When true, video sits in a page shell (map below) instead of filling the viewport. */
+  embedded?: boolean
 }
 
 export function WorldViewer({
@@ -84,8 +86,9 @@ export function WorldViewer({
   worlds,
   activeSeed,
   onSwitchWorld,
+  embedded = false,
 }: Props) {
-  const [helpOpen, setHelpOpen] = useState(true)
+  const [helpOpen, setHelpOpen] = useState(!embedded)
   const [fullscreen, setFullscreen] = useState(false)
 
   const live =
@@ -133,7 +136,11 @@ export function WorldViewer({
     <div
       className={clsx(
         'relative flex flex-col bg-void',
-        fullscreen ? 'h-screen' : 'h-[calc(100vh-3.5rem)]',
+        fullscreen
+          ? 'h-screen'
+          : embedded
+            ? 'h-[min(58vh,560px)]'
+            : 'h-[calc(100vh-3.5rem)]',
       )}
     >
       <div
