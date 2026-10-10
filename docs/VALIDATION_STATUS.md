@@ -2,6 +2,8 @@
 
 **Branch:** `cursor/game-experience-cd95` (draft PR #1). Keep `main` stable until merge gates pass.
 
+**Adapter freeze:** Waypoint/SDXL client adapters awaiting Codex patch — see [codex/ADAPTER_FREEZE.md](./codex/ADAPTER_FREEZE.md).
+
 ## Mock vs real
 
 | Track | Status |

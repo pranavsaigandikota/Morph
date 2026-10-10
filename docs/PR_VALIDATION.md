@@ -2,6 +2,10 @@
 
 **PR:** https://github.com/pranavsaigandikota/Morph/pull/1 (draft — **do not merge** until gates below pass)
 
+## Adapter freeze (coordinate with Codex)
+
+See [codex/ADAPTER_FREEZE.md](./codex/ADAPTER_FREEZE.md). **Do not rewrite** stream envelope, scene-generation request body, or health probes until Codex lands its tested patch. Parallel work = Rescue UI + polish only.
+
 ## Blocker: Codex SCENE_API handoff not in workspace
 
 Copy into `docs/codex/` (see [codex/README.md](./codex/README.md)):

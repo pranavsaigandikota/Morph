@@ -6,6 +6,7 @@ import {
   rescueEnvAdapter,
   rescueEnvSourceLabel,
   type RescueMissionState,
+  type RescueMove,
 } from '../services/rescueEnvAdapter'
 import { loadRescuePackage } from '../services/rescueStatic'
 import type { BuildingMap } from '../types/simulation'
@@ -17,6 +18,35 @@ const SCENARIOS = [
     blurb: 'Reach any exit. Walls block. Hazards register hits.',
   },
 ]
+
+function DPad({
+  disabled,
+  onMove,
+}: {
+  disabled: boolean
+  onMove: (m: RescueMove) => void
+}) {
+  const btn =
+    'grid h-11 w-11 place-items-center rounded-xl border border-line bg-elevated text-sm font-bold text-bright transition hover:border-signal/50 disabled:opacity-35'
+  return (
+    <div className="grid grid-cols-3 gap-1.5 place-items-center" aria-label="On-screen movement">
+      <span />
+      <button type="button" className={btn} disabled={disabled} onClick={() => onMove('N')}>
+        ↑
+      </button>
+      <span />
+      <button type="button" className={btn} disabled={disabled} onClick={() => onMove('W')}>
+        ←
+      </button>
+      <button type="button" className={btn} disabled={disabled} onClick={() => onMove('S')}>
+        ↓
+      </button>
+      <button type="button" className={btn} disabled={disabled} onClick={() => onMove('E')}>
+        →
+      </button>
+    </div>
+  )
+}
 
 export function RescueMissionPage() {
   const [map, setMap] = useState<BuildingMap | null>(null)
@@ -51,6 +81,13 @@ export function RescueMissionPage() {
     [map],
   )
 
+  const applyMove = (move: RescueMove) => {
+    setMission((m) => {
+      if (!m || m.status === 'success' || m.status === 'failed') return m
+      return rescueEnvAdapter.step(m, move)
+    })
+  }
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.repeat) return
@@ -58,10 +95,7 @@ export function RescueMissionPage() {
       const move = rescueEnvAdapter.keyToMove(e.code)
       if (!move) return
       e.preventDefault()
-      setMission((m) => {
-        if (!m || m.status === 'success' || m.status === 'failed') return m
-        return rescueEnvAdapter.step(m, move)
-      })
+      applyMove(move)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -87,11 +121,12 @@ export function RescueMissionPage() {
 
   if (!map || !mission) {
     return (
-      <div className="grid min-h-[50vh] place-items-center text-soft">
-        Loading facility map…
-      </div>
+      <div className="grid min-h-[50vh] place-items-center text-soft">Loading facility map…</div>
     )
   }
+
+  const ended = mission.status === 'success' || mission.status === 'failed'
+  const playDisabled = ended
 
   return (
     <div className="relative min-h-[calc(100vh-3.5rem)]">
@@ -111,12 +146,20 @@ export function RescueMissionPage() {
             </p>
             <p className="mt-1 text-xs text-muted">{rescueEnvSourceLabel()}</p>
           </div>
-          <Link
-            to="/simulation"
-            className="rounded-xl border border-line bg-panel px-4 py-2 text-sm font-semibold text-signal hover:border-signal/40"
-          >
-            Compare AI agents →
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to="/agents"
+              className="rounded-xl border border-aurora/40 bg-panel px-4 py-2 text-sm font-semibold text-aurora hover:border-aurora/70"
+            >
+              AI Showdown →
+            </Link>
+            <Link
+              to="/simulation"
+              className="rounded-xl border border-line bg-panel px-4 py-2 text-sm font-semibold text-signal hover:border-signal/40"
+            >
+              Recorded replays →
+            </Link>
+          </div>
         </div>
 
         <div className="mt-6 flex flex-wrap gap-2">
@@ -136,8 +179,30 @@ export function RescueMissionPage() {
           ))}
         </div>
 
-        <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_280px]">
-          <div className="h-[min(70vh,640px)] min-h-[360px]">
+        {ended && (
+          <div
+            className={`animate-fade-up mt-5 rounded-2xl border px-4 py-3 text-sm ${
+              mission.status === 'success'
+                ? 'border-ok/40 bg-ok/10 text-ok'
+                : 'border-danger/40 bg-danger/10 text-danger'
+            }`}
+          >
+            <p className="font-display text-lg font-bold">
+              {mission.status === 'success' ? 'Mission complete' : 'Mission failed'}
+            </p>
+            <p className="mt-1 text-bright/90">{mission.message}</p>
+            <p className="mt-1 text-xs text-muted">
+              Steps {mission.step} · collisions {mission.collisions} · hazard hits{' '}
+              {mission.hazardHits}
+              {showAstar
+                ? ` · A* optimum ${astar.length ? astar.length - 1 : '—'} steps`
+                : ' · compare with A* below'}
+            </p>
+          </div>
+        )}
+
+        <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_300px]">
+          <div className="relative h-[min(70vh,640px)] min-h-[360px]">
             <RescueScene
               map={map}
               agent={mission.agent}
@@ -145,6 +210,16 @@ export function RescueMissionPage() {
               comparePath={showAstar ? astar : undefined}
               interactiveCamera
             />
+            <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-line/80 bg-ink/75 px-2.5 py-1.5 text-[10px] uppercase tracking-wider text-soft backdrop-blur">
+              <span className="mr-3 inline-flex items-center gap-1.5">
+                <span className="h-1.5 w-4 rounded-full bg-signal" /> Your path
+              </span>
+              {showAstar && (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-1.5 w-4 rounded-full bg-hazard" /> A*
+                </span>
+              )}
+            </div>
           </div>
 
           <aside className="space-y-4">
@@ -181,9 +256,15 @@ export function RescueMissionPage() {
                 </div>
               </dl>
               <p className="mt-3 text-xs text-soft">{mission.message}</p>
-              <p className="mt-3 rounded-lg border border-line bg-ink/60 px-3 py-2 text-[11px] text-muted">
-                Controls: <kbd className="text-signal">WASD</kbd> or arrow keys · isometric orbit
-                with mouse drag
+            </div>
+
+            <div className="ws-panel rounded-2xl p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">
+                Move
+              </p>
+              <DPad disabled={playDisabled} onMove={applyMove} />
+              <p className="mt-3 text-[11px] text-muted">
+                Also <kbd className="text-signal">WASD</kbd> / arrows · drag orbit on the map
               </p>
             </div>
 
@@ -197,7 +278,7 @@ export function RescueMissionPage() {
               </button>
               <button
                 type="button"
-                disabled={mission.status !== 'success' && mission.status !== 'failed'}
+                disabled={!ended}
                 onClick={() => setShowAstar(true)}
                 className="rounded-xl border border-hazard/40 bg-hazard/10 px-4 py-2.5 text-sm font-bold text-hazard disabled:opacity-40"
               >
@@ -205,8 +286,8 @@ export function RescueMissionPage() {
               </button>
               {showAstar && (
                 <p className="text-xs text-muted">
-                  Teal = your path · Amber = shortest A* ({astar.length ? astar.length - 1 : '—'}{' '}
-                  steps). You used {mission.step} steps.
+                  Teal = your path · Amber = shortest A* (
+                  {astar.length ? astar.length - 1 : '—'} steps). You used {mission.step} steps.
                 </p>
               )}
             </div>
